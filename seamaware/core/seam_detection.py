@@ -8,7 +8,7 @@ The key insight: Seams manifest as spikes in the roughness function R(τ),
 where R(τ) = Var(residuals in window around τ).
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import numpy as np
 from scipy import signal as scipy_signal

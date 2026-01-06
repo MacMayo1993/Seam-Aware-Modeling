@@ -60,7 +60,8 @@ def validate_signal(
             signal = signal.ravel()
         else:
             raise ValidationError(
-                f"{name}: Multi-dimensional input not supported, got shape {signal.shape}"
+                f"{name}: Multi-dimensional input not supported, got shape "
+                f"{signal.shape}"
             )
 
     # Check length
@@ -124,7 +125,8 @@ def validate_seam_position(
         )
     if position >= signal_length - min_segment:
         raise ValidationError(
-            f"Seam position {position} too close to end (signal_length={signal_length}, min_segment={min_segment})"
+            f"Seam position {position} too close to end "
+            f"(signal_length={signal_length}, min_segment={min_segment})"
         )
 
     return position

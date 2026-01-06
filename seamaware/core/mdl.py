@@ -9,8 +9,6 @@ where L denotes description length in bits.
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Literal, Optional
-
 import numpy as np
 
 

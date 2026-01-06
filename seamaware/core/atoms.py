@@ -7,8 +7,6 @@ Auxiliary transforms may not be involutions but expose hidden structure.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
-
 import numpy as np
 
 
@@ -242,7 +240,8 @@ class PolynomialDetrendAtom(FlipAtom):
 
         if seam_position < 1 or seam_position >= n - self.degree - 1:
             raise ValueError(
-                f"seam_position {seam_position} leaves insufficient points for degree {self.degree}"
+                f"seam_position {seam_position} leaves insufficient points for degree "
+                f"{self.degree}"
             )
 
         # Fit polynomial to segment after seam

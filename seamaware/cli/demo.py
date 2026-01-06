@@ -1,10 +1,8 @@
 """Interactive CLI demo for SeamAware framework."""
 
 import numpy as np
-from scipy.ndimage import gaussian_filter1d
 
 from seamaware.core.flip_atoms import SignFlipAtom
-from seamaware.core.seam_detection import detect_seams_roughness
 from seamaware.models.baselines import FourierBaseline
 
 
@@ -90,7 +88,8 @@ def main():
     print(f"Baseline MDL:    {mdl_baseline:.2f} bits")
     print(f"SeamAware MDL:   {mdl_seamaware:.2f} bits")
     print(
-        f"MDL Reduction:   {mdl_reduction:.2f} bits ({pct_improvement:.1f}% improvement)"
+        f"MDL Reduction:   {mdl_reduction:.2f} bits "
+        f"({pct_improvement:.1f}% improvement)"
     )
     print()
 
