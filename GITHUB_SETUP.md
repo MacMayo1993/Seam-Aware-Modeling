@@ -32,6 +32,8 @@ This document contains instructions for setting up GitHub-specific features for 
 
 **GitHub allows up to 20 topics maximum**. Start with core topics and add others as needed.
 
+**Verification**: After adding topics, search GitHub for `time-series mdl` or `information-theory seam-detection` to confirm your repository appears in results.
+
 ## 2. Repository Description
 
 In the same "About" section, update the description to:
@@ -120,16 +122,40 @@ Don't forget to star your own repository! It helps with discovery and shows conf
 
 ## Verification Checklist
 
-After completing these steps, verify:
+After completing these steps, verify each item and check off:
 
-- [ ] Topics added (at least 6 core topics)
-- [ ] Repository description updated
-- [ ] Social preview image uploaded (if created)
-- [ ] Repository pinned to profile
-- [ ] Release v0.1.0 created and published
-- [ ] Discussions enabled (optional)
-- [ ] GitHub Pages configured (optional)
-- [ ] Repository starred
+- [ ] **Topics added** (at least 6 core topics)
+  - Test: Search GitHub for `time-series mdl` - your repo should appear
+  - Test: Visit https://github.com/topics/time-series-analysis - look for your repo
+
+- [ ] **Repository description updated**
+  - Test: Check that description appears in search results
+  - Test: Visit repo homepage and confirm description is visible
+
+- [ ] **Social preview image uploaded** (if created)
+  - Test: Share repo link on X/LinkedIn and verify image appears
+  - Test: Visit repo settings → Social preview to confirm upload
+
+- [ ] **Repository pinned to profile**
+  - Test: Visit https://github.com/MacMayo1993 and verify repo is pinned
+  - Test: Confirm repo appears in top 6 repositories on profile
+
+- [ ] **Release v0.1.0 created and published**
+  - Test: Visit https://github.com/MacMayo1993/Seam-Aware-Modeling/releases
+  - Test: Confirm tag appears: `git tag -l` shows v0.1.0
+  - Test: Install from release: `pip install git+https://github.com/MacMayo1993/Seam-Aware-Modeling@v0.1.0`
+
+- [ ] **Discussions enabled** (optional)
+  - Test: Visit repo → Discussions tab should be visible
+  - Test: Create a welcome post and verify it appears
+
+- [ ] **GitHub Pages configured** (optional)
+  - Test: Visit https://macmayo1993.github.io/Seam-Aware-Modeling/
+  - Test: Confirm documentation renders correctly
+
+- [ ] **Repository starred**
+  - Test: Check star count > 0
+  - Test: Verify you see "Starred" button (not "Star")
 
 ---
 
