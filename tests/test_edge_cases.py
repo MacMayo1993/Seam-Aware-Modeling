@@ -5,10 +5,15 @@ Run with: pytest tests/test_edge_cases.py -v
 """
 import numpy as np
 import pytest
-from seamaware.core.validation import validate_signal, validate_seam_position, ValidationError
-from seamaware.core.mdl import compute_mdl, LikelihoodType, MDLResult
+
 from seamaware.core.atoms import SignFlipAtom, TimeReversalAtom, get_atom
 from seamaware.core.detection import detect_seam, detect_seam_cusum
+from seamaware.core.mdl import LikelihoodType, MDLResult, compute_mdl
+from seamaware.core.validation import (
+    ValidationError,
+    validate_seam_position,
+    validate_signal,
+)
 
 
 class TestValidation:
@@ -97,18 +102,24 @@ class TestMDL:
         """Laplace likelihood for heavy tails."""
         data = np.random.standard_cauchy(100)  # Heavy tailed
         pred = np.zeros(100)
-        result = compute_mdl(data, pred, num_params=0, likelihood=LikelihoodType.LAPLACE)
+        result = compute_mdl(
+            data, pred, num_params=0, likelihood=LikelihoodType.LAPLACE
+        )
         assert result.likelihood_type == "laplace"
 
     def test_mismatched_shapes(self):
         with pytest.raises(ValueError, match="Shape mismatch"):
-            compute_mdl(np.array([1, 2, 3]), np.array([1, 2]), num_params=1)
+            compute_mdl(
+                np.array([1, 2, 3]), np.array([1, 2]), num_params=1
+            )
 
 
 class TestFlipAtoms:
     """Test flip atom involution properties."""
 
-    @pytest.mark.parametrize("atom_name", ["sign_flip", "time_reversal", "sign_time_reversal"])
+    @pytest.mark.parametrize(
+        "atom_name", ["sign_flip", "time_reversal", "sign_time_reversal"]
+    )
     def test_involution_property(self, atom_name):
         """True involutions satisfy F(F(x)) = x."""
         atom = get_atom(atom_name)

@@ -3,14 +3,20 @@ MASS Framework: Multi-scale Antipodal Seam Search
 
 The main entry point for seam-aware modeling.
 """
-import numpy as np
-from typing import Optional, List, Dict, Any
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from .core.validation import validate_signal, validate_seam_position
-from .core.detection import detect_seam, SeamDetectionResult
-from .core.atoms import FlipAtom, SignFlipAtom, get_atom, INVOLUTION_ATOMS
-from .core.mdl import compute_mdl, MDLResult, LikelihoodType, mdl_improvement
+import numpy as np
+
+from .core.atoms import INVOLUTION_ATOMS, FlipAtom, SignFlipAtom, get_atom
+from .core.detection import SeamDetectionResult, detect_seam
+from .core.mdl import (
+    LikelihoodType,
+    MDLResult,
+    compute_mdl,
+    mdl_improvement,
+)
+from .core.validation import validate_seam_position, validate_signal
 from .models.baselines import FourierBaseline
 
 

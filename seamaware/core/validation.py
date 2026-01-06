@@ -1,8 +1,9 @@
 """
 Input validation and edge case handling.
 """
+from typing import Optional, Tuple, Union
+
 import numpy as np
-from typing import Optional, Union, Tuple
 
 
 class ValidationError(ValueError):

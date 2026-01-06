@@ -1,9 +1,10 @@
 """
 Seam detection using robust statistical methods.
 """
-import numpy as np
-from typing import Optional, Tuple, List
 from dataclasses import dataclass
+from typing import List, Optional, Tuple
+
+import numpy as np
 
 
 @dataclass

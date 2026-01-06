@@ -4,10 +4,11 @@ Flip atoms: transformations that exploit orientation symmetry.
 True ℤ₂ involutions satisfy F(F(x)) = x (applying twice gives identity).
 Auxiliary transforms may not be involutions but expose hidden structure.
 """
-import numpy as np
 from abc import ABC, abstractmethod
-from typing import Optional
 from dataclasses import dataclass
+from typing import Optional
+
+import numpy as np
 
 
 @dataclass

@@ -6,10 +6,11 @@ The MDL principle states that the best model minimizes:
 
 where L denotes description length in bits.
 """
-import numpy as np
-from typing import Optional, Callable, Literal
 from dataclasses import dataclass
 from enum import Enum
+from typing import Callable, Literal, Optional
+
+import numpy as np
 
 
 class LikelihoodType(Enum):
@@ -220,6 +221,72 @@ def mdl_improvement(
 
 
 # Legacy compatibility functions
+def compute_bic(
+    data: np.ndarray, prediction: np.ndarray, num_params: int
+) -> float:
+    """
+    Compute Bayesian Information Criterion (BIC) for comparison.
+
+    BIC is closely related to MDL but uses different parameter penalty:
+        BIC = -2·ln(L) + k·ln(N)
+
+    Converting to bits (divide by ln(2)):
+        BIC_bits = N·log₂(σ²) + k·log₂(N)
+
+    Args:
+        data: Observed signal
+        prediction: Model prediction
+        num_params: Number of parameters
+
+    Returns:
+        BIC in bits (for consistency with MDL)
+
+    Note:
+        BIC and MDL differ in constant factors but have same asymptotic
+        behavior.
+    """
+    n = len(data)
+    residuals = data - prediction
+    sigma2 = np.var(residuals) + 1e-10
+
+    # BIC in bits
+    bic = (n / 2) * np.log2(sigma2) + num_params * np.log2(n)
+
+    return bic
+
+
+def compute_aic(
+    data: np.ndarray, prediction: np.ndarray, num_params: int
+) -> float:
+    """
+    Compute Akaike Information Criterion (AIC) for comparison.
+
+    AIC = -2·ln(L) + 2k
+
+    Converting to bits:
+        AIC_bits = N·log₂(σ²) + 2k/ln(2)
+
+    Args:
+        data: Observed signal
+        prediction: Model prediction
+        num_params: Number of parameters
+
+    Returns:
+        AIC in bits
+
+    Note:
+        AIC penalizes parameters less than MDL/BIC, often overfitting.
+    """
+    n = len(data)
+    residuals = data - prediction
+    sigma2 = np.var(residuals) + 1e-10
+
+    # AIC in bits
+    aic = (n / 2) * np.log2(sigma2) + (2 * num_params) / np.log(2)
+
+    return aic
+
+
 def delta_mdl(mdl_baseline: float, mdl_seam: float) -> float:
     """
     Compute MDL improvement (negative = better).
