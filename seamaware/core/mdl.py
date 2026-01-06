@@ -36,6 +36,62 @@ class MDLResult:
                 f"data={self.data_bits:.2f}, model={self.model_bits:.2f}, "
                 f"k={self.num_params}, n={self.num_samples})")
 
+    def __float__(self) -> float:
+        """Convert to float for arithmetic operations."""
+        return float(self.total_bits)
+
+    def __add__(self, other):
+        """Add MDLResult to number."""
+        if isinstance(other, MDLResult):
+            return self.total_bits + other.total_bits
+        return self.total_bits + other
+
+    def __radd__(self, other):
+        """Right add for number + MDLResult."""
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        """Subtract number from MDLResult."""
+        if isinstance(other, MDLResult):
+            return self.total_bits - other.total_bits
+        return self.total_bits - other
+
+    def __rsub__(self, other):
+        """Right subtract for number - MDLResult."""
+        if isinstance(other, MDLResult):
+            return other.total_bits - self.total_bits
+        return other - self.total_bits
+
+    def __lt__(self, other):
+        """Less than comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits < other.total_bits
+        return self.total_bits < other
+
+    def __le__(self, other):
+        """Less than or equal comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits <= other.total_bits
+        return self.total_bits <= other
+
+    def __gt__(self, other):
+        """Greater than comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits > other.total_bits
+        return self.total_bits > other
+
+    def __ge__(self, other):
+        """Greater than or equal comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits >= other.total_bits
+        return self.total_bits >= other
+
+    def __eq__(self, other):
+        """Equality comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits == other.total_bits
+        return self.total_bits == other
+
 
 def _gaussian_nll_bits(residuals: np.ndarray) -> float:
     """Negative log-likelihood for Gaussian in bits."""

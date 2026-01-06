@@ -6,7 +6,7 @@ Run with: pytest tests/test_edge_cases.py -v
 import numpy as np
 import pytest
 
-from seamaware.core.atoms import SignFlipAtom, TimeReversalAtom, get_atom
+from seamaware.core.atoms import SignFlipAtom, get_atom
 from seamaware.core.detection import detect_seam_cusum
 from seamaware.core.mdl import LikelihoodType, compute_mdl
 from seamaware.core.validation import (
@@ -20,7 +20,7 @@ class TestValidation:
     """Test input validation."""
 
     def test_empty_signal(self):
-        with pytest.raises(ValidationError, match="Empty"):
+        with pytest.raises(ValidationError, match="Length 0"):
             validate_signal(np.array([]))
 
     def test_scalar_signal(self):

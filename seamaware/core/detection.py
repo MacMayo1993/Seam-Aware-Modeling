@@ -86,12 +86,17 @@ def detect_seam_cusum(
     if not candidates:
         # No significant change point found
         # Return the maximum anyway with low confidence
-        best_idx = np.argmax(cusum_range[min_segment_length:n-min_segment_length]) + min_segment_length
+        valid_range = cusum_range[min_segment_length:n-min_segment_length]
+        if len(valid_range) == 0:
+            # Signal too short, return midpoint
+            best_idx = n // 2
+        else:
+            best_idx = np.argmax(valid_range) + min_segment_length
         return SeamDetectionResult(
             position=best_idx,
             confidence=0.0,
             method="cusum",
-            all_candidates=[(best_idx, cusum_range[best_idx])]
+            all_candidates=[(best_idx, cusum_range[best_idx] if best_idx < len(cusum_range) else 0.0)]
         )
 
     best_pos, best_score = candidates[0]

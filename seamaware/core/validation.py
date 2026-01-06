@@ -120,7 +120,7 @@ def validate_seam_position(
         raise ValidationError(
             f"Seam position {position} too close to start (min_segment={min_segment})"
         )
-    if position > signal_length - min_segment:
+    if position >= signal_length - min_segment:
         raise ValidationError(
             f"Seam position {position} too close to end (signal_length={signal_length}, min_segment={min_segment})"
         )
