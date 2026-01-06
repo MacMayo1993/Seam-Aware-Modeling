@@ -2,7 +2,9 @@
 
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
-from seamaware.core import SignFlipAtom, detect_seams_roughness
+
+from seamaware.core.flip_atoms import SignFlipAtom
+from seamaware.core.seam_detection import detect_seams_roughness
 from seamaware.models.baselines import FourierBaseline
 
 

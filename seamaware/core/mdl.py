@@ -287,6 +287,55 @@ def compute_aic(
     return aic
 
 
+def residual_variance(data: np.ndarray, prediction: np.ndarray) -> float:
+    """
+    Compute residual variance σ².
+
+    Args:
+        data: Observed signal
+        prediction: Model prediction
+
+    Returns:
+        Variance of residuals
+    """
+    residuals = data - prediction
+    return float(np.var(residuals))
+
+
+def effective_snr(
+    data: np.ndarray, prediction_baseline: np.ndarray, prediction_seam: np.ndarray
+) -> float:
+    """
+    Compute effective SNR from variance reduction.
+
+    SNR_eff = (σ²_baseline - σ²_seam) / σ²_seam
+
+    This is the signal-to-noise ratio that justifies the seam.
+
+    Args:
+        data: Observed signal
+        prediction_baseline: Baseline prediction (no seam)
+        prediction_seam: Seam-aware prediction
+
+    Returns:
+        Effective SNR (compare to k* ≈ 0.721)
+
+    Examples:
+        >>> # If SNR > k*, seam is justified
+        >>> k_star = 1.0 / (2.0 * np.log(2))
+        >>> snr = effective_snr(data, baseline_pred, seam_pred)
+        >>> accept_seam = (snr > k_star)
+    """
+    sigma2_baseline = residual_variance(data, prediction_baseline)
+    sigma2_seam = residual_variance(data, prediction_seam)
+
+    if sigma2_seam == 0:
+        return np.inf
+
+    snr_eff = (sigma2_baseline - sigma2_seam) / sigma2_seam
+    return max(0.0, snr_eff)  # SNR cannot be negative
+
+
 def delta_mdl(mdl_baseline: float, mdl_seam: float) -> float:
     """
     Compute MDL improvement (negative = better).

@@ -20,39 +20,39 @@ from .mass import MASSFramework, MASSResult
 
 # MDL computation
 from .core.mdl import (
-    compute_mdl,
-    MDLResult,
     LikelihoodType,
+    MDLResult,
     compute_k_star,
+    compute_mdl,
     mdl_improvement,
 )
 
 # Detection
 from .core.detection import (
+    SeamDetectionResult,
     detect_seam,
     detect_seam_cusum,
     detect_seam_roughness,
-    SeamDetectionResult,
 )
 
 # Flip atoms
 from .core.atoms import (
-    FlipAtom,
-    SignFlipAtom,
-    TimeReversalAtom,
-    SignTimeReversalAtom,
-    VarianceScaleAtom,
-    PolynomialDetrendAtom,
-    get_atom,
-    INVOLUTION_ATOMS,
     AUXILIARY_ATOMS,
+    INVOLUTION_ATOMS,
+    FlipAtom,
+    PolynomialDetrendAtom,
+    SignFlipAtom,
+    SignTimeReversalAtom,
+    TimeReversalAtom,
+    VarianceScaleAtom,
+    get_atom,
 )
 
 # Validation
 from .core.validation import (
-    validate_signal,
-    validate_seam_position,
     ValidationError,
+    validate_seam_position,
+    validate_signal,
 )
 
 # Baseline models
@@ -65,20 +65,17 @@ __all__ = [
     # Main API
     "MASSFramework",
     "MASSResult",
-
     # MDL
     "compute_mdl",
     "MDLResult",
     "LikelihoodType",
     "compute_k_star",
     "mdl_improvement",
-
     # Detection
     "detect_seam",
     "detect_seam_cusum",
     "detect_seam_roughness",
     "SeamDetectionResult",
-
     # Atoms
     "FlipAtom",
     "SignFlipAtom",
@@ -89,15 +86,12 @@ __all__ = [
     "get_atom",
     "INVOLUTION_ATOMS",
     "AUXILIARY_ATOMS",
-
     # Validation
     "validate_signal",
     "validate_seam_position",
     "ValidationError",
-
     # Models
     "FourierBaseline",
-
     # Constants
     "K_STAR",
 ]

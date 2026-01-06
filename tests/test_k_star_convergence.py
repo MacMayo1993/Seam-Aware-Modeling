@@ -100,10 +100,13 @@ def test_k_star_multiple_signal_lengths():
     # Check average is within 30% of k* (relaxed for small trial count)
     if len(crossovers) > 0:
         avg_crossover = np.mean(crossovers)
-        relative_error = abs(avg_crossover - k_star_theoretical) / k_star_theoretical
-        assert (
-            relative_error < 0.35
-        ), f"Average crossover {avg_crossover:.3f} differs from k* by {relative_error*100:.1f}%"
+        relative_error = (
+            abs(avg_crossover - k_star_theoretical) / k_star_theoretical
+        )
+        assert relative_error < 0.35, (
+            f"Average crossover {avg_crossover:.3f} differs from k* "
+            f"by {relative_error*100:.1f}%"
+        )
 
 
 def test_accept_fraction_monotonic():
@@ -209,9 +212,10 @@ def test_delta_mdl_sign_consistency():
 
         # Weak assertion: ΔMDL should generally trend downward
         # Allow large tolerance for statistical noise
-        assert (
-            mean_delta_above < mean_delta_below + 20
-        ), f"ΔMDL should trend downward: below={mean_delta_below:.1f}, above={mean_delta_above:.1f}"
+        assert mean_delta_above < mean_delta_below + 20, (
+            f"ΔMDL should trend downward: below={mean_delta_below:.1f}, "
+            f"above={mean_delta_above:.1f}"
+        )
 
 
 if __name__ == "__main__":

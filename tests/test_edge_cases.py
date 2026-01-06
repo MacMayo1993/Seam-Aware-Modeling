@@ -7,8 +7,8 @@ import numpy as np
 import pytest
 
 from seamaware.core.atoms import SignFlipAtom, TimeReversalAtom, get_atom
-from seamaware.core.detection import detect_seam, detect_seam_cusum
-from seamaware.core.mdl import LikelihoodType, MDLResult, compute_mdl
+from seamaware.core.detection import detect_seam_cusum
+from seamaware.core.mdl import LikelihoodType, compute_mdl
 from seamaware.core.validation import (
     ValidationError,
     validate_seam_position,
