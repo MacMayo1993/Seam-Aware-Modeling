@@ -1,28 +1,103 @@
 """
 SeamAware: Non-Orientable Modeling for Time Series Analysis
 
-A Python package for detecting and exploiting orientation discontinuities
-(seams) in time series data through the lens of quotient space topology.
+Detects and exploits orientation discontinuities (seams) in time series
+data using MDL-justified transformations.
+
+Example
+-------
+>>> from seamaware import MASSFramework
+>>> mass = MASSFramework()
+>>> result = mass.fit(signal)
+>>> print(f"MDL reduction: {result.mdl_reduction_percent:.1f}%")
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Mac Mayo"
-__license__ = "Apache-2.0"
 
-# Import key classes for convenience
-from seamaware.core.flip_atoms import FlipAtom, SignFlipAtom
-from seamaware.core.mdl import compute_mdl, delta_mdl
-from seamaware.core.orientation import OrientationTracker
-from seamaware.models.mass_framework import MASSFramework, MASSResult
-from seamaware.theory.k_star import compute_k_star
+# Core classes (public API)
+from .mass import MASSFramework, MASSResult
+
+# MDL computation
+from .core.mdl import (
+    compute_mdl,
+    MDLResult,
+    LikelihoodType,
+    compute_k_star,
+    mdl_improvement,
+)
+
+# Detection
+from .core.detection import (
+    detect_seam,
+    detect_seam_cusum,
+    detect_seam_roughness,
+    SeamDetectionResult,
+)
+
+# Flip atoms
+from .core.atoms import (
+    FlipAtom,
+    SignFlipAtom,
+    TimeReversalAtom,
+    SignTimeReversalAtom,
+    VarianceScaleAtom,
+    PolynomialDetrendAtom,
+    get_atom,
+    INVOLUTION_ATOMS,
+    AUXILIARY_ATOMS,
+)
+
+# Validation
+from .core.validation import (
+    validate_signal,
+    validate_seam_position,
+    ValidationError,
+)
+
+# Baseline models
+from .models.baselines import FourierBaseline
+
+# Convenient constants
+K_STAR = compute_k_star()  # ≈ 0.7213
 
 __all__ = [
-    "FlipAtom",
-    "SignFlipAtom",
-    "compute_mdl",
-    "delta_mdl",
-    "OrientationTracker",
+    # Main API
     "MASSFramework",
     "MASSResult",
+
+    # MDL
+    "compute_mdl",
+    "MDLResult",
+    "LikelihoodType",
     "compute_k_star",
+    "mdl_improvement",
+
+    # Detection
+    "detect_seam",
+    "detect_seam_cusum",
+    "detect_seam_roughness",
+    "SeamDetectionResult",
+
+    # Atoms
+    "FlipAtom",
+    "SignFlipAtom",
+    "TimeReversalAtom",
+    "SignTimeReversalAtom",
+    "VarianceScaleAtom",
+    "PolynomialDetrendAtom",
+    "get_atom",
+    "INVOLUTION_ATOMS",
+    "AUXILIARY_ATOMS",
+
+    # Validation
+    "validate_signal",
+    "validate_seam_position",
+    "ValidationError",
+
+    # Models
+    "FourierBaseline",
+
+    # Constants
+    "K_STAR",
 ]

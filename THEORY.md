@@ -1,5 +1,16 @@
 # Mathematical Foundations of Seam-Aware Modeling
 
+## Scope and Assumptions
+
+This document derives the key results under the following assumptions:
+
+1. **Gaussian noise**: Residuals are i.i.d. N(0, σ²)
+2. **Single seam**: One orientation discontinuity per signal
+3. **Known seam position**: Detection error is negligible
+4. **Sufficient samples**: n >> k (number of parameters)
+
+The constant k* = 1/(2·ln 2) ≈ 0.721 emerges from these assumptions. For non-Gaussian noise (Laplace, Cauchy), different thresholds apply—see [seamaware/core/mdl.py](seamaware/core/mdl.py) for implementations.
+
 ## Abstract
 
 We establish the theoretical framework for **seam-aware time series analysis** based on the recognition that certain data structures naturally inhabit **non-orientable quotient spaces** of the form ℂᴺ/ℤ₂ ≅ ℝℙᴺ⁻¹. We prove that the constant k* = 1/(2·ln 2) ≈ 0.721 emerges as an **information-theoretic phase boundary** separating regimes where orientation tracking is justified by MDL reduction.
