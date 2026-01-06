@@ -7,6 +7,7 @@ Auxiliary transforms may not be involutions but expose hidden structure.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+
 import numpy as np
 
 
