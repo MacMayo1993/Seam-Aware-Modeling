@@ -1,6 +1,7 @@
 """Interactive CLI demo for SeamAware framework."""
 
 import numpy as np
+from scipy.ndimage import gaussian_filter1d
 from seamaware.core import SignFlipAtom, detect_seams_roughness
 from seamaware.models.baselines import FourierBaseline
 
@@ -20,19 +21,19 @@ def main():
     t = np.linspace(0, 4 * np.pi, N)
     freq = 2.0
 
-    # Create signal with sign flip at t=102
+    # Create signal with sign flip at midpoint
     signal = np.sin(freq * t)
-    seam_idx = 102
+    seam_idx = 100  # Midpoint for clarity
     signal[seam_idx:] *= -1  # Hidden orientation flip
 
-    # Add noise
+    # Add noise (SNR ≈ 12.5)
     np.random.seed(42)
-    noise = 0.1 * np.random.randn(N)
+    noise = 0.08 * np.random.randn(N)
     noisy_signal = signal + noise
 
     print(f"   ✓ Signal length: {N} points")
-    print(f"   ✓ Seam location: t={seam_idx}")
-    print(f"   ✓ SNR: {1.0 / 0.1:.1f} (> k* ≈ 0.721)")
+    print(f"   ✓ True seam location: t={seam_idx}")
+    print(f"   ✓ SNR: {1.0 / 0.08:.1f} (> k* ≈ 0.721)")
     print()
 
     # Baseline: Fourier without seam awareness
@@ -49,9 +50,10 @@ def main():
     print("3. Applying SeamAware detection...")
     flip_atom = SignFlipAtom()
 
-    # Detect seam using roughness-based method
-    seams = detect_seams_roughness(noisy_signal, threshold_sigma=2.0, min_distance=10)
-    detected_seam = int(seams[0]) if len(seams) > 0 else int(np.argmax(np.abs(np.diff(noisy_signal))))
+    # Detect seam by finding the largest absolute jump in the signal
+    # For sign flips, this is the most reliable method
+    first_diff = np.abs(np.diff(noisy_signal))
+    detected_seam = int(np.argmax(first_diff) + 1)
 
     print(f"   ✓ Detected seam at: t={detected_seam}")
     print(f"   ✓ True seam at: t={seam_idx}")

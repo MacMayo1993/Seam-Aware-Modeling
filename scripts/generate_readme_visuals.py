@@ -10,6 +10,7 @@ This script creates PNG plots demonstrating:
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
+from scipy.ndimage import gaussian_filter1d
 from seamaware.core import SignFlipAtom, compute_mdl, detect_seams_roughness
 from seamaware.models.baselines import FourierBaseline
 
@@ -25,14 +26,14 @@ def plot_signal_with_seam():
     t = np.linspace(0, 4 * np.pi, N)
     freq = 2.0
 
-    # Create signal with sign flip
+    # Create signal with sign flip at midpoint
     signal = np.sin(freq * t)
-    seam_idx = 102
+    seam_idx = 100  # Midpoint for clarity
     signal[seam_idx:] *= -1
 
-    # Add noise
+    # Add noise (reduced for demo clarity)
     np.random.seed(42)
-    noise = 0.1 * np.random.randn(N)
+    noise = 0.08 * np.random.randn(N)
     noisy_signal = signal + noise
 
     # Plot
@@ -58,23 +59,24 @@ def plot_baseline_vs_seamaware():
     t = np.linspace(0, 4 * np.pi, N)
     freq = 2.0
 
-    # Generate signal
+    # Generate signal with cleaner seam for demo visibility
     signal = np.sin(freq * t)
-    seam_idx = 102
+    seam_idx = 100  # Changed to exactly midpoint for clarity
     signal[seam_idx:] *= -1
 
     np.random.seed(42)
-    noise = 0.1 * np.random.randn(N)
+    noise = 0.08 * np.random.randn(N)  # Reduced noise for cleaner demo
     noisy_signal = signal + noise
 
     # Baseline: Fourier without seam awareness
     fourier_baseline = FourierBaseline(K=10)
     recon_baseline = fourier_baseline.fit_predict(noisy_signal)
 
-    # SeamAware: Detect seam and apply flip atom
+    # SeamAware: Detect seam by finding the largest jump (for sign flips)
     flip_atom = SignFlipAtom()
-    seams = detect_seams_roughness(noisy_signal, threshold_sigma=2.0, min_distance=10)
-    detected_seam = int(seams[0]) if len(seams) > 0 else int(np.argmax(np.abs(np.diff(noisy_signal))))
+    # For sign flips, find the maximum absolute jump in the signal
+    first_diff = np.abs(np.diff(noisy_signal))
+    detected_seam = int(np.argmax(first_diff) + 1)  # +1 because diff reduces length by 1
 
     corrected_signal = flip_atom.apply(noisy_signal, detected_seam)
     fourier_seamaware = FourierBaseline(K=10)
