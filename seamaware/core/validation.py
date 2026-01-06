@@ -2,7 +2,7 @@
 Input validation and edge case handling.
 """
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import numpy as np
 

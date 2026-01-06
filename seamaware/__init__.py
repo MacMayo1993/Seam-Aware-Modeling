@@ -15,27 +15,6 @@ Example
 __version__ = "0.2.0"
 __author__ = "Mac Mayo"
 
-# Core classes (public API)
-from .mass import MASSFramework, MASSResult
-
-# MDL computation
-from .core.mdl import (
-    LikelihoodType,
-    MDLResult,
-    compute_k_star,
-    compute_mdl,
-    mdl_improvement,
-)
-
-# Detection
-from .core.detection import (
-    SeamDetectionResult,
-    detect_seam,
-    detect_seam_cusum,
-    detect_seam_roughness,
-)
-
-# Flip atoms
 from .core.atoms import (
     AUXILIARY_ATOMS,
     INVOLUTION_ATOMS,
@@ -47,15 +26,25 @@ from .core.atoms import (
     VarianceScaleAtom,
     get_atom,
 )
-
-# Validation
+from .core.detection import (
+    SeamDetectionResult,
+    detect_seam,
+    detect_seam_cusum,
+    detect_seam_roughness,
+)
+from .core.mdl import (
+    LikelihoodType,
+    MDLResult,
+    compute_k_star,
+    compute_mdl,
+    mdl_improvement,
+)
 from .core.validation import (
     ValidationError,
     validate_seam_position,
     validate_signal,
 )
-
-# Baseline models
+from .mass import MASSFramework, MASSResult
 from .models.baselines import FourierBaseline
 
 # Convenient constants
