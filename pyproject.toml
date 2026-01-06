@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "seamaware"
-version = "0.1.0"
+version = "0.2.0"
 description = "Non-orientable modeling for time series analysis"
 authors = ["Mac Mayo <macmayo1993@gmail.com>"]
 license = "Apache-2.0"

@@ -1,107 +1,229 @@
 """
-Minimum Description Length (MDL) calculations for model selection.
+Minimum Description Length (MDL) computation with pluggable likelihoods.
 
-This module implements Rissanen's MDL principle with proper bit counting,
-forming the foundation for seam-aware model selection.
+The MDL principle states that the best model minimizes:
+    L(model) + L(data | model)
 
-Reference:
-    Rissanen, J. (1978). Modeling by shortest data description.
-    Automatica, 14(5), 465-471.
+where L denotes description length in bits.
 """
-
-from typing import Union
+from dataclasses import dataclass
+from enum import Enum
+from typing import Callable, Literal, Optional
 
 import numpy as np
 
 
-def compute_mdl(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
+class LikelihoodType(Enum):
+    """Supported likelihood models."""
+    GAUSSIAN = "gaussian"
+    LAPLACE = "laplace"  # For heavy-tailed / sparse residuals
+    CAUCHY = "cauchy"    # For very heavy tails
+
+
+@dataclass
+class MDLResult:
+    """Complete MDL computation result."""
+    total_bits: float
+    data_bits: float
+    model_bits: float
+    num_params: int
+    num_samples: int
+    bits_per_sample: float
+    likelihood_type: str
+
+    def __repr__(self) -> str:
+        return (f"MDLResult(total={self.total_bits:.2f} bits, "
+                f"data={self.data_bits:.2f}, model={self.model_bits:.2f}, "
+                f"k={self.num_params}, n={self.num_samples})")
+
+
+def _gaussian_nll_bits(residuals: np.ndarray) -> float:
+    """Negative log-likelihood for Gaussian in bits."""
+    n = len(residuals)
+    variance = np.var(residuals)
+
+    # Handle edge cases
+    if variance < 1e-15:
+        # Near-perfect fit: use minimum representable variance
+        variance = 1e-15
+
+    # NLL = (n/2) * log(2*pi*var) + (1/(2*var)) * sum(residuals^2)
+    # In bits (divide by ln(2)):
+    nll_nats = (n / 2) * np.log(2 * np.pi * variance) + np.sum(residuals**2) / (2 * variance)
+    return nll_nats / np.log(2)
+
+
+def _laplace_nll_bits(residuals: np.ndarray) -> float:
+    """Negative log-likelihood for Laplace (double exponential) in bits."""
+    n = len(residuals)
+    # MLE for Laplace scale parameter
+    b = np.mean(np.abs(residuals))
+    if b < 1e-15:
+        b = 1e-15
+
+    # NLL = n * log(2b) + sum(|residuals|) / b
+    nll_nats = n * np.log(2 * b) + np.sum(np.abs(residuals)) / b
+    return nll_nats / np.log(2)
+
+
+def _cauchy_nll_bits(residuals: np.ndarray) -> float:
+    """Negative log-likelihood for Cauchy in bits (approximate MLE)."""
+    n = len(residuals)
+    # Use median absolute deviation as robust scale estimate
+    gamma = np.median(np.abs(residuals - np.median(residuals))) * 1.4826
+    if gamma < 1e-15:
+        gamma = 1e-15
+
+    # NLL = n * log(pi * gamma) + sum(log(1 + (x/gamma)^2))
+    nll_nats = n * np.log(np.pi * gamma) + np.sum(np.log(1 + (residuals / gamma)**2))
+    return nll_nats / np.log(2)
+
+
+_LIKELIHOOD_FUNCTIONS = {
+    LikelihoodType.GAUSSIAN: _gaussian_nll_bits,
+    LikelihoodType.LAPLACE: _laplace_nll_bits,
+    LikelihoodType.CAUCHY: _cauchy_nll_bits,
+}
+
+
+def compute_mdl(
+    data: np.ndarray,
+    predictions: np.ndarray,
+    num_params: int,
+    likelihood: LikelihoodType = LikelihoodType.GAUSSIAN,
+    param_precision_bits: float = 32.0,
+) -> MDLResult:
     """
-    Compute Minimum Description Length in bits.
+    Compute two-part MDL score.
 
-    The MDL for a model M given data x is:
-        MDL(x | M) = NLL(x | M) + (k/2)·log₂(N)
+    MDL = L(model) + L(data | model)
 
-    where:
-        - NLL = negative log-likelihood (assuming Gaussian noise)
-        - k = number of model parameters
-        - N = sample size
+    Parameters
+    ----------
+    data : np.ndarray
+        Original data (1D)
+    predictions : np.ndarray
+        Model predictions (same shape as data)
+    num_params : int
+        Number of model parameters
+    likelihood : LikelihoodType
+        Likelihood model for residuals
+    param_precision_bits : float
+        Bits per parameter (default 32 for float32)
 
-    Args:
-        data: Observed signal (length N)
-        prediction: Model prediction (same length as data)
-        num_params: Number of model parameters k
+    Returns
+    -------
+    MDLResult
+        Complete MDL breakdown
 
-    Returns:
-        Total description length in bits
-
-    Raises:
-        ValueError: If data and prediction have different lengths
-        ValueError: If data contains non-finite values
-
-    Examples:
-        >>> data = np.sin(np.linspace(0, 2*np.pi, 100))
-        >>> prediction = data + 0.1 * np.random.randn(100)
-        >>> mdl = compute_mdl(data, prediction, num_params=2)
-        >>> mdl > 0
-        True
+    Raises
+    ------
+    ValueError
+        If inputs are invalid
     """
     # Validate inputs
-    if len(data) != len(prediction):
-        raise ValueError(
-            f"Data length ({len(data)}) != prediction length ({len(prediction)})"
-        )
+    data = np.asarray(data, dtype=np.float64).ravel()
+    predictions = np.asarray(predictions, dtype=np.float64).ravel()
 
-    if not np.isfinite(data).all():
-        raise ValueError("Data contains NaN or inf values")
-
-    if not np.isfinite(prediction).all():
-        raise ValueError("Prediction contains NaN or inf values")
+    if len(data) == 0:
+        raise ValueError("Empty data array")
+    if len(data) != len(predictions):
+        raise ValueError(f"Shape mismatch: data={len(data)}, predictions={len(predictions)}")
+    if not np.all(np.isfinite(data)):
+        raise ValueError("Data contains NaN or Inf")
+    if not np.all(np.isfinite(predictions)):
+        raise ValueError("Predictions contain NaN or Inf")
+    if num_params < 0:
+        raise ValueError(f"num_params must be non-negative, got {num_params}")
 
     n = len(data)
-    if n == 0:
-        raise ValueError("Data is empty")
+    residuals = data - predictions
 
-    # Compute residuals and variance
-    residuals = data - prediction
-    sigma2 = np.var(residuals) + 1e-10  # Regularization to avoid log(0)
+    # Model cost: bits to encode parameters
+    # Using refined MDL: k/2 * log2(n) + k * param_precision
+    # The log2(n) term accounts for parameter precision scaling with sample size
+    model_bits = (num_params / 2) * np.log2(n) if n > 1 else 0
+    model_bits += num_params * param_precision_bits
 
-    # Negative log-likelihood (Gaussian assumption)
-    # For Gaussian: -log₂ p(x | μ, σ²) = (1/2)·log₂(2πeσ²) + (x-μ)²/(2σ²·ln(2))
-    # Summing over all samples:
-    nll = (n / 2) * np.log2(2 * np.pi * np.e * sigma2)
+    # Data cost: negative log-likelihood in bits
+    nll_func = _LIKELIHOOD_FUNCTIONS[likelihood]
+    data_bits = nll_func(residuals)
 
-    # Parameter cost (Rissanen's normalized maximum likelihood)
-    # The cost to encode k parameters with precision log₂(N)
-    param_cost = (num_params / 2) * np.log2(n) if n > 1 else 0.0
+    total_bits = model_bits + data_bits
 
-    mdl = nll + param_cost
+    return MDLResult(
+        total_bits=total_bits,
+        data_bits=data_bits,
+        model_bits=model_bits,
+        num_params=num_params,
+        num_samples=n,
+        bits_per_sample=total_bits / n,
+        likelihood_type=likelihood.value
+    )
 
-    return mdl
 
-
-def delta_mdl(mdl_baseline: float, mdl_seam: float) -> float:
+def compute_k_star(likelihood: LikelihoodType = LikelihoodType.GAUSSIAN) -> float:
     """
-    Compute MDL improvement (negative = better).
+    Compute the theoretical k* threshold for seam detection.
 
-    Args:
-        mdl_baseline: MDL without seam
-        mdl_seam: MDL with seam
+    For Gaussian: k* = 1 / (2 * ln(2)) ≈ 0.721
 
-    Returns:
-        ΔMDL = mdl_seam - mdl_baseline
-        Accept seam if ΔMDL < 0
+    This is the SNR threshold above which tracking orientation
+    (1 bit per seam) reduces total MDL.
 
-    Examples:
-        >>> mdl_base = 1000.0
-        >>> mdl_seam = 850.0
-        >>> improvement = delta_mdl(mdl_base, mdl_seam)
-        >>> improvement < 0  # Seam improves model
-        True
+    Parameters
+    ----------
+    likelihood : LikelihoodType
+        Likelihood model (affects threshold)
+
+    Returns
+    -------
+    float
+        k* threshold value
     """
-    return mdl_seam - mdl_baseline
+    if likelihood == LikelihoodType.GAUSSIAN:
+        return 1 / (2 * np.log(2))  # ≈ 0.7213
+    elif likelihood == LikelihoodType.LAPLACE:
+        # For Laplace, threshold is different (derived separately)
+        return 1 / np.log(2)  # ≈ 1.4427
+    elif likelihood == LikelihoodType.CAUCHY:
+        # Cauchy has infinite variance, threshold is approximate
+        return 2.0  # Empirical estimate
+    else:
+        return 1 / (2 * np.log(2))  # Default to Gaussian
 
 
-def compute_bic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
+def mdl_improvement(
+    baseline_mdl: MDLResult,
+    seam_mdl: MDLResult,
+) -> dict:
+    """
+    Compute improvement metrics between baseline and seam-aware MDL.
+
+    Returns
+    -------
+    dict with keys:
+        - absolute_reduction: bits saved
+        - relative_reduction: fraction reduction (0-1)
+        - compression_ratio: baseline/seam ratio
+        - effective: bool, whether seam model is better
+    """
+    abs_reduction = baseline_mdl.total_bits - seam_mdl.total_bits
+    rel_reduction = abs_reduction / baseline_mdl.total_bits if baseline_mdl.total_bits > 0 else 0
+    ratio = baseline_mdl.total_bits / seam_mdl.total_bits if seam_mdl.total_bits > 0 else float('inf')
+
+    return {
+        "absolute_reduction": abs_reduction,
+        "relative_reduction": rel_reduction,
+        "compression_ratio": ratio,
+        "effective": abs_reduction > 0
+    }
+
+
+# Legacy compatibility functions
+def compute_bic(
+    data: np.ndarray, prediction: np.ndarray, num_params: int
+) -> float:
     """
     Compute Bayesian Information Criterion (BIC) for comparison.
 
@@ -120,7 +242,8 @@ def compute_bic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> fl
         BIC in bits (for consistency with MDL)
 
     Note:
-        BIC and MDL differ in constant factors but have same asymptotic behavior.
+        BIC and MDL differ in constant factors but have same asymptotic
+        behavior.
     """
     n = len(data)
     residuals = data - prediction
@@ -132,7 +255,9 @@ def compute_bic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> fl
     return bic
 
 
-def compute_aic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
+def compute_aic(
+    data: np.ndarray, prediction: np.ndarray, num_params: int
+) -> float:
     """
     Compute Akaike Information Criterion (AIC) for comparison.
 
@@ -162,66 +287,16 @@ def compute_aic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> fl
     return aic
 
 
-def mdl_per_sample(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
+def delta_mdl(mdl_baseline: float, mdl_seam: float) -> float:
     """
-    Compute MDL normalized by sample size (for cross-length comparison).
+    Compute MDL improvement (negative = better).
 
     Args:
-        data: Observed signal
-        prediction: Model prediction
-        num_params: Number of parameters
+        mdl_baseline: MDL without seam
+        mdl_seam: MDL with seam
 
     Returns:
-        MDL / N (bits per sample)
+        ΔMDL = mdl_seam - mdl_baseline
+        Accept seam if ΔMDL < 0
     """
-    mdl = compute_mdl(data, prediction, num_params)
-    return mdl / len(data)
-
-
-def residual_variance(data: np.ndarray, prediction: np.ndarray) -> float:
-    """
-    Compute residual variance σ².
-
-    Args:
-        data: Observed signal
-        prediction: Model prediction
-
-    Returns:
-        Variance of residuals
-    """
-    residuals = data - prediction
-    return float(np.var(residuals))
-
-
-def effective_snr(
-    data: np.ndarray, prediction_baseline: np.ndarray, prediction_seam: np.ndarray
-) -> float:
-    """
-    Compute effective SNR from variance reduction.
-
-    SNR_eff = (σ²_baseline - σ²_seam) / σ²_seam
-
-    This is the signal-to-noise ratio that justifies the seam.
-
-    Args:
-        data: Observed signal
-        prediction_baseline: Baseline prediction (no seam)
-        prediction_seam: Seam-aware prediction
-
-    Returns:
-        Effective SNR (compare to k* ≈ 0.721)
-
-    Examples:
-        >>> # If SNR > k*, seam is justified
-        >>> k_star = 1.0 / (2.0 * np.log(2))
-        >>> snr = effective_snr(data, baseline_pred, seam_pred)
-        >>> accept_seam = (snr > k_star)
-    """
-    sigma2_baseline = residual_variance(data, prediction_baseline)
-    sigma2_seam = residual_variance(data, prediction_seam)
-
-    if sigma2_seam == 0:
-        return np.inf
-
-    snr_eff = (sigma2_baseline - sigma2_seam) / sigma2_seam
-    return max(0.0, snr_eff)  # SNR cannot be negative
+    return mdl_seam - mdl_baseline

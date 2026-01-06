@@ -8,10 +8,10 @@
 
 ## What is SeamAware?
 
-**SeamAware** detects and exploits **orientation discontinuities** (seams) in time series data—structural features that standard methods treat as noise. By recognizing that certain signals naturally inhabit **non-orientable quotient spaces** (ℂᴺ/ℤ₂ ≅ ℝℙᴺ⁻¹), we achieve:
+**SeamAware** detects and exploits **orientation discontinuities** (seams) in time series data—structural features that standard methods treat as noise. By recognizing that certain signals naturally inhabit **non-orientable quotient spaces** (normalized signals on Sⁿ⁻¹/ℤ₂ ≅ ℝPⁿ⁻¹), we achieve:
 
-- **10-170% compression improvement** over standard methods
-- **Provable MDL reduction** via seam-gated transformations
+- **10-63% MDL reduction** over standard baselines (equivalent to 1.1×–2.7× compression ratio improvement)
+- **MDL-justified compression gains** via seam-gated transformations
 - **Robust regime-switching detection** without hidden states
 - **Emergence of k* ≈ 0.721** as universal information-theoretic threshold
 
@@ -23,9 +23,9 @@ Standard methods assume data lives in **orientable spaces** (ℝⁿ or ℂⁿ). 
 Signal + Noise → Detect seam → Apply ℤ₂ quotient → Lower MDL
 ```
 
-At the seam location τ, we apply a **flip atom** (sign inversion, time reversal, variance scaling, or polynomial detrending) that exploits latent antipodal symmetry. The cost of tracking orientation (1 bit per seam) is offset by improved model fit **if and only if** the signal-to-noise ratio exceeds k* ≈ 0.721.
+At the seam location τ, we apply a **flip atom**—a transformation that exploits latent symmetry. Primary atoms are true ℤ₂ involutions: **sign inversion** (x → −x) and **time reversal** (t → −t). Auxiliary atoms like variance scaling and polynomial detrending are preprocessing steps that expose hidden orientation structure. The cost of tracking orientation (1 bit per seam) is offset by improved model fit **when** the signal-to-noise ratio exceeds k* ≈ 0.721 (empirically validated; see [EXPERIMENTAL_VALIDATION.md](EXPERIMENTAL_VALIDATION.md)).
 
-**This constant is not empirical—it emerges from MDL theory.**
+**This constant (k* = 1/(2·ln 2) ≈ 0.721) emerges from MDL theory under Gaussian assumptions—see [THEORY.md](THEORY.md) for the derivation.**
 
 ### Quick Example
 
