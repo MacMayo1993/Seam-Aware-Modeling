@@ -54,6 +54,24 @@ print(f"Seam detected: {result.seam_used}")  # 102 (within 2% of truth)
 print(f"MDL improvement: {(fourier_mdl - result.mdl_score) / fourier_mdl:.1%}")
 ```
 
+### Visualizations
+
+**Hidden seam in time series (sign flip at t=102):**
+
+![Signal with Seam](assets/signal_with_seam.png)
+
+**Baseline vs SeamAware detection and reconstruction:**
+
+![SeamAware Detection](assets/seamaware_detection.png)
+
+*Top: Fourier baseline fails to capture post-seam structure. Bottom: SeamAware detects the orientation flip and achieves excellent reconstruction.*
+
+**MDL Reduction vs SNR: Phase Transition at k* ≈ 0.721**
+
+![MDL Phase Transition](assets/mdl_phase_transition.png)
+
+*Below k* (red region): SeamAware ineffective. Above k* (green region): Significant MDL reduction (16-170%).*
+
 ### Installation
 
 ```bash
@@ -66,6 +84,21 @@ git clone https://github.com/MacMayo1993/Seam-Aware-Modeling.git
 cd Seam-Aware-Modeling
 pip install -e .
 ```
+
+### Getting Started
+
+**Interactive CLI Demo**:
+```bash
+python -m seamaware.cli.demo
+```
+
+**Jupyter Notebook** (recommended for first-time users):
+```bash
+jupyter notebook examples/quick_start.ipynb
+```
+
+**Python Usage**:
+See the "Quick Example" section above or explore the [examples/](examples/) directory for more advanced use cases.
 
 ### Mathematical Foundations
 
