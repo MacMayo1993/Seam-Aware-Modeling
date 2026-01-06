@@ -66,9 +66,11 @@ def detect_seam_cusum(
         # Welch-Satterthwaite style statistic
         cusum_range[i] = abs(mean_right - mean_left) * np.sqrt(n_left * n_right / n)
 
+    signal_std = np.std(signal)
+
     # Find candidates above threshold
     if threshold is None:
-        threshold = np.std(signal) * 1.5
+        threshold = signal_std * 1.5
 
     candidates = []
     for i in range(min_segment_length, n - min_segment_length):
@@ -100,10 +102,13 @@ def detect_seam_cusum(
         )
 
     best_pos, best_score = candidates[0]
-    max_possible_score = np.std(signal) * np.sqrt(n) / 2  # Approximate max
+    max_possible_score = signal_std * np.sqrt(n) / 2  # Approximate max
     confidence = (
         min(1.0, best_score / max_possible_score) if max_possible_score > 0 else 0.0
     )
+    flat_signal_std_threshold = 0.05
+    if signal_std < flat_signal_std_threshold:
+        confidence *= signal_std / flat_signal_std_threshold
 
     return SeamDetectionResult(
         position=best_pos,
