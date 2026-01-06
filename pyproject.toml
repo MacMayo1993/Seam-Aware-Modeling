@@ -1,0 +1,80 @@
+[tool.poetry]
+name = "seamaware"
+version = "0.1.0"
+description = "Non-orientable modeling for time series analysis"
+authors = ["Mac Mayo <macmayo1993@gmail.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+homepage = "https://github.com/MacMayo1993/Seam-Aware-Modeling"
+repository = "https://github.com/MacMayo1993/Seam-Aware-Modeling"
+keywords = ["time-series", "topology", "compression", "mdl", "signal-processing"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.24.0"
+scipy = "^1.10.0"
+matplotlib = "^3.7.0"
+pandas = "^2.0.0"
+statsmodels = "^0.14.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.3.0"
+pytest-cov = "^4.0.0"
+black = "^23.3.0"
+mypy = "^1.2.0"
+jupyter = "^1.0.0"
+ipykernel = "^6.23.0"
+isort = "^5.12.0"
+flake8 = "^6.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --cov=seamaware --cov-report=term-missing --cov-report=html"
+
+[tool.coverage.run]
+source = ["seamaware"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
