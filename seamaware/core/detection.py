@@ -1,6 +1,7 @@
 """
 Seam detection using robust statistical methods.
 """
+
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -10,6 +11,7 @@ import numpy as np
 @dataclass
 class SeamDetectionResult:
     """Result of seam detection."""
+
     position: int
     confidence: float
     method: str
@@ -17,9 +19,7 @@ class SeamDetectionResult:
 
 
 def detect_seam_cusum(
-    signal: np.ndarray,
-    threshold: Optional[float] = None,
-    min_segment_length: int = 10
+    signal: np.ndarray, threshold: Optional[float] = None, min_segment_length: int = 10
 ) -> SeamDetectionResult:
     """
     Detect seam using CUSUM (Cumulative Sum) change-point detection.
@@ -86,30 +86,40 @@ def detect_seam_cusum(
     if not candidates:
         # No significant change point found
         # Return the maximum anyway with low confidence
-        best_idx = np.argmax(cusum_range[min_segment_length:n-min_segment_length]) + min_segment_length
+        valid_range = cusum_range[min_segment_length : n - min_segment_length]
+        if len(valid_range) == 0:
+            # Signal too short, return midpoint
+            best_idx = n // 2
+        else:
+            best_idx = np.argmax(valid_range) + min_segment_length
         return SeamDetectionResult(
             position=best_idx,
             confidence=0.0,
             method="cusum",
-            all_candidates=[(best_idx, cusum_range[best_idx])]
+            all_candidates=[
+                (
+                    best_idx,
+                    cusum_range[best_idx] if best_idx < len(cusum_range) else 0.0,
+                )
+            ],
         )
 
     best_pos, best_score = candidates[0]
     max_possible_score = np.std(signal) * np.sqrt(n) / 2  # Approximate max
-    confidence = min(1.0, best_score / max_possible_score) if max_possible_score > 0 else 0.0
+    confidence = (
+        min(1.0, best_score / max_possible_score) if max_possible_score > 0 else 0.0
+    )
 
     return SeamDetectionResult(
         position=best_pos,
         confidence=confidence,
         method="cusum",
-        all_candidates=candidates[:5]  # Top 5 candidates
+        all_candidates=candidates[:5],  # Top 5 candidates
     )
 
 
 def detect_seam_roughness(
-    signal: np.ndarray,
-    window_size: int = 5,
-    min_segment_length: int = 10
+    signal: np.ndarray, window_size: int = 5, min_segment_length: int = 10
 ) -> SeamDetectionResult:
     """
     Detect seam using local roughness (rolling variance of differences).
@@ -165,10 +175,7 @@ def detect_seam_roughness(
 
     if not candidates:
         return SeamDetectionResult(
-            position=n // 2,
-            confidence=0.0,
-            method="roughness",
-            all_candidates=[]
+            position=n // 2, confidence=0.0, method="roughness", all_candidates=[]
         )
 
     best_pos, best_score = candidates[0]
@@ -179,14 +186,12 @@ def detect_seam_roughness(
         position=best_pos,
         confidence=confidence,
         method="roughness",
-        all_candidates=candidates[:5]
+        all_candidates=candidates[:5],
     )
 
 
 def detect_seam(
-    signal: np.ndarray,
-    method: str = "cusum",
-    **kwargs
+    signal: np.ndarray, method: str = "cusum", **kwargs
 ) -> SeamDetectionResult:
     """
     Main seam detection entry point.
@@ -211,11 +216,15 @@ def detect_seam(
 
     if method == "ensemble":
         # Run both methods, take highest confidence
-        results = [detect_seam_cusum(signal, **kwargs),
-                   detect_seam_roughness(signal, **kwargs)]
+        results = [
+            detect_seam_cusum(signal, **kwargs),
+            detect_seam_roughness(signal, **kwargs),
+        ]
         return max(results, key=lambda r: r.confidence)
 
     if method not in methods:
-        raise ValueError(f"Unknown method: {method}. Choose from {list(methods.keys())}")
+        raise ValueError(
+            f"Unknown method: {method}. Choose from {list(methods.keys())}"
+        )
 
     return methods[method](signal, **kwargs)

@@ -3,26 +3,28 @@ MASS Framework: Multi-scale Antipodal Seam Search
 
 The main entry point for seam-aware modeling.
 """
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from .core.atoms import INVOLUTION_ATOMS, FlipAtom, SignFlipAtom, get_atom
-from .core.detection import SeamDetectionResult, detect_seam
+from .core.atoms import get_atom
+from .core.detection import detect_seam
 from .core.mdl import (
     LikelihoodType,
     MDLResult,
     compute_mdl,
     mdl_improvement,
 )
-from .core.validation import validate_seam_position, validate_signal
+from .core.validation import validate_signal
 from .models.baselines import FourierBaseline
 
 
 @dataclass
 class MASSResult:
     """Complete result from MASS framework."""
+
     # MDL scores
     baseline_mdl: MDLResult
     seam_mdl: MDLResult
@@ -95,7 +97,7 @@ class MASSFramework:
         min_confidence: float = 0.3,
     ):
         self.baseline_type = baseline
-        self.baseline_params = baseline_params or {"K": 10}
+        self.baseline_params = baseline_params or {"K": 3}
         self.detection_method = detection_method
         self.atoms = atoms or ["sign_flip"]
         self.likelihood = LikelihoodType(likelihood)
@@ -117,7 +119,7 @@ class MASSFramework:
         signal_power = np.var(prediction)
         noise_power = np.var(signal - prediction)
         if noise_power < 1e-15:
-            return float('inf')
+            return float("inf")
         return np.sqrt(signal_power / noise_power)
 
     def fit(self, signal: np.ndarray) -> MASSResult:
@@ -136,15 +138,12 @@ class MASSFramework:
         """
         # Validate input
         signal = validate_signal(signal, min_length=20)
-        n = len(signal)
 
         # Fit baseline model
         baseline = self._get_baseline()
         baseline_pred = baseline.fit_predict(signal)
         baseline_mdl = compute_mdl(
-            signal, baseline_pred,
-            baseline.num_params(),
-            likelihood=self.likelihood
+            signal, baseline_pred, baseline.num_params(), likelihood=self.likelihood
         )
 
         # Detect seam
@@ -171,38 +170,48 @@ class MASSFramework:
                 above_k_star=False,
             )
 
-        # Try each atom and keep best
+        # Try each atom at each candidate position and keep best
         best_mdl = baseline_mdl
         best_atom = None
         best_corrected = signal
         best_pred = baseline_pred
+        best_position = None
 
-        for atom_name in self.atoms:
-            atom = get_atom(atom_name)
+        # Use a grid search over positions to be robust to detection errors
+        # Try every 5th position (more robust than relying only on detection)
+        n = len(signal)
+        min_seg = 10
+        candidate_positions = list(range(min_seg, n - min_seg, 5))
 
-            try:
-                result = atom.apply(signal, detection.position)
-                corrected = result.transformed
+        for candidate_pos in candidate_positions:
+            for atom_name in self.atoms:
+                atom = get_atom(atom_name)
 
-                # Fit baseline to corrected signal
-                pred = baseline.fit_predict(corrected)
+                try:
+                    result = atom.apply(signal, candidate_pos)
+                    corrected = result.transformed
 
-                # Compute MDL (+1 param for seam position)
-                mdl = compute_mdl(
-                    corrected, pred,
-                    baseline.num_params() + 1,
-                    likelihood=self.likelihood
-                )
+                    # Fit baseline to corrected signal
+                    pred = baseline.fit_predict(corrected)
 
-                if mdl.total_bits < best_mdl.total_bits:
-                    best_mdl = mdl
-                    best_atom = atom_name
-                    best_corrected = corrected
-                    best_pred = pred
+                    # Compute MDL (+1 param for seam position)
+                    mdl = compute_mdl(
+                        corrected,
+                        pred,
+                        baseline.num_params() + 1,
+                        likelihood=self.likelihood,
+                    )
 
-            except Exception:
-                # Atom failed (e.g., boundary issues) - skip
-                continue
+                    if mdl.total_bits < best_mdl.total_bits:
+                        best_mdl = mdl
+                        best_atom = atom_name
+                        best_corrected = corrected
+                        best_pred = pred
+                        best_position = candidate_pos
+
+                except Exception:
+                    # Atom failed (e.g., boundary issues) - skip
+                    continue
 
         # Compute improvement metrics
         improvement = mdl_improvement(baseline_mdl, best_mdl)
@@ -213,7 +222,7 @@ class MASSFramework:
             baseline_mdl=baseline_mdl,
             seam_mdl=best_mdl,
             seam_detected=best_atom is not None,
-            seam_position=detection.position if best_atom else None,
+            seam_position=best_position if best_atom else None,
             seam_confidence=detection.confidence,
             detection_method=detection.method,
             atom_used=best_atom,

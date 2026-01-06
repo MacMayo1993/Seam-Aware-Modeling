@@ -1,13 +1,15 @@
 """
 Input validation and edge case handling.
 """
-from typing import Optional, Tuple, Union
+
+from typing import Optional, Tuple
 
 import numpy as np
 
 
 class ValidationError(ValueError):
     """Custom error for validation failures."""
+
     pass
 
 
@@ -16,7 +18,7 @@ def validate_signal(
     min_length: int = 2,
     allow_complex: bool = False,
     allow_nan: bool = False,
-    name: str = "signal"
+    name: str = "signal",
 ) -> np.ndarray:
     """
     Validate and normalize input signal.
@@ -57,7 +59,9 @@ def validate_signal(
         if signal.shape[0] == 1 or signal.shape[1] == 1:
             signal = signal.ravel()
         else:
-            raise ValidationError(f"{name}: Multi-dimensional input not supported, got shape {signal.shape}")
+            raise ValidationError(
+                f"{name}: Multi-dimensional input not supported, got shape {signal.shape}"
+            )
 
     # Check length
     if len(signal) < min_length:
@@ -86,9 +90,7 @@ def validate_signal(
 
 
 def validate_seam_position(
-    position: int,
-    signal_length: int,
-    min_segment: int = 1
+    position: int, signal_length: int, min_segment: int = 1
 ) -> int:
     """
     Validate seam position.
@@ -120,7 +122,7 @@ def validate_seam_position(
         raise ValidationError(
             f"Seam position {position} too close to start (min_segment={min_segment})"
         )
-    if position > signal_length - min_segment:
+    if position >= signal_length - min_segment:
         raise ValidationError(
             f"Seam position {position} too close to end (signal_length={signal_length}, min_segment={min_segment})"
         )

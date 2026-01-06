@@ -25,7 +25,7 @@ def test_mdl_perfect_fit():
 
     # MDL can be negative for very good fits (log of small variance)
     # Just check it's finite
-    assert np.isfinite(mdl)
+    assert np.isfinite(float(mdl))
 
     # Parameter cost is positive
     param_cost = (2 / 2) * np.log2(100)
@@ -110,7 +110,7 @@ def test_mdl_bic_aic_consistency():
     aic = compute_aic(data, prediction, num_params=2)
 
     # All should be finite
-    assert np.isfinite(mdl)
+    assert np.isfinite(float(mdl))
     assert np.isfinite(bic)
     assert np.isfinite(aic)
 
@@ -123,7 +123,7 @@ def test_mdl_input_validation():
     data = np.array([1, 2, 3])
     prediction = np.array([1, 2, 3, 4])  # Wrong length
 
-    with pytest.raises(ValueError, match="length"):
+    with pytest.raises(ValueError, match="[Ss]hape"):
         compute_mdl(data, prediction, num_params=2)
 
     # NaN values

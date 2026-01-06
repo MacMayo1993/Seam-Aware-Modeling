@@ -11,7 +11,7 @@ Theoretical Foundation:
 """
 
 import warnings
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 
@@ -174,7 +174,7 @@ def validate_k_star_convergence(
                 # Fit polynomial to flipped signal
                 pred_seam = baseline.fit_predict(flipped)
 
-                # MDL includes: baseline params + flip atom params (0) + seam location (1)
+                # MDL includes: baseline + flip atom params (0) + seam (1)
                 mdl_seam = compute_mdl(
                     flipped, pred_seam, baseline.num_params() + flip_atom.num_params()
                 )
@@ -224,7 +224,8 @@ def validate_k_star_convergence(
         else:
             crossover_snr = np.nan
             warnings.warn(
-                "Could not determine crossover SNR. Try adjusting snr_range or num_trials."
+                "Could not determine crossover SNR. "
+                "Try adjusting snr_range or num_trials."
             )
 
     # Compute error relative to theoretical k*

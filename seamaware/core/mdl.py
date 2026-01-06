@@ -6,6 +6,7 @@ The MDL principle states that the best model minimizes:
 
 where L denotes description length in bits.
 """
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Literal, Optional
@@ -15,14 +16,16 @@ import numpy as np
 
 class LikelihoodType(Enum):
     """Supported likelihood models."""
+
     GAUSSIAN = "gaussian"
     LAPLACE = "laplace"  # For heavy-tailed / sparse residuals
-    CAUCHY = "cauchy"    # For very heavy tails
+    CAUCHY = "cauchy"  # For very heavy tails
 
 
 @dataclass
 class MDLResult:
     """Complete MDL computation result."""
+
     total_bits: float
     data_bits: float
     model_bits: float
@@ -32,9 +35,67 @@ class MDLResult:
     likelihood_type: str
 
     def __repr__(self) -> str:
-        return (f"MDLResult(total={self.total_bits:.2f} bits, "
-                f"data={self.data_bits:.2f}, model={self.model_bits:.2f}, "
-                f"k={self.num_params}, n={self.num_samples})")
+        return (
+            f"MDLResult(total={self.total_bits:.2f} bits, "
+            f"data={self.data_bits:.2f}, model={self.model_bits:.2f}, "
+            f"k={self.num_params}, n={self.num_samples})"
+        )
+
+    def __float__(self) -> float:
+        """Convert to float for arithmetic operations."""
+        return float(self.total_bits)
+
+    def __add__(self, other):
+        """Add MDLResult to number."""
+        if isinstance(other, MDLResult):
+            return self.total_bits + other.total_bits
+        return self.total_bits + other
+
+    def __radd__(self, other):
+        """Right add for number + MDLResult."""
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        """Subtract number from MDLResult."""
+        if isinstance(other, MDLResult):
+            return self.total_bits - other.total_bits
+        return self.total_bits - other
+
+    def __rsub__(self, other):
+        """Right subtract for number - MDLResult."""
+        if isinstance(other, MDLResult):
+            return other.total_bits - self.total_bits
+        return other - self.total_bits
+
+    def __lt__(self, other):
+        """Less than comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits < other.total_bits
+        return self.total_bits < other
+
+    def __le__(self, other):
+        """Less than or equal comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits <= other.total_bits
+        return self.total_bits <= other
+
+    def __gt__(self, other):
+        """Greater than comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits > other.total_bits
+        return self.total_bits > other
+
+    def __ge__(self, other):
+        """Greater than or equal comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits >= other.total_bits
+        return self.total_bits >= other
+
+    def __eq__(self, other):
+        """Equality comparison."""
+        if isinstance(other, MDLResult):
+            return self.total_bits == other.total_bits
+        return self.total_bits == other
 
 
 def _gaussian_nll_bits(residuals: np.ndarray) -> float:
@@ -49,7 +110,9 @@ def _gaussian_nll_bits(residuals: np.ndarray) -> float:
 
     # NLL = (n/2) * log(2*pi*var) + (1/(2*var)) * sum(residuals^2)
     # In bits (divide by ln(2)):
-    nll_nats = (n / 2) * np.log(2 * np.pi * variance) + np.sum(residuals**2) / (2 * variance)
+    nll_nats = (n / 2) * np.log(2 * np.pi * variance) + np.sum(residuals**2) / (
+        2 * variance
+    )
     return nll_nats / np.log(2)
 
 
@@ -75,7 +138,7 @@ def _cauchy_nll_bits(residuals: np.ndarray) -> float:
         gamma = 1e-15
 
     # NLL = n * log(pi * gamma) + sum(log(1 + (x/gamma)^2))
-    nll_nats = n * np.log(np.pi * gamma) + np.sum(np.log(1 + (residuals / gamma)**2))
+    nll_nats = n * np.log(np.pi * gamma) + np.sum(np.log(1 + (residuals / gamma) ** 2))
     return nll_nats / np.log(2)
 
 
@@ -128,7 +191,9 @@ def compute_mdl(
     if len(data) == 0:
         raise ValueError("Empty data array")
     if len(data) != len(predictions):
-        raise ValueError(f"Shape mismatch: data={len(data)}, predictions={len(predictions)}")
+        raise ValueError(
+            f"Shape mismatch: data={len(data)}, predictions={len(predictions)}"
+        )
     if not np.all(np.isfinite(data)):
         raise ValueError("Data contains NaN or Inf")
     if not np.all(np.isfinite(predictions)):
@@ -158,7 +223,7 @@ def compute_mdl(
         num_params=num_params,
         num_samples=n,
         bits_per_sample=total_bits / n,
-        likelihood_type=likelihood.value
+        likelihood_type=likelihood.value,
     )
 
 
@@ -209,21 +274,25 @@ def mdl_improvement(
         - effective: bool, whether seam model is better
     """
     abs_reduction = baseline_mdl.total_bits - seam_mdl.total_bits
-    rel_reduction = abs_reduction / baseline_mdl.total_bits if baseline_mdl.total_bits > 0 else 0
-    ratio = baseline_mdl.total_bits / seam_mdl.total_bits if seam_mdl.total_bits > 0 else float('inf')
+    rel_reduction = (
+        abs_reduction / baseline_mdl.total_bits if baseline_mdl.total_bits > 0 else 0
+    )
+    ratio = (
+        baseline_mdl.total_bits / seam_mdl.total_bits
+        if seam_mdl.total_bits > 0
+        else float("inf")
+    )
 
     return {
         "absolute_reduction": abs_reduction,
         "relative_reduction": rel_reduction,
         "compression_ratio": ratio,
-        "effective": abs_reduction > 0
+        "effective": abs_reduction > 0,
     }
 
 
 # Legacy compatibility functions
-def compute_bic(
-    data: np.ndarray, prediction: np.ndarray, num_params: int
-) -> float:
+def compute_bic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
     """
     Compute Bayesian Information Criterion (BIC) for comparison.
 
@@ -255,9 +324,7 @@ def compute_bic(
     return bic
 
 
-def compute_aic(
-    data: np.ndarray, prediction: np.ndarray, num_params: int
-) -> float:
+def compute_aic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
     """
     Compute Akaike Information Criterion (AIC) for comparison.
 
@@ -285,6 +352,55 @@ def compute_aic(
     aic = (n / 2) * np.log2(sigma2) + (2 * num_params) / np.log(2)
 
     return aic
+
+
+def residual_variance(data: np.ndarray, prediction: np.ndarray) -> float:
+    """
+    Compute residual variance σ².
+
+    Args:
+        data: Observed signal
+        prediction: Model prediction
+
+    Returns:
+        Variance of residuals
+    """
+    residuals = data - prediction
+    return float(np.var(residuals))
+
+
+def effective_snr(
+    data: np.ndarray, prediction_baseline: np.ndarray, prediction_seam: np.ndarray
+) -> float:
+    """
+    Compute effective SNR from variance reduction.
+
+    SNR_eff = (σ²_baseline - σ²_seam) / σ²_seam
+
+    This is the signal-to-noise ratio that justifies the seam.
+
+    Args:
+        data: Observed signal
+        prediction_baseline: Baseline prediction (no seam)
+        prediction_seam: Seam-aware prediction
+
+    Returns:
+        Effective SNR (compare to k* ≈ 0.721)
+
+    Examples:
+        >>> # If SNR > k*, seam is justified
+        >>> k_star = 1.0 / (2.0 * np.log(2))
+        >>> snr = effective_snr(data, baseline_pred, seam_pred)
+        >>> accept_seam = (snr > k_star)
+    """
+    sigma2_baseline = residual_variance(data, prediction_baseline)
+    sigma2_seam = residual_variance(data, prediction_seam)
+
+    if sigma2_seam == 0:
+        return np.inf
+
+    snr_eff = (sigma2_baseline - sigma2_seam) / sigma2_seam
+    return max(0.0, snr_eff)  # SNR cannot be negative
 
 
 def delta_mdl(mdl_baseline: float, mdl_seam: float) -> float:
