@@ -3,6 +3,7 @@ Comprehensive edge case tests.
 
 Run with: pytest tests/test_edge_cases.py -v
 """
+
 import numpy as np
 import pytest
 
@@ -41,10 +42,10 @@ class TestValidation:
 
     def test_complex_signal_rejected(self):
         with pytest.raises(ValidationError, match="Complex"):
-            validate_signal(np.array([1+2j, 3+4j]))
+            validate_signal(np.array([1 + 2j, 3 + 4j]))
 
     def test_complex_signal_allowed(self):
-        result = validate_signal(np.array([1+2j, 3+4j]), allow_complex=True)
+        result = validate_signal(np.array([1 + 2j, 3 + 4j]), allow_complex=True)
         assert np.iscomplexobj(result)
 
     def test_2d_signal_flattened(self):
@@ -109,9 +110,7 @@ class TestMDL:
 
     def test_mismatched_shapes(self):
         with pytest.raises(ValueError, match="Shape mismatch"):
-            compute_mdl(
-                np.array([1, 2, 3]), np.array([1, 2]), num_params=1
-            )
+            compute_mdl(np.array([1, 2, 3]), np.array([1, 2]), num_params=1)
 
 
 class TestFlipAtoms:
@@ -125,7 +124,7 @@ class TestFlipAtoms:
         atom = get_atom(atom_name)
         assert atom.is_involution
 
-        signal = np.sin(np.linspace(0, 4*np.pi, 100))
+        signal = np.sin(np.linspace(0, 4 * np.pi, 100))
         seam_pos = 50
 
         # Apply twice
@@ -185,7 +184,7 @@ class TestIntegration:
 
         # Generate signal with seam
         np.random.seed(42)
-        t = np.linspace(0, 4*np.pi, 200)
+        t = np.linspace(0, 4 * np.pi, 200)
         signal = np.sin(t)
         signal[100:] *= -1  # Clear seam at 100
         signal += 0.1 * np.random.randn(200)
@@ -204,7 +203,7 @@ class TestIntegration:
         from seamaware import MASSFramework
 
         # Pure sine wave
-        t = np.linspace(0, 4*np.pi, 200)
+        t = np.linspace(0, 4 * np.pi, 200)
         signal = np.sin(t) + 0.1 * np.random.randn(200)
 
         mass = MASSFramework(min_confidence=0.5)

@@ -100,9 +100,7 @@ def test_k_star_multiple_signal_lengths():
     # Check average is within 30% of k* (relaxed for small trial count)
     if len(crossovers) > 0:
         avg_crossover = np.mean(crossovers)
-        relative_error = (
-            abs(avg_crossover - k_star_theoretical) / k_star_theoretical
-        )
+        relative_error = abs(avg_crossover - k_star_theoretical) / k_star_theoretical
         assert relative_error < 0.35, (
             f"Average crossover {avg_crossover:.3f} differs from k* "
             f"by {relative_error*100:.1f}%"

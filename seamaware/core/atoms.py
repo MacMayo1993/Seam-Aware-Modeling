@@ -4,6 +4,7 @@ Flip atoms: transformations that exploit orientation symmetry.
 True ℤ₂ involutions satisfy F(F(x)) = x (applying twice gives identity).
 Auxiliary transforms may not be involutions but expose hidden structure.
 """
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
@@ -14,6 +15,7 @@ import numpy as np
 @dataclass
 class AtomResult:
     """Result of applying a flip atom."""
+
     transformed: np.ndarray
     is_involution: bool
     atom_name: str
@@ -40,7 +42,9 @@ class FlipAtom(ABC):
         """Apply the transformation at seam_position."""
         pass
 
-    def verify_involution(self, signal: np.ndarray, seam_position: int, tol: float = 1e-10) -> bool:
+    def verify_involution(
+        self, signal: np.ndarray, seam_position: int, tol: float = 1e-10
+    ) -> bool:
         """Verify that applying twice returns original (for true involutions)."""
         if not self.is_involution:
             return False
@@ -82,7 +86,7 @@ class SignFlipAtom(FlipAtom):
             transformed=signal,
             is_involution=True,
             atom_name=self.name,
-            seam_position=seam_position
+            seam_position=seam_position,
         )
 
 
@@ -115,7 +119,7 @@ class TimeReversalAtom(FlipAtom):
             transformed=signal,
             is_involution=True,
             atom_name=self.name,
-            seam_position=seam_position
+            seam_position=seam_position,
         )
 
 
@@ -148,7 +152,7 @@ class SignTimeReversalAtom(FlipAtom):
             transformed=signal,
             is_involution=True,
             atom_name=self.name,
-            seam_position=seam_position
+            seam_position=seam_position,
         )
 
 
@@ -175,7 +179,9 @@ class VarianceScaleAtom(FlipAtom):
         n = len(signal)
 
         if seam_position < 1 or seam_position >= n - 1:
-            raise ValueError(f"seam_position {seam_position} requires segments on both sides")
+            raise ValueError(
+                f"seam_position {seam_position} requires segments on both sides"
+            )
 
         # Compute variances
         var_before = np.var(signal[:seam_position])
@@ -187,20 +193,22 @@ class VarianceScaleAtom(FlipAtom):
                 transformed=signal,
                 is_involution=False,
                 atom_name=self.name,
-                seam_position=seam_position
+                seam_position=seam_position,
             )
 
         # Scale after segment to match before
         scale = np.sqrt(var_before / var_after) if var_before > 1e-15 else 1.0
 
         mean_after = np.mean(signal[seam_position:])
-        signal[seam_position:] = (signal[seam_position:] - mean_after) * scale + mean_after
+        signal[seam_position:] = (
+            signal[seam_position:] - mean_after
+        ) * scale + mean_after
 
         return AtomResult(
             transformed=signal,
             is_involution=False,
             atom_name=self.name,
-            seam_position=seam_position
+            seam_position=seam_position,
         )
 
     def num_params(self) -> int:
@@ -233,7 +241,9 @@ class PolynomialDetrendAtom(FlipAtom):
         n = len(signal)
 
         if seam_position < 1 or seam_position >= n - self.degree - 1:
-            raise ValueError(f"seam_position {seam_position} leaves insufficient points for degree {self.degree}")
+            raise ValueError(
+                f"seam_position {seam_position} leaves insufficient points for degree {self.degree}"
+            )
 
         # Fit polynomial to segment after seam
         segment = signal[seam_position:]
@@ -250,7 +260,7 @@ class PolynomialDetrendAtom(FlipAtom):
             transformed=signal,
             is_involution=False,
             atom_name=self.name,
-            seam_position=seam_position
+            seam_position=seam_position,
         )
 
     def num_params(self) -> int:
@@ -274,5 +284,7 @@ AUXILIARY_ATOMS = ["variance_scale", "polynomial_detrend"]
 def get_atom(name: str, **kwargs) -> FlipAtom:
     """Get atom instance by name."""
     if name not in ATOM_REGISTRY:
-        raise ValueError(f"Unknown atom: {name}. Available: {list(ATOM_REGISTRY.keys())}")
+        raise ValueError(
+            f"Unknown atom: {name}. Available: {list(ATOM_REGISTRY.keys())}"
+        )
     return ATOM_REGISTRY[name](**kwargs) if kwargs else ATOM_REGISTRY[name]()

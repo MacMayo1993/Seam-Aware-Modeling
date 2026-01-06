@@ -3,26 +3,28 @@ MASS Framework: Multi-scale Antipodal Seam Search
 
 The main entry point for seam-aware modeling.
 """
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 
-from .core.atoms import INVOLUTION_ATOMS, FlipAtom, SignFlipAtom, get_atom
-from .core.detection import SeamDetectionResult, detect_seam
+from .core.atoms import get_atom
+from .core.detection import detect_seam
 from .core.mdl import (
     LikelihoodType,
     MDLResult,
     compute_mdl,
     mdl_improvement,
 )
-from .core.validation import validate_seam_position, validate_signal
+from .core.validation import validate_signal
 from .models.baselines import FourierBaseline
 
 
 @dataclass
 class MASSResult:
     """Complete result from MASS framework."""
+
     # MDL scores
     baseline_mdl: MDLResult
     seam_mdl: MDLResult
@@ -95,7 +97,7 @@ class MASSFramework:
         min_confidence: float = 0.3,
     ):
         self.baseline_type = baseline
-        self.baseline_params = baseline_params or {"K": 10}
+        self.baseline_params = baseline_params or {"K": 3}
         self.detection_method = detection_method
         self.atoms = atoms or ["sign_flip"]
         self.likelihood = LikelihoodType(likelihood)
@@ -117,7 +119,7 @@ class MASSFramework:
         signal_power = np.var(prediction)
         noise_power = np.var(signal - prediction)
         if noise_power < 1e-15:
-            return float('inf')
+            return float("inf")
         return np.sqrt(signal_power / noise_power)
 
     def fit(self, signal: np.ndarray) -> MASSResult:
@@ -136,15 +138,12 @@ class MASSFramework:
         """
         # Validate input
         signal = validate_signal(signal, min_length=20)
-        n = len(signal)
 
         # Fit baseline model
         baseline = self._get_baseline()
         baseline_pred = baseline.fit_predict(signal)
         baseline_mdl = compute_mdl(
-            signal, baseline_pred,
-            baseline.num_params(),
-            likelihood=self.likelihood
+            signal, baseline_pred, baseline.num_params(), likelihood=self.likelihood
         )
 
         # Detect seam
@@ -189,9 +188,10 @@ class MASSFramework:
 
                 # Compute MDL (+1 param for seam position)
                 mdl = compute_mdl(
-                    corrected, pred,
+                    corrected,
+                    pred,
                     baseline.num_params() + 1,
-                    likelihood=self.likelihood
+                    likelihood=self.likelihood,
                 )
 
                 if mdl.total_bits < best_mdl.total_bits:

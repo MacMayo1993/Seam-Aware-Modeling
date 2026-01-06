@@ -43,8 +43,9 @@ def main():
     fourier_baseline = FourierBaseline(K=10)
     recon_baseline = fourier_baseline.fit_predict(noisy_signal)
     residuals_baseline = noisy_signal - recon_baseline
-    mdl_baseline = (fourier_baseline.num_params() * 32 +
-                   len(noisy_signal) * np.log2(np.var(residuals_baseline) + 1e-10))
+    mdl_baseline = fourier_baseline.num_params() * 32 + len(noisy_signal) * np.log2(
+        np.var(residuals_baseline) + 1e-10
+    )
     print(f"   ✓ Baseline MDL: {mdl_baseline:.2f} bits")
     print()
 
@@ -70,9 +71,11 @@ def main():
     fourier_seamaware = FourierBaseline(K=10)
     recon_seamaware = fourier_seamaware.fit_predict(corrected_signal)
     residuals_seamaware = corrected_signal - recon_seamaware
-    mdl_seamaware = (fourier_seamaware.num_params() * 32 +
-                   32 +  # Cost of encoding seam location
-                   len(corrected_signal) * np.log2(np.var(residuals_seamaware) + 1e-10))
+    mdl_seamaware = (
+        fourier_seamaware.num_params() * 32
+        + 32  # Cost of encoding seam location
+        + len(corrected_signal) * np.log2(np.var(residuals_seamaware) + 1e-10)
+    )
 
     print(f"   ✓ SeamAware MDL: {mdl_seamaware:.2f} bits")
     print()
@@ -86,7 +89,9 @@ def main():
 
     print(f"Baseline MDL:    {mdl_baseline:.2f} bits")
     print(f"SeamAware MDL:   {mdl_seamaware:.2f} bits")
-    print(f"MDL Reduction:   {mdl_reduction:.2f} bits ({pct_improvement:.1f}% improvement)")
+    print(
+        f"MDL Reduction:   {mdl_reduction:.2f} bits ({pct_improvement:.1f}% improvement)"
+    )
     print()
 
     if pct_improvement > 10:

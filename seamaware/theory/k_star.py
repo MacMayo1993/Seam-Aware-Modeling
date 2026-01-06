@@ -176,9 +176,7 @@ def validate_k_star_convergence(
 
                 # MDL includes: baseline + flip atom params (0) + seam (1)
                 mdl_seam = compute_mdl(
-                    flipped,
-                    pred_seam,
-                    baseline.num_params() + flip_atom.num_params()
+                    flipped, pred_seam, baseline.num_params() + flip_atom.num_params()
                 )
 
                 # Add seam location encoding cost
