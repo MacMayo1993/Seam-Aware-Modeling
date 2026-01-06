@@ -1,0 +1,81 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /home/user/Seam-Aware-Modeling
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: cov-7.0.0
+collecting ... collected 26 items / 1 deselected / 25 selected
+
+tests/test_flip_atoms.py::test_sign_flip_involution PASSED               [  4%]
+tests/test_flip_atoms.py::test_sign_flip_correctness PASSED              [  8%]
+tests/test_flip_atoms.py::test_time_reversal_involution PASSED           [ 12%]
+tests/test_flip_atoms.py::test_time_reversal_correctness PASSED          [ 16%]
+tests/test_flip_atoms.py::test_variance_scale_inverse PASSED             [ 20%]
+tests/test_flip_atoms.py::test_variance_scale_homogenization PASSED      [ 24%]
+tests/test_flip_atoms.py::test_polynomial_detrend_inverse PASSED         [ 28%]
+tests/test_flip_atoms.py::test_polynomial_detrend_mean_removal PASSED    [ 32%]
+tests/test_flip_atoms.py::test_composite_atom PASSED                     [ 36%]
+tests/test_flip_atoms.py::test_composite_inverse PASSED                  [ 40%]
+tests/test_flip_atoms.py::test_flip_atom_num_params PASSED               [ 44%]
+tests/test_k_star_convergence.py::test_k_star_value PASSED               [ 48%]
+tests/test_k_star_convergence.py::test_k_star_convergence_basic PASSED   [ 52%]
+tests/test_k_star_convergence.py::test_k_star_multiple_signal_lengths PASSED [ 56%]
+tests/test_k_star_convergence.py::test_accept_fraction_monotonic FAILED  [ 60%]
+tests/test_k_star_convergence.py::test_effective_snr_threshold PASSED    [ 64%]
+tests/test_k_star_convergence.py::test_delta_mdl_sign_consistency FAILED [ 68%]
+tests/test_mdl.py::test_mdl_perfect_fit PASSED                           [ 72%]
+tests/test_mdl.py::test_mdl_monotonicity PASSED                          [ 76%]
+tests/test_mdl.py::test_mdl_parameter_penalty PASSED                     [ 80%]
+tests/test_mdl.py::test_delta_mdl PASSED                                 [ 84%]
+tests/test_mdl.py::test_residual_variance PASSED                         [ 88%]
+tests/test_mdl.py::test_effective_snr PASSED                             [ 92%]
+tests/test_mdl.py::test_mdl_bic_aic_consistency PASSED                   [ 96%]
+tests/test_mdl.py::test_mdl_input_validation PASSED                      [100%]
+
+=================================== FAILURES ===================================
+________________________ test_accept_fraction_monotonic ________________________
+tests/test_k_star_convergence.py:132: in test_accept_fraction_monotonic
+    assert accept_frac[-1] > accept_frac[0] + 0.2, (
+E   AssertionError: Accept fraction should increase significantly with SNR (got 0.10 -> 0.13)
+E   assert np.float64(0.13333333333333333) > (np.float64(0.1) + 0.2)
+_______________________ test_delta_mdl_sign_consistency ________________________
+tests/test_k_star_convergence.py:185: in test_delta_mdl_sign_consistency
+    assert (
+E   AssertionError: ΔMDL should trend more negative at higher SNR
+E   assert np.float64(inf) < (np.float64(inf) + 10)
+=============================== warnings summary ===============================
+tests/test_k_star_convergence.py::test_k_star_convergence_basic
+tests/test_k_star_convergence.py::test_k_star_multiple_signal_lengths
+tests/test_k_star_convergence.py::test_accept_fraction_monotonic
+tests/test_k_star_convergence.py::test_delta_mdl_sign_consistency
+  /usr/local/lib/python3.11/dist-packages/numpy/_core/_methods.py:188: RuntimeWarning: invalid value encountered in subtract
+    x = um.subtract(arr, arrmean, out=...)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.14-final-0 _______________
+
+Name                                 Stmts   Miss  Cover
+--------------------------------------------------------
+seamaware/__init__.py                    9      0   100%
+seamaware/compression/__init__.py        1      1     0%
+seamaware/core/__init__.py               5      0   100%
+seamaware/core/flip_atoms.py           100     12    88%
+seamaware/core/mdl.py                   45      5    89%
+seamaware/core/orientation.py           53     38    28%
+seamaware/core/seam_detection.py       110     75    32%
+seamaware/models/__init__.py             3      0   100%
+seamaware/models/baselines.py           97     61    37%
+seamaware/models/mass_framework.py     107     83    22%
+seamaware/theory/__init__.py             2      0   100%
+seamaware/theory/k_star.py             135     64    53%
+seamaware/utils/__init__.py              2      2     0%
+seamaware/utils/synthetic_data.py      140    140     0%
+--------------------------------------------------------
+TOTAL                                  809    481    41%
+=========================== short test summary info ============================
+FAILED tests/test_k_star_convergence.py::test_accept_fraction_monotonic - AssertionError: Accept fraction should increase significantly with SNR (got 0.10 -> 0.13)
+assert np.float64(0.13333333333333333) > (np.float64(0.1) + 0.2)
+FAILED tests/test_k_star_convergence.py::test_delta_mdl_sign_consistency - AssertionError: ΔMDL should trend more negative at higher SNR
+assert np.float64(inf) < (np.float64(inf) + 10)
+=========== 2 failed, 23 passed, 1 deselected, 4 warnings in 50.59s ============

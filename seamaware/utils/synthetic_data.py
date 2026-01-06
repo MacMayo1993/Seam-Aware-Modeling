@@ -251,10 +251,9 @@ def generate_multi_seam_signal(
 
     # Apply seams
     if seam_type == "sign_flip":
-        for i, seam in enumerate(seam_locations):
-            # Alternate flips
-            if i % 2 == 0:
-                signal[seam:] *= -1
+        # Apply cumulative sign flips at each seam
+        for seam in seam_locations:
+            signal[seam:] *= -1
 
     elif seam_type == "variance_shift":
         current_var = 1.0
@@ -344,7 +343,8 @@ def generate_hvac_like_signal(
     noise = rng.normal(0, noise_std, length)
     signal = signal + noise
 
-    return signal, seams[:-1] if seams else []  # Remove last if at boundary
+    # Seams are only appended if t < length, so no boundary cleanup needed
+    return signal, seams
 
 
 def generate_known_snr_signal(
