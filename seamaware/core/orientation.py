@@ -6,7 +6,7 @@ in non-orientable quotient spaces, enabling proper signal reconstruction
 and MDL cost accounting.
 """
 
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 

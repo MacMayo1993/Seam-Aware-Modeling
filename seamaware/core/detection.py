@@ -54,15 +54,10 @@ def detect_seam_cusum(
         raise ValueError("Signal contains NaN or Inf values")
 
     # Compute CUSUM statistic
-    mean_signal = np.mean(signal)
-    centered = signal - mean_signal
-    cusum = np.cumsum(centered)
-
     # Find maximum deviation from expected cumsum under no-change hypothesis
     # Use the CUSUM range statistic
     cusum_range = np.zeros(n)
     for i in range(min_segment_length, n - min_segment_length):
-        left_cusum = cusum[i] - cusum[0] if i > 0 else cusum[i]
         # Statistic: how much does the mean shift at this point?
         n_left = i
         n_right = n - i
