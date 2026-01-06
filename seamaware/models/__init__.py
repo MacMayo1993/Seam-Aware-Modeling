@@ -1,9 +1,10 @@
 """
-Complete modeling frameworks for seam-aware time series analysis.
+Baseline models for seam-aware time series analysis.
 
 Modules:
-    - mass_framework: Main MASS (Manifold-Aware Seam Segmentation) implementation
     - baselines: Fourier, polynomial, and AR baseline models
+
+Note: MASSFramework is now in seamaware.mass (package root).
 """
 
 from seamaware.models.baselines import (
@@ -11,11 +12,8 @@ from seamaware.models.baselines import (
     FourierBaseline,
     PolynomialBaseline,
 )
-from seamaware.models.mass_framework import MASSFramework, MASSResult
 
 __all__ = [
-    "MASSFramework",
-    "MASSResult",
     "FourierBaseline",
     "PolynomialBaseline",
     "ARBaseline",
