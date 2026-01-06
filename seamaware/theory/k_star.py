@@ -10,9 +10,10 @@ Theoretical Foundation:
     the effective SNR exceeds k*.
 """
 
-import numpy as np
-from typing import Dict, Tuple, List, Optional
 import warnings
+from typing import Dict, List, Optional, Tuple
+
+import numpy as np
 
 
 def compute_k_star() -> float:
@@ -94,9 +95,9 @@ def validate_k_star_convergence(
         - SNR range should bracket k* ≈ 0.721
         - Relative error <10% indicates good validation
     """
-    from seamaware.core.seam_detection import detect_seams_roughness
     from seamaware.core.flip_atoms import SignFlipAtom
     from seamaware.core.mdl import compute_mdl
+    from seamaware.core.seam_detection import detect_seams_roughness
 
     # Import here to avoid circular dependency
     try:
@@ -248,7 +249,9 @@ def validate_k_star_convergence(
     }
 
 
-def plot_k_star_validation(validation_results: Dict, save_path: Optional[str] = None) -> None:
+def plot_k_star_validation(
+    validation_results: Dict, save_path: Optional[str] = None
+) -> None:
     """
     Plot Monte Carlo validation results showing k* emergence.
 
@@ -279,9 +282,13 @@ def plot_k_star_validation(validation_results: Dict, save_path: Optional[str] = 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
     # Plot 1: ΔMDL vs SNR
-    ax1.errorbar(snr, delta_mdl_mean, yerr=delta_mdl_std, fmt="o-", capsize=3, label="ΔMDL")
+    ax1.errorbar(
+        snr, delta_mdl_mean, yerr=delta_mdl_std, fmt="o-", capsize=3, label="ΔMDL"
+    )
     ax1.axhline(0, color="k", linestyle="--", alpha=0.5, label="ΔMDL = 0")
-    ax1.axvline(k_star, color="r", linestyle="--", alpha=0.7, label=f"k* = {k_star:.3f}")
+    ax1.axvline(
+        k_star, color="r", linestyle="--", alpha=0.7, label=f"k* = {k_star:.3f}"
+    )
 
     if not np.isnan(crossover):
         ax1.axvline(
@@ -300,7 +307,9 @@ def plot_k_star_validation(validation_results: Dict, save_path: Optional[str] = 
     # Plot 2: Accept fraction vs SNR
     ax2.plot(snr, accept_frac, "s-", color="green", label="Accept fraction")
     ax2.axhline(0.5, color="k", linestyle="--", alpha=0.5, label="50% acceptance")
-    ax2.axvline(k_star, color="r", linestyle="--", alpha=0.7, label=f"k* = {k_star:.3f}")
+    ax2.axvline(
+        k_star, color="r", linestyle="--", alpha=0.7, label=f"k* = {k_star:.3f}"
+    )
 
     if not np.isnan(crossover):
         ax2.axvline(crossover, color="orange", linestyle=":", alpha=0.7)
@@ -362,7 +371,7 @@ def compute_effective_snr_threshold(
     chi2_factor = stats.chi2.ppf(confidence, df=signal_length - num_seams)
     adjustment = chi2_factor / (signal_length - num_seams)
 
-    effective_threshold *= (1 + 0.1 * adjustment)  # Conservative scaling
+    effective_threshold *= 1 + 0.1 * adjustment  # Conservative scaling
 
     return effective_threshold
 

@@ -9,13 +9,12 @@ Reference:
     Automatica, 14(5), 465-471.
 """
 
-import numpy as np
 from typing import Union
 
+import numpy as np
 
-def compute_mdl(
-    data: np.ndarray, prediction: np.ndarray, num_params: int
-) -> float:
+
+def compute_mdl(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
     """
     Compute Minimum Description Length in bits.
 
@@ -102,9 +101,7 @@ def delta_mdl(mdl_baseline: float, mdl_seam: float) -> float:
     return mdl_seam - mdl_baseline
 
 
-def compute_bic(
-    data: np.ndarray, prediction: np.ndarray, num_params: int
-) -> float:
+def compute_bic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
     """
     Compute Bayesian Information Criterion (BIC) for comparison.
 
@@ -135,9 +132,7 @@ def compute_bic(
     return bic
 
 
-def compute_aic(
-    data: np.ndarray, prediction: np.ndarray, num_params: int
-) -> float:
+def compute_aic(data: np.ndarray, prediction: np.ndarray, num_params: int) -> float:
     """
     Compute Akaike Information Criterion (AIC) for comparison.
 

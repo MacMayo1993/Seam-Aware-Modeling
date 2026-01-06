@@ -6,12 +6,12 @@ Modules:
     - baselines: Fourier, polynomial, and AR baseline models
 """
 
-from seamaware.models.mass_framework import MASSFramework, MASSResult
 from seamaware.models.baselines import (
+    ARBaseline,
     FourierBaseline,
     PolynomialBaseline,
-    ARBaseline,
 )
+from seamaware.models.mass_framework import MASSFramework, MASSResult
 
 __all__ = [
     "MASSFramework",

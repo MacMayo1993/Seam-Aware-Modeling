@@ -5,9 +5,10 @@ These models assume data lives in orientable spaces (ℝⁿ or ℂⁿ)
 and provide MDL benchmarks for evaluating seam-aware improvements.
 """
 
-import numpy as np
-from typing import Optional
 import warnings
+from typing import Optional
+
+import numpy as np
 
 
 class PolynomialBaseline:
@@ -190,7 +191,9 @@ class FourierBaseline:
         else:
             # For different length, reconstruct from coefficients
             # This is approximate and may not be exact
-            warnings.warn("Predicting at different length than fitted, results approximate")
+            warnings.warn(
+                "Predicting at different length than fitted, results approximate"
+            )
             return np.real(np.fft.ifft(self.coeffs[:length]))
 
     def fit_predict(self, data: np.ndarray) -> np.ndarray:
@@ -320,7 +323,7 @@ class ARBaseline:
         # Prepend mean for first p values
         if len(fitted) < len(data):
             n_missing = len(data) - len(fitted)
-            padding = np.full(n_missing, np.mean(data[:self.order]))
+            padding = np.full(n_missing, np.mean(data[: self.order]))
             fitted = np.concatenate([padding, fitted])
 
         return fitted

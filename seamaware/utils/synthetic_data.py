@@ -5,8 +5,9 @@ Generates signals with known seam locations and properties,
 enabling controlled testing of detection and modeling algorithms.
 """
 
+from typing import List, Optional, Tuple
+
 import numpy as np
-from typing import Tuple, Optional, List
 
 
 def generate_sign_flip_signal(
@@ -192,7 +193,7 @@ def generate_polynomial_kink_signal(
     elif post_degree == 1:
         post_signal = t_post
     elif post_degree == 2:
-        post_signal = -t_post**2  # Negative curvature
+        post_signal = -(t_post**2)  # Negative curvature
     else:
         post_signal = (-1) ** post_degree * t_post**post_degree
 

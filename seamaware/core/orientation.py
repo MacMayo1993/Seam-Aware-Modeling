@@ -6,8 +6,9 @@ in non-orientable quotient spaces, enabling proper signal reconstruction
 and MDL cost accounting.
 """
 
-import numpy as np
 from typing import List, Optional
+
+import numpy as np
 
 
 class OrientationTracker:

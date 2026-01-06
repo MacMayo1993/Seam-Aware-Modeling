@@ -8,8 +8,9 @@ The key insight: Seams manifest as spikes in the roughness function R(τ),
 where R(τ) = Var(residuals in window around τ).
 """
 
-import numpy as np
 from typing import List, Optional, Tuple
+
+import numpy as np
 from scipy import signal as scipy_signal
 
 
@@ -313,9 +314,7 @@ def refine_seam_location(
         raise ValueError(f"Unknown refinement method: {method}")
 
 
-def compute_seam_confidence(
-    data: np.ndarray, seam: int, window: int = 20
-) -> float:
+def compute_seam_confidence(data: np.ndarray, seam: int, window: int = 20) -> float:
     """
     Compute confidence score for a detected seam.
 

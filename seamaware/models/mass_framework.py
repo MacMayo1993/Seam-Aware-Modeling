@@ -5,22 +5,23 @@ The main framework for seam-aware time series modeling,
 integrating detection, transformation, and MDL-based selection.
 """
 
-import numpy as np
+import warnings
 from dataclasses import dataclass
 from typing import List, Optional, Union
-import warnings
 
-from seamaware.core.seam_detection import detect_seams_roughness, compute_roughness
+import numpy as np
+
 from seamaware.core.flip_atoms import (
     FlipAtom,
+    PolynomialDetrendAtom,
     SignFlipAtom,
     TimeReversalAtom,
     VarianceScaleAtom,
-    PolynomialDetrendAtom,
 )
-from seamaware.core.orientation import OrientationTracker
 from seamaware.core.mdl import compute_mdl, delta_mdl
-from seamaware.models.baselines import PolynomialBaseline, FourierBaseline
+from seamaware.core.orientation import OrientationTracker
+from seamaware.core.seam_detection import compute_roughness, detect_seams_roughness
+from seamaware.models.baselines import FourierBaseline, PolynomialBaseline
 
 
 @dataclass
@@ -275,9 +276,7 @@ class MASSFramework:
             },
         )
 
-    def evaluate_seam(
-        self, data: np.ndarray, seam: int, atom: FlipAtom
-    ) -> dict:
+    def evaluate_seam(self, data: np.ndarray, seam: int, atom: FlipAtom) -> dict:
         """
         Evaluate a single seam with given flip atom.
 

@@ -2,14 +2,15 @@
 Tests for flip atoms.
 """
 
-import pytest
 import numpy as np
+import pytest
+
 from seamaware.core.flip_atoms import (
+    CompositeFlipAtom,
+    PolynomialDetrendAtom,
     SignFlipAtom,
     TimeReversalAtom,
     VarianceScaleAtom,
-    PolynomialDetrendAtom,
-    CompositeFlipAtom,
 )
 
 
