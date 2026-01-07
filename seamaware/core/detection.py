@@ -56,13 +56,24 @@ def detect_seam_cusum(
     # Compute CUSUM statistic
     # Find maximum deviation from expected cumsum under no-change hypothesis
     # Use the CUSUM range statistic
+    #
+    # Optimization: Use cumulative sums to compute segment means in O(1) per split point
+    # This makes the entire detection O(n) instead of O(n²)
+    cumsum = np.cumsum(signal)
+    total_sum = cumsum[-1]
+
     cusum_range = np.zeros(n)
     for i in range(min_segment_length, n - min_segment_length):
         # Statistic: how much does the mean shift at this point?
         n_left = i
         n_right = n - i
-        mean_left = np.mean(signal[:i])
-        mean_right = np.mean(signal[i:])
+
+        # Compute means using cumulative sum (O(1) instead of O(n))
+        sum_left = cumsum[i - 1]  # Sum of signal[0:i]
+        sum_right = total_sum - cumsum[i - 1]  # Sum of signal[i:]
+        mean_left = sum_left / n_left
+        mean_right = sum_right / n_right
+
         # Welch-Satterthwaite style statistic
         cusum_range[i] = abs(mean_right - mean_left) * np.sqrt(n_left * n_right / n)
 
