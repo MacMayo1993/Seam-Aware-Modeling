@@ -43,6 +43,12 @@ def detect_seam_cusum(
     SeamDetectionResult
         Detection result with position, confidence, and candidates
     """
+    # Validate min_segment_length
+    if min_segment_length < 1:
+        raise ValueError(
+            f"min_segment_length must be >= 1, got {min_segment_length}"
+        )
+
     if len(signal) < 2 * min_segment_length:
         raise ValueError(f"Signal too short: {len(signal)} < {2 * min_segment_length}")
 

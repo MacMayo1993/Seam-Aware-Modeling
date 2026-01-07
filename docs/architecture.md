@@ -555,7 +555,8 @@ def detect_seams(
     window: int = 20,
     threshold: Optional[float] = None
 ) -> List[int]:
-    ...
+    """Detect seam positions in signal data."""
+    pass  # Implementation here
 ```
 
 ### Docstrings
