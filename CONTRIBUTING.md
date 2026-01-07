@@ -26,6 +26,15 @@ Thank you for your interest in contributing to SeamAware! This document provides
    pytest tests/ -v
    ```
 
+5. **Set up pre-commit hooks (recommended):**
+   ```bash
+   pip install pre-commit
+   pre-commit install
+
+   # Run hooks manually on all files
+   pre-commit run --all-files
+   ```
+
 ## Code Style
 
 We follow standard Python conventions:
@@ -41,6 +50,27 @@ black seamaware tests
 isort seamaware tests
 flake8 seamaware tests --max-line-length=88
 ```
+
+**Pre-commit hooks** will automatically run these checks before each commit. If a check fails, the commit is blocked until you fix the issue.
+
+### Type Checking with mypy
+
+We use **gradual typing** - new and refactored code should include type hints:
+
+```bash
+# Check types on strict modules
+mypy seamaware/core/detection.py --python-version=3.9
+```
+
+**Currently enforced modules:**
+- `seamaware/core/detection.py`
+- `tests/test_performance.py`
+
+When adding type hints:
+- Use `from typing import Any, List, Optional, Tuple`
+- For numpy: `signal: np.ndarray`
+- For returns: `def function() -> ReturnType:`
+- For flexible kwargs: `**kwargs: Any`
 
 ## Testing
 

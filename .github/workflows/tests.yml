@@ -34,17 +34,20 @@ jobs:
     - name: Run black (code formatting check)
       run: |
         black --check seamaware tests
-      continue-on-error: true
 
     - name: Run isort (import sorting check)
       run: |
         isort --check-only seamaware tests
-      continue-on-error: true
+
+    - name: Run mypy (type checking on strict modules)
+      run: |
+        mypy seamaware/core/detection.py tests/test_performance.py --python-version=3.9
+      continue-on-error: true  # Gradual enforcement
 
     - name: Run flake8 (linting)
       run: |
         flake8 seamaware tests --max-line-length=88 --extend-ignore=E203,W503
-      continue-on-error: true
+      continue-on-error: true  # Warning only
 
     - name: Run unit tests
       run: |
