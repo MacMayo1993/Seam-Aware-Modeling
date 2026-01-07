@@ -11,7 +11,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="seamaware",
-    version="0.1.0",
+    version="0.2.0",
     author="Mac Mayo",
     author_email="macmayo1993@gmail.com",
     description="Non-orientable modeling for time series analysis",
