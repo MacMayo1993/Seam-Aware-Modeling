@@ -4,15 +4,9 @@ Tests for MASS/SMASH implementation
 Run with: pytest tests/test_mass_smash.py -v
 Or: python -m pytest tests/test_mass_smash.py
 """
-# Path manipulation must come before imports to allow mass_smash import
 import sys
 from pathlib import Path
 
-# Add examples directory to path so we can import mass_smash
-examples_dir = Path(__file__).parent.parent / "examples"
-sys.path.insert(0, str(examples_dir))
-
-# Standard library and third-party imports
 import numpy as np
 
 # Try pytest, fall back to basic assertions
@@ -23,8 +17,13 @@ except ImportError:
     HAS_PYTEST = False
     print("pytest not available, running basic tests")
 
-# Import from mass_smash (now that path is set up)
-from mass_smash import (
+# Add examples directory to path so we can import mass_smash
+# NOTE: This path manipulation must happen before local imports (noqa: E402)
+examples_dir = Path(__file__).parent.parent / "examples"
+sys.path.insert(0, str(examples_dir))
+
+# Import from mass_smash (path manipulation done above)
+from mass_smash import (  # noqa: E402
     MASSSMASHConfig,
     antipodal_symmetry_scanner,
     bic_from_rss,
