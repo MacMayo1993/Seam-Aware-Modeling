@@ -25,7 +25,7 @@ Signal → Normalize to sphere Sⁿ⁻¹ → Apply ℤ₂ identification (u ~ -u
 
 At the seam location τ, we apply a **flip atom**—a transformation that exploits latent symmetry. Primary atoms are true ℤ₂ involutions: **sign inversion** (x → −x) and **time reversal** (t → −t). Auxiliary atoms like variance scaling and polynomial detrending are preprocessing steps that expose hidden orientation structure.
 
-**This constant (k* = 1/(2·ln 2) ≈ 0.721) emerges from MDL theory under Gaussian assumptions—see [THEORY.md](THEORY.md) for the derivation.**
+**This constant (k* = 1/(2·ln 2) ≈ 0.721) emerges from MDL theory under Gaussian assumptions—see [docs/theory.md](docs/theory.md) for the derivation.**
 
 ### Key Definitions
 
@@ -48,7 +48,7 @@ MDL = (T/2)·log₂(RSS/T) + (K/2)·log₂(T) + m·log₂(T) + m
 
 The "1 bit per seam" mentioned elsewhere refers to the **orientation cost only** (the final `+ m` term). The full seam cost includes location encoding and totals ~9-11 bits per seam for typical signal lengths T = 200-1000.
 
-**Why experimental k* ≈ 0.782 vs theoretical 0.721?** Finite-sample effects, detection uncertainty, and model selection overhead raise the practical threshold by ~8%. See [THEORY.md § Reconciling k*](THEORY.md#reconciling-theoretical-vs-experimental-k) for details.
+**Why experimental k* ≈ 0.782 vs theoretical 0.721?** Finite-sample effects, detection uncertainty, and model selection overhead raise the practical threshold by ~8%. See [docs/theory.md § Reconciling k*](docs/theory.md#reconciling-theoretical-vs-experimental-k) for details.
 
 ### Quick Example
 
@@ -191,7 +191,7 @@ The theory behind SeamAware connects:
 3. **Group representation theory**: ℤ₂ eigenspace decomposition via projection operators 𝐏₊/𝐏₋
 4. **Seam-gated neural networks**: Architectures that switch basis at detected seams
 
-See [THEORY.md](THEORY.md) for rigorous derivations including explicit state vector definitions and the full MDL coding model.
+See [docs/theory.md](docs/theory.md) for rigorous derivations including explicit state vector definitions and the full MDL coding model.
 
 ### Who Should Use This?
 
@@ -213,7 +213,7 @@ See [THEORY.md](THEORY.md) for rigorous derivations including explicit state vec
 
 **All tests pass. k* = 0.721 validated.**
 
-See [EXPERIMENTAL_VALIDATION.md](EXPERIMENTAL_VALIDATION.md) for comprehensive:
+See [docs/experimental_validation.md](docs/experimental_validation.md) for comprehensive:
 - Monte Carlo analysis with 30-100 trials per SNR
 - Statistical convergence of k* (error < 20% fast, < 15% rigorous)
 - Numerical stability tests across 6 orders of magnitude

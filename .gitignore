@@ -33,6 +33,9 @@ env/
 htmlcov/
 .tox/
 .nox/
+test_results.txt
+test_output/
+*_test_results.txt
 
 # IDEs
 .vscode/

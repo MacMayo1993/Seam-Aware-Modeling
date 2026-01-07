@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install numpy scipy matplotlib pandas statsmodels
+        pip install numpy scipy matplotlib pandas statsmodels scikit-learn
         pip install pytest pytest-cov black mypy isort flake8
 
     - name: Install package
@@ -77,7 +77,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install numpy scipy matplotlib pandas statsmodels
+        pip install numpy scipy matplotlib pandas statsmodels scikit-learn
         pip install pytest pytest-cov
 
     - name: Install package

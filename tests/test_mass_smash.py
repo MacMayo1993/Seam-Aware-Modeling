@@ -1,11 +1,13 @@
 """
-Tests for MASS_SMASH_v2
+Tests for MASS/SMASH implementation
 
-Run with: pytest test_mass_smash.py -v
-Or: python test_mass_smash.py
+Run with: pytest tests/test_mass_smash.py -v
+Or: python -m pytest tests/test_mass_smash.py
 """
-import numpy as np
 import sys
+from pathlib import Path
+
+import numpy as np
 
 # Try pytest, fall back to basic assertions
 try:
@@ -15,17 +17,23 @@ except ImportError:
     HAS_PYTEST = False
     print("pytest not available, running basic tests")
 
-from MASS_SMASH_v2 import (
-    generate_signal_with_seams,
-    run_mass_smash,
+# Add examples directory to path so we can import mass_smash
+# NOTE: This path manipulation must happen before local imports (noqa: E402)
+examples_dir = Path(__file__).parent.parent / "examples"
+sys.path.insert(0, str(examples_dir))
+
+# Import from mass_smash (path manipulation done above)
+from mass_smash import (  # noqa: E402
     MASSSMASHConfig,
-    mdl_bits,
-    bic_from_rss,
     antipodal_symmetry_scanner,
-    roughness_detector,
-    detect_seam_candidates,
+    bic_from_rss,
     build_model_zoo,
+    detect_seam_candidates,
     fit_best_model,
+    generate_signal_with_seams,
+    mdl_bits,
+    roughness_detector,
+    run_mass_smash,
 )
 
 
@@ -44,7 +52,7 @@ def test_signal_generation_basic():
 def test_signal_generation_seam_positions():
     """Test seam positions are near requested fractions."""
     y, seams = generate_signal_with_seams(
-        T=300, 
+        T=300,
         seam_positions=[0.33, 0.67],
         seed=42
     )
@@ -80,7 +88,7 @@ def test_mdl_fit_improvement():
     """Better fit (lower RSS) should reduce MDL."""
     mdl_good = mdl_bits(rss=50, n=300, p=10, m=1, alpha=2.0)
     mdl_bad = mdl_bits(rss=100, n=300, p=10, m=1, alpha=2.0)
-    assert mdl_good < mdl_bad, f"Better fit should have lower MDL"
+    assert mdl_good < mdl_bad, "Better fit should have lower MDL"
     print("✓ test_mdl_fit_improvement")
 
 
@@ -88,7 +96,7 @@ def test_mdl_param_penalty():
     """More parameters should increase MDL (all else equal)."""
     mdl_simple = mdl_bits(rss=100, n=300, p=5, m=1, alpha=2.0)
     mdl_complex = mdl_bits(rss=100, n=300, p=20, m=1, alpha=2.0)
-    assert mdl_simple < mdl_complex, f"More params should increase MDL"
+    assert mdl_simple < mdl_complex, "More params should increase MDL"
     print("✓ test_mdl_param_penalty")
 
 
@@ -181,7 +189,7 @@ def test_pipeline_runs():
     y, _ = generate_signal_with_seams(T=200, seed=0)
     config = MASSSMASHConfig(verbose=False, include_mlp=False)
     best, solutions = run_mass_smash(y, config)
-    
+
     assert best is not None
     assert len(solutions) > 0
     assert hasattr(best, 'total_mdl')
@@ -201,7 +209,7 @@ def test_pipeline_with_known_seams():
     )
     config = MASSSMASHConfig(alpha=1.0, verbose=False, include_mlp=False)
     best, _ = run_mass_smash(y, config)
-    
+
     # With low noise and low alpha, should find at least one seam
     # (though not guaranteed to be exactly right)
     assert hasattr(best, 'seams')
@@ -216,13 +224,13 @@ def test_alpha_affects_seam_count():
         seam_positions=[0.5],
         seed=42
     )
-    
+
     config_low = MASSSMASHConfig(alpha=1.0, verbose=False, include_mlp=False)
     config_high = MASSSMASHConfig(alpha=3.0, verbose=False, include_mlp=False)
-    
+
     best_low, _ = run_mass_smash(y, config_low)
     best_high, _ = run_mass_smash(y, config_high)
-    
+
     assert len(best_low.seams) >= len(best_high.seams), \
         f"Low alpha found {len(best_low.seams)}, high found {len(best_high.seams)}"
     print("✓ test_alpha_affects_seam_count")
@@ -233,7 +241,7 @@ def test_solutions_sorted_by_mdl():
     y, _ = generate_signal_with_seams(T=200, seed=0)
     config = MASSSMASHConfig(verbose=False, include_mlp=False)
     _, solutions = run_mass_smash(y, config)
-    
+
     mdls = [s.total_mdl for s in solutions]
     assert mdls == sorted(mdls), "Solutions should be sorted by MDL"
     print("✓ test_solutions_sorted_by_mdl")
@@ -261,7 +269,7 @@ def test_config_custom():
     )
     assert config.alpha == 1.5
     assert config.max_seams == 5
-    assert config.include_mlp == False
+    assert not config.include_mlp
     print("✓ test_config_custom")
 
 
@@ -276,41 +284,41 @@ def run_all_tests():
         test_signal_generation_basic,
         test_signal_generation_seam_positions,
         test_signal_generation_reproducibility,
-        
+
         # MDL/BIC
         test_mdl_seam_penalty,
         test_mdl_fit_improvement,
         test_mdl_param_penalty,
         test_bic_consistency,
-        
+
         # Detectors
         test_antipodal_detector_basic,
         test_antipodal_finds_sign_flip,
         test_roughness_detector_basic,
         test_combined_detection,
-        
+
         # Model zoo
         test_build_model_zoo,
         test_fit_best_model,
-        
+
         # Full pipeline
         test_pipeline_runs,
         test_pipeline_with_known_seams,
         test_alpha_affects_seam_count,
         test_solutions_sorted_by_mdl,
-        
+
         # Config
         test_config_defaults,
         test_config_custom,
     ]
-    
+
     passed = 0
     failed = 0
-    
+
     print("\n" + "=" * 60)
     print("MASS/SMASH v2 Test Suite")
     print("=" * 60 + "\n")
-    
+
     for test in tests:
         try:
             test()
@@ -318,11 +326,11 @@ def run_all_tests():
         except Exception as e:
             print(f"✗ {test.__name__}: {e}")
             failed += 1
-    
+
     print("\n" + "=" * 60)
     print(f"Results: {passed} passed, {failed} failed")
     print("=" * 60)
-    
+
     return failed == 0
 
 

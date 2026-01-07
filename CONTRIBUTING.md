@@ -117,7 +117,7 @@ Add k* validation with Monte Carlo sampling
 
 - Implement validate_k_star_convergence() function
 - Add comprehensive tests for SNR threshold detection
-- Document theoretical derivation in THEORY.md
+- Document theoretical derivation in docs/theory.md
 
 Closes #42
 ```
