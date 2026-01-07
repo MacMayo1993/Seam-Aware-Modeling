@@ -4,24 +4,26 @@ Tests for MASS/SMASH implementation
 Run with: pytest tests/test_mass_smash.py -v
 Or: python -m pytest tests/test_mass_smash.py
 """
+# Path manipulation must come before imports to allow mass_smash import
 import sys
 from pathlib import Path
-
-import numpy as np
 
 # Add examples directory to path so we can import mass_smash
 examples_dir = Path(__file__).parent.parent / "examples"
 sys.path.insert(0, str(examples_dir))
 
+# Standard library and third-party imports
+import numpy as np
+
 # Try pytest, fall back to basic assertions
 try:
     import pytest
-
     HAS_PYTEST = True
 except ImportError:
     HAS_PYTEST = False
     print("pytest not available, running basic tests")
 
+# Import from mass_smash (now that path is set up)
 from mass_smash import (
     MASSSMASHConfig,
     antipodal_symmetry_scanner,
@@ -87,7 +89,7 @@ def test_mdl_fit_improvement():
     """Better fit (lower RSS) should reduce MDL."""
     mdl_good = mdl_bits(rss=50, n=300, p=10, m=1, alpha=2.0)
     mdl_bad = mdl_bits(rss=100, n=300, p=10, m=1, alpha=2.0)
-    assert mdl_good < mdl_bad, f"Better fit should have lower MDL"
+    assert mdl_good < mdl_bad, "Better fit should have lower MDL"
     print("✓ test_mdl_fit_improvement")
 
 
@@ -95,7 +97,7 @@ def test_mdl_param_penalty():
     """More parameters should increase MDL (all else equal)."""
     mdl_simple = mdl_bits(rss=100, n=300, p=5, m=1, alpha=2.0)
     mdl_complex = mdl_bits(rss=100, n=300, p=20, m=1, alpha=2.0)
-    assert mdl_simple < mdl_complex, f"More params should increase MDL"
+    assert mdl_simple < mdl_complex, "More params should increase MDL"
     print("✓ test_mdl_param_penalty")
 
 
@@ -268,7 +270,7 @@ def test_config_custom():
     )
     assert config.alpha == 1.5
     assert config.max_seams == 5
-    assert config.include_mlp == False
+    assert not config.include_mlp
     print("✓ test_config_custom")
 
 
