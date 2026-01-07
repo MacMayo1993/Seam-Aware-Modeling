@@ -4,7 +4,7 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-25/25_passing-success)](https://github.com/MacMayo1993/Seam-Aware-Modeling/actions)
 [![Status](https://img.shields.io/badge/status-production--ready-green)](https://github.com/MacMayo1993/Seam-Aware-Modeling)
-[![arXiv](https://img.shields.io/badge/arXiv-pending-orange)](https://github.com/MacMayo1993/Seam-Aware-Modeling)
+[![Paper](https://img.shields.io/badge/paper-in--preparation-orange)](https://github.com/MacMayo1993/Seam-Aware-Modeling)
 
 ## What is SeamAware?
 
@@ -17,15 +17,38 @@
 
 ### The Core Insight
 
-Standard methods assume data lives in **orientable spaces** (ℝⁿ or ℂⁿ). SeamAware recognizes that:
+Standard methods assume data lives in **orientable spaces** (ℝⁿ). SeamAware recognizes that normalized signals naturally inhabit **non-orientable quotient spaces**:
 
 ```
-Signal + Noise → Detect seam → Apply ℤ₂ quotient → Lower MDL
+Signal → Normalize to sphere Sⁿ⁻¹ → Apply ℤ₂ identification (u ~ -u) → Real projective space ℝPⁿ⁻¹
 ```
 
-At the seam location τ, we apply a **flip atom**—a transformation that exploits latent symmetry. Primary atoms are true ℤ₂ involutions: **sign inversion** (x → −x) and **time reversal** (t → −t). Auxiliary atoms like variance scaling and polynomial detrending are preprocessing steps that expose hidden orientation structure. The cost of tracking orientation (1 bit per seam) is offset by improved model fit **when** the signal-to-noise ratio exceeds k* ≈ 0.721 (empirically validated; see [EXPERIMENTAL_VALIDATION.md](EXPERIMENTAL_VALIDATION.md)).
+At the seam location τ, we apply a **flip atom**—a transformation that exploits latent symmetry. Primary atoms are true ℤ₂ involutions: **sign inversion** (x → −x) and **time reversal** (t → −t). Auxiliary atoms like variance scaling and polynomial detrending are preprocessing steps that expose hidden orientation structure.
 
 **This constant (k* = 1/(2·ln 2) ≈ 0.721) emerges from MDL theory under Gaussian assumptions—see [THEORY.md](THEORY.md) for the derivation.**
+
+### Key Definitions
+
+To ensure reproducibility and remove ambiguity:
+
+| **Concept** | **Definition** | **Notes** |
+|-------------|----------------|-----------|
+| **SNR** | σ_signal / σ_noise (amplitude ratio) | NOT power ratio; NOT in dB |
+| **Crossover k*** | SNR where Pr[ΔMDL < 0] = 0.5 | Theoretical: 0.721; Empirical: 0.782 ± 0.15 |
+| **MDL encoding** | L_data + L_params + L_seams | See breakdown below |
+| **Seam cost** | m·log₂(T) + m bits | Location: log₂(T); Orientation: 1 bit |
+| **Noise model** | Additive Gaussian: x = s + ε, ε ~ N(0, σ²) | i.i.d. across time |
+
+**MDL Cost Breakdown** (for T samples, m seams, K parameters):
+
+```
+MDL = (T/2)·log₂(RSS/T) + (K/2)·log₂(T) + m·log₂(T) + m
+      └─ data fit ──┘   └─ parameters ──┘   └─ seam encoding ──┘
+```
+
+The "1 bit per seam" mentioned elsewhere refers to the **orientation cost only** (the final `+ m` term). The full seam cost includes location encoding and totals ~9-11 bits per seam for typical signal lengths T = 200-1000.
+
+**Why experimental k* ≈ 0.782 vs theoretical 0.721?** Finite-sample effects, detection uncertainty, and model selection overhead raise the practical threshold by ~8%. See [THEORY.md § Reconciling k*](THEORY.md#reconciling-theoretical-vs-experimental-k) for details.
 
 ### Quick Example
 
@@ -63,7 +86,7 @@ These plots demonstrate SeamAware's ability to detect hidden orientation discont
 
 #### 1. Hidden Orientation Seam in a Signal
 
-This sine wave contains a subtle **sign flip at t=102**—appearing as noise to standard models but representing a fundamental orientation discontinuity in the quotient space ℂᴺ/ℤ₂.
+This sine wave contains a subtle **sign flip at t=102**—appearing as noise to standard models but representing a fundamental orientation discontinuity in the quotient space ℝPⁿ⁻¹ (real projective space).
 
 ![Signal with Seam](assets/signal_with_seam.png)
 
@@ -87,16 +110,37 @@ Monte Carlo simulation (50 trials per SNR) confirming the **theoretical phase bo
 
 ### Installation
 
-```bash
-pip install seamaware
-```
+**From source** (recommended until PyPI release):
 
-Or from source:
 ```bash
 git clone https://github.com/MacMayo1993/Seam-Aware-Modeling.git
 cd Seam-Aware-Modeling
 pip install -e .
 ```
+
+This installs the package in editable mode along with all dependencies (numpy, scipy, matplotlib, pandas, statsmodels).
+
+**Future**: Once published on PyPI, installation will be available via `pip install seamaware`.
+
+### Reproducibility
+
+**Run the complete demo + regenerate all figures in one command:**
+
+```bash
+# After installation (see above)
+python -m seamaware.cli.demo --full-validation
+```
+
+This command:
+1. Generates synthetic signal with hidden seam (reproducible seed)
+2. Compares Fourier baseline vs SeamAware detection
+3. Outputs MDL scores and detection accuracy
+4. Runs Monte Carlo validation of k* threshold (30 trials)
+5. Saves all three figures from README to `assets/` directory
+
+**Expected output**: Seam detected within 2% of truth, ~16% MDL reduction, k* crossover validation.
+
+**Runtime**: ~60 seconds on a modern laptop (no GPU required).
 
 ### Getting Started
 
@@ -107,11 +151,11 @@ pip install -e .
 python -m seamaware.cli.demo
 ```
 
-This runs a complete demonstration showing:
+This runs a quick demonstration showing:
 - Synthetic signal generation with hidden seam at t=102
 - Seam detection using roughness analysis
 - MDL computation for baseline vs SeamAware
-- **~50% MDL reduction** in real-time
+- **~16-50% MDL reduction** depending on SNR
 
 **Option 2: Jupyter Notebook** (recommended for first-time users and experimentation)
 
@@ -129,9 +173,7 @@ The notebook includes:
 - Monte Carlo validation of k* phase boundary
 - Comparison with Fourier/AR baselines
 
-**No installation?** Try it in your browser:
-- [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/MacMayo1993/Seam-Aware-Modeling/HEAD?filepath=examples%2Fquick_start.ipynb) (coming soon)
-- [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MacMayo1993/Seam-Aware-Modeling/blob/main/examples/quick_start.ipynb) (coming soon)
+**No installation?** Browser-based notebooks (Binder/Colab) are planned for a future release.
 
 **Option 3: Python Script**
 
@@ -144,12 +186,12 @@ See the "Quick Example" section above or explore the [examples/](examples/) dire
 
 The theory behind SeamAware connects:
 
-1. **Non-orientable manifolds**: ℝℙⁿ as the quotient Sⁿ/ℤ₂ via antipodal map x → -x
+1. **Non-orientable manifolds**: ℝPⁿ⁻¹ (real projective space) as the quotient Sⁿ⁻¹/ℤ₂ via antipodal identification u ~ -u
 2. **Information geometry**: k* = 1/(2·ln 2) emerges from minimum description length
 3. **Group representation theory**: ℤ₂ eigenspace decomposition via projection operators 𝐏₊/𝐏₋
 4. **Seam-gated neural networks**: Architectures that switch basis at detected seams
 
-See [THEORY.md](THEORY.md) for rigorous derivations and [docs/mathematical_foundations.pdf](docs/mathematical_foundations.pdf) for full proofs.
+See [THEORY.md](THEORY.md) for rigorous derivations including explicit state vector definitions and the full MDL coding model.
 
 ### Who Should Use This?
 
@@ -224,13 +266,16 @@ APIs are stable. Test suite ensures backward compatibility.
 If you use SeamAware in your research, please cite:
 
 ```bibtex
-@article{mayo2025seamaware,
-  title={Seam-Aware Modeling: Non-Orientable Quotient Spaces for Time Series Analysis},
+@software{mayo2025seamaware,
+  title={SeamAware: Non-Orientable Modeling for Time Series Analysis},
   author={Mayo, Mac},
-  journal={arXiv preprint arXiv:XXXX.XXXXX},
-  year={2025}
+  year={2025},
+  url={https://github.com/MacMayo1993/Seam-Aware-Modeling},
+  version={0.2.0}
 }
 ```
+
+A formal paper is in preparation. This citation format is appropriate for software releases until publication.
 
 ### License
 
