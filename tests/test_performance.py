@@ -5,6 +5,7 @@ These tests verify that optimizations maintain O(n) complexity.
 Run with: pytest tests/test_performance.py -v -s
 Skip slow tests: pytest -m "not slow"
 """
+
 import time
 
 import numpy as np
@@ -32,10 +33,12 @@ def benchmark_detection(signal_length: int, num_trials: int = 3) -> tuple:
     np.random.seed(42)
 
     # Create signal with seam at midpoint
-    signal = np.concatenate([
-        np.sin(np.linspace(0, 4 * np.pi, signal_length // 2)),
-        -np.sin(np.linspace(0, 4 * np.pi, signal_length // 2))  # Sign flip
-    ])
+    signal = np.concatenate(
+        [
+            np.sin(np.linspace(0, 4 * np.pi, signal_length // 2)),
+            -np.sin(np.linspace(0, 4 * np.pi, signal_length // 2)),  # Sign flip
+        ]
+    )
     signal += 0.1 * np.random.randn(signal_length)
 
     times = []
@@ -77,16 +80,20 @@ class TestDetectionPerformance:
             results.append((n, time_ms))
 
             # Each should complete in reasonable time
-            assert time_ms < 100, f"Signal length {n} took {time_ms:.1f}ms (should be <100ms)"
+            assert (
+                time_ms < 100
+            ), f"Signal length {n} took {time_ms:.1f}ms (should be <100ms)"
 
         # Verify approximately linear scaling
         # time(5k) / time(1k) should be ~5× (not ~25× for O(n²))
         _, t1k = results[0]
         _, t5k = results[1]
-        ratio = t5k / t1k if t1k > 0 else float('inf')
+        ratio = t5k / t1k if t1k > 0 else float("inf")
 
         # Allow some overhead, but ratio should be closer to 5 than 25
-        assert ratio < 15, f"Scaling ratio {ratio:.1f}× suggests worse than O(n) complexity"
+        assert (
+            ratio < 15
+        ), f"Scaling ratio {ratio:.1f}× suggests worse than O(n) complexity"
 
     @pytest.mark.slow
     def test_scales_linearly_large(self):

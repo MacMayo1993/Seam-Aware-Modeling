@@ -4,6 +4,7 @@ Tests for MASS/SMASH implementation
 Run with: pytest tests/test_mass_smash.py -v
 Or: python -m pytest tests/test_mass_smash.py
 """
+
 import sys
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import numpy as np
 # Try pytest, fall back to basic assertions
 try:
     import pytest
+
     HAS_PYTEST = True
 except ImportError:
     HAS_PYTEST = False
@@ -36,10 +38,10 @@ from mass_smash import (  # noqa: E402
     run_mass_smash,
 )
 
-
 # =============================================================================
 # Test Signal Generation
 # =============================================================================
+
 
 def test_signal_generation_basic():
     """Test basic signal generation."""
@@ -51,11 +53,7 @@ def test_signal_generation_basic():
 
 def test_signal_generation_seam_positions():
     """Test seam positions are near requested fractions."""
-    y, seams = generate_signal_with_seams(
-        T=300,
-        seam_positions=[0.33, 0.67],
-        seed=42
-    )
+    y, seams = generate_signal_with_seams(T=300, seam_positions=[0.33, 0.67], seed=42)
     assert len(seams) == 2, f"Expected 2 seams, got {len(seams)}"
     assert 90 <= seams[0] <= 110, f"First seam {seams[0]} not near 99"
     assert 190 <= seams[1] <= 210, f"Second seam {seams[1]} not near 201"
@@ -74,6 +72,7 @@ def test_signal_generation_reproducibility():
 # =============================================================================
 # Test MDL/BIC Scoring
 # =============================================================================
+
 
 def test_mdl_seam_penalty():
     """More seams should increase MDL (all else equal)."""
@@ -112,6 +111,7 @@ def test_bic_consistency():
 # Test Detectors
 # =============================================================================
 
+
 def test_antipodal_detector_basic():
     """Antipodal detector should return candidates."""
     y, _ = generate_signal_with_seams(T=300, noise_std=0.1, seed=0)
@@ -124,10 +124,7 @@ def test_antipodal_detector_basic():
 def test_antipodal_finds_sign_flip():
     """Antipodal detector should find sign flip seam."""
     y, true_seams = generate_signal_with_seams(
-        T=300, noise_std=0.1,
-        seam_positions=[0.5],
-        seam_types=['sign_flip'],
-        seed=0
+        T=300, noise_std=0.1, seam_positions=[0.5], seam_types=["sign_flip"], seed=0
     )
     cands = antipodal_symmetry_scanner(y, threshold=0.3, top_k=10)
     # Should find something near the true seam
@@ -159,6 +156,7 @@ def test_combined_detection():
 # Test Model Zoo
 # =============================================================================
 
+
 def test_build_model_zoo():
     """Model zoo should build without errors."""
     config = MASSSMASHConfig(include_mlp=False)
@@ -169,13 +167,13 @@ def test_build_model_zoo():
 
 def test_fit_best_model():
     """Should fit and return best model by BIC."""
-    y = np.sin(np.linspace(0, 4*np.pi, 100)) + 0.1 * np.random.randn(100)
+    y = np.sin(np.linspace(0, 4 * np.pi, 100)) + 0.1 * np.random.randn(100)
     config = MASSSMASHConfig(include_mlp=False)
     zoo = build_model_zoo(config)
     result = fit_best_model(y, zoo)
-    assert hasattr(result, 'model_name')
-    assert hasattr(result, 'yhat')
-    assert hasattr(result, 'bic')
+    assert hasattr(result, "model_name")
+    assert hasattr(result, "yhat")
+    assert hasattr(result, "bic")
     assert len(result.yhat) == len(y)
     print("✓ test_fit_best_model")
 
@@ -183,6 +181,7 @@ def test_fit_best_model():
 # =============================================================================
 # Test Full Pipeline
 # =============================================================================
+
 
 def test_pipeline_runs():
     """Full pipeline should run without errors."""
@@ -192,9 +191,9 @@ def test_pipeline_runs():
 
     assert best is not None
     assert len(solutions) > 0
-    assert hasattr(best, 'total_mdl')
-    assert hasattr(best, 'seams')
-    assert hasattr(best, 'yhat')
+    assert hasattr(best, "total_mdl")
+    assert hasattr(best, "seams")
+    assert hasattr(best, "yhat")
     assert len(best.yhat) == len(y)
     print("✓ test_pipeline_runs")
 
@@ -202,17 +201,14 @@ def test_pipeline_runs():
 def test_pipeline_with_known_seams():
     """Pipeline should detect seams in clean signal."""
     y, true_seams = generate_signal_with_seams(
-        T=300, noise_std=0.1,
-        seam_positions=[0.5],
-        seam_types=['sign_flip'],
-        seed=42
+        T=300, noise_std=0.1, seam_positions=[0.5], seam_types=["sign_flip"], seed=42
     )
     config = MASSSMASHConfig(alpha=1.0, verbose=False, include_mlp=False)
     best, _ = run_mass_smash(y, config)
 
     # With low noise and low alpha, should find at least one seam
     # (though not guaranteed to be exactly right)
-    assert hasattr(best, 'seams')
+    assert hasattr(best, "seams")
     print(f"  Found {len(best.seams)} seams: {list(best.seams)}")
     print("✓ test_pipeline_with_known_seams")
 
@@ -220,9 +216,7 @@ def test_pipeline_with_known_seams():
 def test_alpha_affects_seam_count():
     """Higher alpha should find fewer or equal seams."""
     y, _ = generate_signal_with_seams(
-        T=300, noise_std=0.15,
-        seam_positions=[0.5],
-        seed=42
+        T=300, noise_std=0.15, seam_positions=[0.5], seed=42
     )
 
     config_low = MASSSMASHConfig(alpha=1.0, verbose=False, include_mlp=False)
@@ -231,8 +225,9 @@ def test_alpha_affects_seam_count():
     best_low, _ = run_mass_smash(y, config_low)
     best_high, _ = run_mass_smash(y, config_high)
 
-    assert len(best_low.seams) >= len(best_high.seams), \
-        f"Low alpha found {len(best_low.seams)}, high found {len(best_high.seams)}"
+    assert len(best_low.seams) >= len(
+        best_high.seams
+    ), f"Low alpha found {len(best_low.seams)}, high found {len(best_high.seams)}"
     print("✓ test_alpha_affects_seam_count")
 
 
@@ -251,6 +246,7 @@ def test_solutions_sorted_by_mdl():
 # Test Configuration
 # =============================================================================
 
+
 def test_config_defaults():
     """Config should have sensible defaults."""
     config = MASSSMASHConfig()
@@ -262,11 +258,7 @@ def test_config_defaults():
 
 def test_config_custom():
     """Custom config values should be respected."""
-    config = MASSSMASHConfig(
-        alpha=1.5,
-        max_seams=5,
-        include_mlp=False
-    )
+    config = MASSSMASHConfig(alpha=1.5, max_seams=5, include_mlp=False)
     assert config.alpha == 1.5
     assert config.max_seams == 5
     assert not config.include_mlp
@@ -277,6 +269,7 @@ def test_config_custom():
 # Run All Tests
 # =============================================================================
 
+
 def run_all_tests():
     """Run all tests and report results."""
     tests = [
@@ -284,29 +277,24 @@ def run_all_tests():
         test_signal_generation_basic,
         test_signal_generation_seam_positions,
         test_signal_generation_reproducibility,
-
         # MDL/BIC
         test_mdl_seam_penalty,
         test_mdl_fit_improvement,
         test_mdl_param_penalty,
         test_bic_consistency,
-
         # Detectors
         test_antipodal_detector_basic,
         test_antipodal_finds_sign_flip,
         test_roughness_detector_basic,
         test_combined_detection,
-
         # Model zoo
         test_build_model_zoo,
         test_fit_best_model,
-
         # Full pipeline
         test_pipeline_runs,
         test_pipeline_with_known_seams,
         test_alpha_affects_seam_count,
         test_solutions_sorted_by_mdl,
-
         # Config
         test_config_defaults,
         test_config_custom,

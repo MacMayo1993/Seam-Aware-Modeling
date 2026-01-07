@@ -3,7 +3,7 @@ Seam detection using robust statistical methods.
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 
@@ -45,9 +45,7 @@ def detect_seam_cusum(
     """
     # Validate min_segment_length
     if min_segment_length < 1:
-        raise ValueError(
-            f"min_segment_length must be >= 1, got {min_segment_length}"
-        )
+        raise ValueError(f"min_segment_length must be >= 1, got {min_segment_length}")
 
     if len(signal) < 2 * min_segment_length:
         raise ValueError(f"Signal too short: {len(signal)} < {2 * min_segment_length}")
@@ -105,7 +103,7 @@ def detect_seam_cusum(
             # Signal too short, return midpoint
             best_idx = n // 2
         else:
-            best_idx = np.argmax(valid_range) + min_segment_length
+            best_idx = int(np.argmax(valid_range)) + min_segment_length
         return SeamDetectionResult(
             position=best_idx,
             confidence=0.0,
@@ -208,7 +206,7 @@ def detect_seam_roughness(
 
 
 def detect_seam(
-    signal: np.ndarray, method: str = "cusum", **kwargs
+    signal: np.ndarray, method: str = "cusum", **kwargs: Any
 ) -> SeamDetectionResult:
     """
     Main seam detection entry point.
