@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use SeamAware in your research, please cite it as below."
+title: "SeamAware: Non-Orientable Modeling for Time Series Analysis"
+version: 0.2.0
+date-released: 2025-01-07
+url: "https://github.com/MacMayo1993/Seam-Aware-Modeling"
+repository-code: "https://github.com/MacMayo1993/Seam-Aware-Modeling"
+license: Apache-2.0
+authors:
+  - family-names: "Mayo"
+    given-names: "Mac"
+    email: "macmayo1993@gmail.com"
+keywords:
+  - time-series
+  - topology
+  - compression
+  - MDL
+  - signal-processing
+  - non-orientable-geometry
+  - projective-space
+  - regime-switching
+abstract: >
+  SeamAware detects and exploits orientation discontinuities (seams) in time
+  series data by recognizing that normalized signals naturally inhabit
+  non-orientable quotient spaces (real projective space ℝPⁿ⁻¹). The framework
+  achieves 10-63% MDL reduction over standard baselines and establishes
+  k* ≈ 0.721 as a universal information-theoretic threshold for seam detection.
