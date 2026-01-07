@@ -8,6 +8,14 @@ A flip atom is a transformation F : ℂᴺ → ℂᴺ that:
 
 This module provides the abstract FlipAtom base class and concrete
 implementations for common transformations.
+
+NOTE: This is the comprehensive atom implementation with explicit inverse()
+and fit_params() methods. For the simplified API used by MASSFramework,
+see atoms.py. These modules will be unified in a future release.
+
+Current Usage:
+- Use atoms.py when working with MASSFramework (returns AtomResult)
+- Use this module (flip_atoms.py) for advanced composition and testing
 """
 
 from abc import ABC, abstractmethod

@@ -3,6 +3,14 @@ Flip atoms: transformations that exploit orientation symmetry.
 
 True ℤ₂ involutions satisfy F(F(x)) = x (applying twice gives identity).
 Auxiliary transforms may not be involutions but expose hidden structure.
+
+NOTE: This module provides the main framework API used by MASSFramework.
+For advanced usage with explicit inverse() and fit_params() methods,
+see flip_atoms.py. These modules will be unified in a future release.
+
+Current Usage:
+- Use this module (atoms.py) when working with MASSFramework
+- Use flip_atoms.py for lower-level atom composition and testing
 """
 
 from abc import ABC, abstractmethod
