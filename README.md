@@ -80,6 +80,19 @@ print(f"Seam detected: {result.seam_used}")  # 102 (within 2% of truth)
 print(f"MDL improvement: {(fourier_mdl - result.mdl_score) / fourier_mdl:.1%}")
 ```
 
+### 📓 Interactive Tutorial
+
+Try the **[Quick Start Notebook](examples/quick_start.ipynb)** for an interactive introduction with visualizations:
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/MacMayo1993/Seam-Aware-Modeling/blob/main/examples/quick_start.ipynb)
+[![View on nbviewer](https://img.shields.io/badge/render-nbviewer-orange.svg)](https://nbviewer.org/github/MacMayo1993/Seam-Aware-Modeling/blob/main/examples/quick_start.ipynb)
+
+The notebook covers:
+- Signal generation with hidden seams
+- MDL comparison (baseline vs seam-aware)
+- Visualization of seam detection and correction
+- Parameter sensitivity analysis
+
 ### Visual Demonstrations
 
 These plots demonstrate SeamAware's ability to detect hidden orientation discontinuities and achieve provable MDL gains.
