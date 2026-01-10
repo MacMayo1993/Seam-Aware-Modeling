@@ -1,0 +1,72 @@
+# DMDL-Lift Phase-0 Frozen Configuration
+# ========================================
+# This file documents the locked validation parameters.
+# DO NOT MODIFY after passing Phase-0 validation.
+# Any changes invalidate the validation and require re-running.
+
+[phase0]
+# Frozen: 2026-01-10
+status = "PASSED"
+
+[parameters]
+# K-mer length (Fibonacci phases = L+1 = 7)
+L = 6
+
+# Sliding window configuration
+window_size = 200
+step_size = 10
+
+# Minimum samples per phase for dedicated AR(1) fit
+min_samples = 10
+
+# Signal generation
+noise_std = 0.06
+ar1_alpha_base = 0.85
+
+[pass_criteria.periodic]
+# Rank-1 ground truth: pure AR(1), no word dependence
+delta_mdl_upper = 0.0      # μ < 0 (rank-1 preferred)
+phases_expected = 2        # Exactly 2 k-mers
+ess_per_phase_lower = 50   # High ESS with only 2 phases
+
+[pass_criteria.fibonacci]
+# Rank-2 ground truth: AR(1) + k-mer-conditioned forcing
+delta_mdl_lower = 50.0     # μ > 50 (lift strongly detected)
+phases_minimum = 6         # At least L phases learned
+ess_per_phase_lower = 15   # Reasonable ESS with 7 phases
+separation_lower = 40.0    # μ_fib - μ_per > 40
+
+[observed_values]
+# From validation run (seed-dependent but representative)
+periodic_delta_mdl_mean = -4.22
+periodic_delta_mdl_std = 0.69
+periodic_phases = 2.0
+periodic_ess_per_phase = 97.5
+
+fibonacci_delta_mdl_mean = 50.11
+fibonacci_delta_mdl_std = 4.80
+fibonacci_phases = 7.0
+fibonacci_ess_per_phase = 27.9
+
+separation = 54.33
+
+[mdl_notes]
+# MDL parameter counting conventions
+# See src/dmdl_lift/mdl.py for details
+variance_treatment = "plug-in MLE"
+penalty_counts = "regression parameters only (alpha, beta per phase)"
+note = "Variance absorbed into NLL via MLE; not counted in penalty term k"
+
+[allowed_preprocessing]
+# These may be applied to real data without re-validation
+z_score_normalization = true
+linear_detrend = true  # Only if visually obvious trend
+moving_average_3pt = true  # Must apply to both train/test
+
+[forbidden_modifications]
+# These changes INVALIDATE the frozen config
+change_L = true
+change_window_size = true
+change_min_samples = true
+per_dataset_tuning = true
+model_family_changes = true

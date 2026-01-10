@@ -1,0 +1,39 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[test]
+
+      - name: Check for truncation
+        run: |
+          grep -R --line-number -E '^\.\.\.$' src/ && echo "ERROR: found ellipses" && exit 1 || echo "Clean"
+
+      - name: Compile check
+        run: |
+          python -m compileall src/
+
+      - name: Run tests
+        run: pytest -v
+
+      - name: Run validation and generate figure
+        run: dmdl-validate
+
+      - name: Upload decisive figure
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-figure
+          path: phase0_hardened_validation.png
