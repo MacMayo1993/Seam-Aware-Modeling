@@ -179,12 +179,19 @@ class MASSFramework:
 
         # OPTIMIZATION: Use detection candidates instead of exhaustive grid search
         # This reduces evaluations from O(n/5) to O(k) where k is small (typically 5-10)
+        # However, add strategic grid samples as fallback in case detection misses the seam
         candidate_positions = [pos for pos, _ in detection.all_candidates]
 
-        # Fallback: if no candidates, sample a few positions
+        # Add strategic grid samples (quartiles) to improve robustness
+        n = len(signal)
+        grid_samples = [n // 4, n // 2, 3 * n // 4]
+        for pos in grid_samples:
+            if pos not in candidate_positions:
+                candidate_positions.append(pos)
+
+        # Fallback: if still no candidates, use grid samples
         if not candidate_positions:
-            n = len(signal)
-            candidate_positions = [n // 4, n // 2, 3 * n // 4]
+            candidate_positions = grid_samples
 
         # OPTIMIZATION: Cache baseline object to avoid repeated instantiation
         for candidate_pos in candidate_positions:
