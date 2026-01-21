@@ -125,9 +125,7 @@ def _compute_roughness_accurate(
                 roughness[tau] = np.std(residuals)
             elif method == "mad":
                 # Median absolute deviation
-                roughness[tau] = np.median(
-                    np.abs(residuals - np.median(residuals))
-                )
+                roughness[tau] = np.median(np.abs(residuals - np.median(residuals)))
             else:
                 raise ValueError(f"Unknown method: {method}")
 
