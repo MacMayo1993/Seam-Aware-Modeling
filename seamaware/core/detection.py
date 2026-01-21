@@ -66,20 +66,22 @@ def detect_seam_cusum(
     cumsum = np.cumsum(signal)
     total_sum = cumsum[-1]
 
+    # OPTIMIZATION: Vectorized computation instead of loop
+    valid_indices = np.arange(min_segment_length, n - min_segment_length)
+    n_left = valid_indices
+    n_right = n - valid_indices
+
+    # Compute means using cumulative sum (O(1) per position)
+    sum_left = cumsum[valid_indices - 1]  # Sum of signal[0:i]
+    sum_right = total_sum - sum_left  # Sum of signal[i:]
+    mean_left = sum_left / n_left
+    mean_right = sum_right / n_right
+
+    # Welch-Satterthwaite style statistic (vectorized)
     cusum_range = np.zeros(n)
-    for i in range(min_segment_length, n - min_segment_length):
-        # Statistic: how much does the mean shift at this point?
-        n_left = i
-        n_right = n - i
-
-        # Compute means using cumulative sum (O(1) instead of O(n))
-        sum_left = cumsum[i - 1]  # Sum of signal[0:i]
-        sum_right = total_sum - cumsum[i - 1]  # Sum of signal[i:]
-        mean_left = sum_left / n_left
-        mean_right = sum_right / n_right
-
-        # Welch-Satterthwaite style statistic
-        cusum_range[i] = abs(mean_right - mean_left) * np.sqrt(n_left * n_right / n)
+    cusum_range[valid_indices] = np.abs(mean_right - mean_left) * np.sqrt(
+        n_left * n_right / n
+    )
 
     signal_std = np.std(signal)
 
@@ -87,10 +89,11 @@ def detect_seam_cusum(
     if threshold is None:
         threshold = signal_std * 1.5
 
-    candidates = []
-    for i in range(min_segment_length, n - min_segment_length):
-        if cusum_range[i] > threshold:
-            candidates.append((i, cusum_range[i]))
+    # OPTIMIZATION: Vectorized candidate finding
+    mask = cusum_range[valid_indices] > threshold
+    candidate_indices = valid_indices[mask]
+    candidate_scores = cusum_range[candidate_indices]
+    candidates = list(zip(candidate_indices.tolist(), candidate_scores.tolist()))
 
     # Sort by score descending
     candidates.sort(key=lambda x: x[1], reverse=True)
