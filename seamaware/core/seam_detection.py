@@ -47,7 +47,8 @@ def compute_roughness(
     n = len(data)
 
     # OPTIMIZATION: Use Savitzky-Golay filter for efficient polynomial smoothing
-    # This is mathematically equivalent to local polynomial fitting but O(n) instead of O(n × window³)
+    # This is mathematically equivalent to local polynomial fitting but O(n)
+    # instead of O(n × window³)
     window_length = 2 * window + 1
 
     # Ensure window_length is odd and <= n
@@ -99,7 +100,7 @@ def _rolling_variance(data: np.ndarray, half_window: int) -> np.ndarray:
     # Compute cumulative sums for efficient variance computation
     # Var(X) = E[X²] - E[X]²
     cumsum_x = np.concatenate([[0], np.cumsum(data)])
-    cumsum_x2 = np.concatenate([[0], np.cumsum(data ** 2)])
+    cumsum_x2 = np.concatenate([[0], np.cumsum(data**2)])
 
     for i in range(n):
         start = max(0, i - half_window)
@@ -111,7 +112,9 @@ def _rolling_variance(data: np.ndarray, half_window: int) -> np.ndarray:
             sum_x2 = cumsum_x2[end] - cumsum_x2[start]
             mean_x = sum_x / window_size
             mean_x2 = sum_x2 / window_size
-            result[i] = max(0, mean_x2 - mean_x ** 2)  # Avoid negative due to numerical error
+            result[i] = max(
+                0, mean_x2 - mean_x**2
+            )  # Avoid negative due to numerical error
 
     return result
 

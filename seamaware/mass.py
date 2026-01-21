@@ -184,7 +184,6 @@ class MASSFramework:
         # Fallback: if no candidates, sample a few positions
         if not candidate_positions:
             n = len(signal)
-            min_seg = 10
             candidate_positions = [n // 4, n // 2, 3 * n // 4]
 
         # OPTIMIZATION: Cache baseline object to avoid repeated instantiation
