@@ -159,9 +159,12 @@ def validate_k_star_convergence(
             # === Seam-aware: detect + flip ===
             flip_atom = SignFlipAtom()
 
-            # Detect seams
+            # Detect seams (use accurate mode for k* validation precision)
             detected_seams = detect_seams_roughness(
-                noisy_signal, window=min(20, signal_length // 10), threshold_sigma=1.5
+                noisy_signal,
+                window=min(20, signal_length // 10),
+                threshold_sigma=1.5,
+                mode="accurate",
             )
 
             if len(detected_seams) > 0:

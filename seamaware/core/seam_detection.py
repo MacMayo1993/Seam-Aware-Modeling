@@ -19,19 +19,21 @@ def compute_roughness(
     window: int = 20,
     poly_degree: int = 1,
     method: str = "variance",
+    mode: str = "fast",
 ) -> np.ndarray:
     """
     Compute roughness function R(τ) across the signal.
 
-    OPTIMIZED: Uses Savitzky-Golay filter for efficient polynomial smoothing
-    instead of per-window polynomial fitting. This reduces complexity from
-    O(n × window³) to O(n) while maintaining the same mathematical result.
+    Two modes available:
+    - 'fast': Uses Savitzky-Golay filter (20-50× faster, good approximation)
+    - 'accurate': Per-window polynomial fitting (slower, exact for k* validation)
 
     Args:
         data: Input signal (length N)
         window: Half-window size w (full window = 2w+1)
         poly_degree: Polynomial degree for local fitting (default: 1)
         method: Roughness metric ('variance', 'std', 'mad')
+        mode: Computation mode ('fast' or 'accurate')
 
     Returns:
         Roughness array R(τ) of shape (N,)
@@ -39,16 +41,19 @@ def compute_roughness(
     Examples:
         >>> signal = np.sin(np.linspace(0, 4*np.pi, 200))
         >>> signal[100:] *= -1  # Seam at 100
-        >>> R = compute_roughness(signal, window=20)
+        >>> R = compute_roughness(signal, window=20, mode='fast')
         >>> seam_idx = np.argmax(R)
         >>> abs(seam_idx - 100) < 5
         True
     """
     n = len(data)
 
+    if mode == "accurate":
+        # Original per-window polynomial fitting (accurate but slow)
+        return _compute_roughness_accurate(data, window, poly_degree, method)
+
     # OPTIMIZATION: Use Savitzky-Golay filter for efficient polynomial smoothing
-    # This is mathematically equivalent to local polynomial fitting but O(n)
-    # instead of O(n × window³)
+    # This is a good approximation but not exact (global vs local fitting)
     window_length = 2 * window + 1
 
     # Ensure window_length is odd and <= n
@@ -84,6 +89,51 @@ def compute_roughness(
     except (np.linalg.LinAlgError, ValueError):
         # Fallback to zeros on error
         roughness = np.zeros(n)
+
+    return roughness
+
+
+def _compute_roughness_accurate(
+    data: np.ndarray, window: int, poly_degree: int, method: str
+) -> np.ndarray:
+    """
+    Original per-window polynomial fitting for accurate roughness computation.
+
+    This is slower (O(n × window³)) but mathematically exact. Used for k*
+    validation where precision matters.
+    """
+    n = len(data)
+    roughness = np.zeros(n)
+
+    for tau in range(window, n - window):
+        # Extract window
+        start = tau - window
+        end = tau + window + 1
+        window_data = data[start:end]
+
+        # Fit polynomial
+        t = np.arange(len(window_data))
+        try:
+            coeffs = np.polyfit(t, window_data, poly_degree)
+            fitted = np.polyval(coeffs, t)
+            residuals = window_data - fitted
+
+            # Compute roughness metric
+            if method == "variance":
+                roughness[tau] = np.var(residuals)
+            elif method == "std":
+                roughness[tau] = np.std(residuals)
+            elif method == "mad":
+                # Median absolute deviation
+                roughness[tau] = np.median(
+                    np.abs(residuals - np.median(residuals))
+                )
+            else:
+                raise ValueError(f"Unknown method: {method}")
+
+        except np.linalg.LinAlgError:
+            # Polynomial fit failed (e.g., singular matrix)
+            roughness[tau] = 0.0
 
     return roughness
 
@@ -143,6 +193,7 @@ def detect_seams_roughness(
     min_distance: int = 10,
     poly_degree: int = 1,
     max_seams: Optional[int] = None,
+    mode: str = "fast",
 ) -> List[int]:
     """
     Detect seams via roughness local maxima.
@@ -160,6 +211,7 @@ def detect_seams_roughness(
         min_distance: Minimum samples between detected seams
         poly_degree: Polynomial degree for local fitting
         max_seams: Maximum number of seams to return (None = no limit)
+        mode: Computation mode ('fast' or 'accurate')
 
     Returns:
         Sorted list of seam indices
@@ -174,7 +226,9 @@ def detect_seams_roughness(
         True
     """
     # Compute roughness
-    roughness = compute_roughness(data, window=window, poly_degree=poly_degree)
+    roughness = compute_roughness(
+        data, window=window, poly_degree=poly_degree, mode=mode
+    )
 
     # Find local maxima
     # scipy.signal.find_peaks returns (peaks, properties)
