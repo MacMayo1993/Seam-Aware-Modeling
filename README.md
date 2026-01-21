@@ -15,6 +15,16 @@
 - **Robust regime-switching detection** without hidden states
 - **Emergence of k* ≈ 0.721** as universal information-theoretic threshold
 
+---
+
+## 🎯 See It In Action
+
+![Hero Comparison](assets/hero_comparison.png)
+
+**The visual proof:** Standard Fourier analysis struggles with sign flips (panel B, red curve), treating them as noise that spikes residuals (panel D, red). SeamAware detects the orientation discontinuity and applies a flip atom (panel C, green), achieving **near-perfect fit** with **16-63% fewer bits**. The residual comparison (panel D) shows the dramatic improvement—SeamAware eliminates seam-induced errors that standard methods must encode as high-variance noise.
+
+---
+
 ### The Core Insight
 
 Standard methods assume data lives in **orientable spaces** (ℝⁿ). SeamAware recognizes that normalized signals naturally inhabit **non-orientable quotient spaces**:
@@ -26,6 +36,12 @@ Signal → Normalize to sphere Sⁿ⁻¹ → Apply ℤ₂ identification (u ~ -u
 At the seam location τ, we apply a **flip atom**—a transformation that exploits latent symmetry. Primary atoms are true ℤ₂ involutions: **sign inversion** (x → −x) and **time reversal** (t → −t). Auxiliary atoms like variance scaling and polynomial detrending are preprocessing steps that expose hidden orientation structure.
 
 **This constant (k* = 1/(2·ln 2) ≈ 0.721) emerges from MDL theory under Gaussian assumptions—see [docs/theory.md](docs/theory.md) for the derivation.**
+
+#### 🎓 Geometry Intuition
+
+![Geometry Intuition](assets/geometry_intuition.png)
+
+**Why non-orientable modeling saves bits:** Standard methods treat signals as living on the orientable circle S¹ where points u and -u are distinct (panel A, red). This forces them to encode the full discontinuity when a sign flip occurs (~200 bits in residuals). SeamAware recognizes that normalized signals naturally live in **projective space ℝP¹** where antipodal points are identified (u ~ -u) — like a Möbius strip (panel B, green). In this geometry, a sign flip is topologically trivial and costs just **1 bit** for orientation. Standard methods ignore this inherent symmetry and pay ~140 extra bits per seam!
 
 ### Key Definitions
 
@@ -47,6 +63,12 @@ MDL = (T/2)·log₂(RSS/T) + (K/2)·log₂(T) + m·log₂(T) + m
 ```
 
 The "1 bit per seam" mentioned elsewhere refers to the **orientation cost only** (the final `+ m` term). The full seam cost includes location encoding and totals ~9-11 bits per seam for typical signal lengths T = 200-1000.
+
+#### 💰 Where Do the Bits Go?
+
+![MDL Breakdown](assets/mdl_breakdown.png)
+
+**Quantitative breakdown:** The compression gain comes from **dramatically lower data encoding cost** (gray bars), not parameter tricks. Standard Fourier uses the same 320 bits for parameters as SeamAware. The 32-bit seam encoding cost (orange) is negligible compared to the **~140 bit savings** from better residual fit. This is pure information-theoretic gain—SeamAware captures the signal's true geometry.
 
 **Why experimental k* ≈ 0.782 vs theoretical 0.721?** Finite-sample effects, detection uncertainty, and model selection overhead raise the practical threshold by ~8%. See [docs/theory.md § Reconciling k*](docs/theory.md#reconciling-theoretical-vs-experimental-k) for details.
 
@@ -93,9 +115,9 @@ The notebook covers:
 - Visualization of seam detection and correction
 - Parameter sensitivity analysis
 
-### Visual Demonstrations
+### 📊 Additional Visual Demonstrations
 
-These plots demonstrate SeamAware's ability to detect hidden orientation discontinuities and achieve provable MDL gains.
+For deeper exploration beyond the hero figure above, these plots demonstrate individual aspects of SeamAware's detection and performance characteristics.
 
 #### 1. Hidden Orientation Seam in a Signal
 
