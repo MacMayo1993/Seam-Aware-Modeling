@@ -23,6 +23,32 @@
 
 **The visual proof:** Standard Fourier analysis struggles with sign flips (panel B, red curve), treating them as noise that spikes residuals (panel D, red). SeamAware detects the orientation discontinuity and applies a flip atom (panel C, green), achieving **near-perfect fit** with **16-63% fewer bits**. The residual comparison (panel D) shows the dramatic improvement—SeamAware eliminates seam-induced errors that standard methods must encode as high-variance noise.
 
+### 🎬 Watch the Process
+
+![Seam Detection Animation](assets/seam_detection_animation.gif)
+
+**7-step animation** showing the complete detection and correction process: (1) Raw signal with hidden seam → (2) Baseline struggles → (3) Roughness analysis finds the seam → (4) Seam detected → (5) Flip atom applied → (6) Perfect SeamAware fit → (7) Side-by-side comparison showing 16% MDL savings.
+
+### 🎮 Try It Yourself
+
+**Interactive Streamlit Demo** with preloaded regime-switching examples:
+
+```bash
+# Launch the interactive visualizer
+streamlit run apps/streamlit_visualizer.py
+```
+
+**Features:**
+- 6 preloaded examples: Sine wave, HVAC cycles, ECG polarity inversion, audio phase flip, multi-seam, variance shifts
+- Real-time comparison: Adjust parameters and see MDL scores update instantly
+- Detailed metrics: MDL breakdown, residual analysis, seam detection accuracy
+- Visual exploration: Toggle roughness curves, compare Fourier vs Polynomial baselines
+
+**No Streamlit installed?** Use the Jupyter notebook instead:
+```bash
+jupyter notebook examples/quick_start.ipynb
+```
+
 ---
 
 ### The Core Insight
