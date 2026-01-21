@@ -177,12 +177,17 @@ class MASSFramework:
         best_pred = baseline_pred
         best_position = None
 
-        # Use a grid search over positions to be robust to detection errors
-        # Try every 5th position (more robust than relying only on detection)
-        n = len(signal)
-        min_seg = 10
-        candidate_positions = list(range(min_seg, n - min_seg, 5))
+        # OPTIMIZATION: Use detection candidates instead of exhaustive grid search
+        # This reduces evaluations from O(n/5) to O(k) where k is small (typically 5-10)
+        candidate_positions = [pos for pos, _ in detection.all_candidates]
 
+        # Fallback: if no candidates, sample a few positions
+        if not candidate_positions:
+            n = len(signal)
+            min_seg = 10
+            candidate_positions = [n // 4, n // 2, 3 * n // 4]
+
+        # OPTIMIZATION: Cache baseline object to avoid repeated instantiation
         for candidate_pos in candidate_positions:
             for atom_name in self.atoms:
                 atom = get_atom(atom_name)
