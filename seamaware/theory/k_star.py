@@ -200,9 +200,17 @@ def validate_k_star_convergence(
         delta_mdl_results.append(trial_deltas)
         accept_fractions.append(accepted_count / num_trials)
 
-    # Compute statistics
-    delta_mdl_mean = np.array([np.mean(d) for d in delta_mdl_results])
-    delta_mdl_std = np.array([np.std(d) for d in delta_mdl_results])
+    # Compute statistics (filter out inf values to avoid NumPy warnings)
+    def _safe_mean(arr):
+        finite = np.array(arr)[np.isfinite(arr)]
+        return np.mean(finite) if len(finite) > 0 else np.inf
+
+    def _safe_std(arr):
+        finite = np.array(arr)[np.isfinite(arr)]
+        return np.std(finite) if len(finite) > 1 else 0.0
+
+    delta_mdl_mean = np.array([_safe_mean(d) for d in delta_mdl_results])
+    delta_mdl_std = np.array([_safe_std(d) for d in delta_mdl_results])
     accept_fractions = np.array(accept_fractions)
 
     # Find crossover point (where ΔMDL ≈ 0)
