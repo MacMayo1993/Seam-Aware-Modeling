@@ -1,0 +1,276 @@
+[
+  {
+    "hypothesis": "H1",
+    "test_name": "MDL reduction on sign flip seam",
+    "passed": "False",
+    "details": {
+      "mean_improvement_percent": -3.6215259084245592,
+      "std_improvement_percent": 3.6505031797716216,
+      "min_improvement": -11.722064960623936,
+      "max_improvement": 4.876501383703938,
+      "expected_range": "10-63%",
+      "num_trials": 50
+    },
+    "execution_time": 0.00762486457824707
+  },
+  {
+    "hypothesis": "H1",
+    "test_name": "MDL reduction on variance shift seam",
+    "passed": "False",
+    "details": {
+      "mean_improvement_percent": -9.64681755662167,
+      "std_improvement_percent": 0.2051777679234078,
+      "num_trials": 50
+    },
+    "execution_time": 0.014097452163696289
+  },
+  {
+    "hypothesis": "H1",
+    "test_name": "Spurious seam should not improve MDL",
+    "passed": "True",
+    "details": {
+      "mean_change_percent": -40.27235199800233,
+      "fraction_showing_improvement": 0.0,
+      "expected": "< 20% should show > 5% improvement"
+    },
+    "execution_time": 0.003853321075439453
+  },
+  {
+    "hypothesis": "H2",
+    "test_name": "k* theoretical value",
+    "passed": "True",
+    "details": {
+      "computed_k_star": 0.7213475204444817,
+      "expected_k_star": 0.7213475204444817,
+      "difference": 0.0
+    },
+    "execution_time": 8.821487426757812e-06
+  },
+  {
+    "hypothesis": "H2",
+    "test_name": "k* Monte Carlo validation (50 trials)",
+    "passed": "False",
+    "details": {
+      "empirical_k_star": 1.0666666666666667,
+      "theoretical_k_star": 0.7213475204444817,
+      "relative_error": 0.47871398519455,
+      "converged": "False",
+      "num_trials": 50
+    },
+    "execution_time": 12.352023363113403
+  },
+  {
+    "hypothesis": "H2",
+    "test_name": "k* Monte Carlo validation (100 trials)",
+    "passed": "False",
+    "details": {
+      "empirical_k_star": 1.186206896551724,
+      "theoretical_k_star": 0.7213475204444817,
+      "relative_error": 0.6444319318111805,
+      "accept_fraction_at_crossover": 0.16,
+      "num_trials": 100
+    },
+    "execution_time": 29.18481421470642
+  },
+  {
+    "hypothesis": "H2",
+    "test_name": "Accept fraction monotonicity",
+    "passed": "True",
+    "details": {
+      "monotonic_violations": 0,
+      "accept_fraction_range": [
+        0.0,
+        0.16
+      ],
+      "expected": "Generally increasing with SNR"
+    },
+    "execution_time": 3.0040740966796875e-05
+  },
+  {
+    "hypothesis": "H3",
+    "test_name": "High SNR localization (SNR \u2248 10)",
+    "passed": "True",
+    "details": {
+      "mean_localization_error": 0.98,
+      "percent_within_3_samples": 100.0,
+      "percent_within_5_samples": 100.0,
+      "num_trials": 50
+    },
+    "execution_time": 0.014511823654174805
+  },
+  {
+    "hypothesis": "H3",
+    "test_name": "Low SNR localization (SNR \u2248 1)",
+    "passed": "True",
+    "details": {
+      "mean_localization_error": 4.7,
+      "high_snr_error": 0.98,
+      "expected": "Low SNR error > High SNR error"
+    },
+    "execution_time": 0.015239715576171875
+  },
+  {
+    "hypothesis": "H3",
+    "test_name": "Detection rate vs SNR",
+    "passed": true,
+    "details": {
+      "snr_levels": [
+        0.5,
+        1.0,
+        2.0,
+        5.0,
+        10.0
+      ],
+      "detection_rates_percent": [
+        36.666666666666664,
+        90.0,
+        100.0,
+        100.0,
+        100.0
+      ],
+      "is_monotonic": true
+    },
+    "execution_time": 0.04025912284851074
+  },
+  {
+    "hypothesis": "H4",
+    "test_name": "Sign flip involution",
+    "passed": "True",
+    "details": {
+      "max_reconstruction_error": 0.0,
+      "expected": "< 1e-10"
+    },
+    "execution_time": 0.00038909912109375
+  },
+  {
+    "hypothesis": "H4",
+    "test_name": "Time reversal involution",
+    "passed": "True",
+    "details": {
+      "max_reconstruction_error": 0.0,
+      "expected": "< 1e-10"
+    },
+    "execution_time": 0.0002574920654296875
+  },
+  {
+    "hypothesis": "H4",
+    "test_name": "Combined sign+time involution",
+    "passed": "True",
+    "details": {
+      "max_reconstruction_error": 0.0,
+      "expected": "< 1e-10"
+    },
+    "execution_time": 0.000354766845703125
+  },
+  {
+    "hypothesis": "H4",
+    "test_name": "Variance scaling is NOT an involution",
+    "passed": "False",
+    "details": {
+      "reconstruction_error": 0.0,
+      "expected": "> 0.01 (confirming it's not an involution)"
+    },
+    "execution_time": 2.4557113647460938e-05
+  },
+  {
+    "hypothesis": "H5",
+    "test_name": "k* universality across signal lengths",
+    "passed": "True",
+    "details": {
+      "signal_lengths": [
+        100,
+        200,
+        400
+      ],
+      "crossover_values": [
+        0.3526315789473684,
+        0.4052631578947368,
+        0.5105263157894737
+      ],
+      "mean_crossover": 0.42280701754385963,
+      "relative_std": 0.15525549322713456,
+      "theoretical_k_star": 0.7213475204444817
+    },
+    "execution_time": 28.497969388961792
+  },
+  {
+    "hypothesis": "H5",
+    "test_name": "k* universality across polynomial degrees",
+    "passed": false,
+    "details": {
+      "polynomial_degrees": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "crossover_values": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "mean_crossover": NaN,
+      "std_crossover": NaN
+    },
+    "execution_time": 0.42847776412963867
+  },
+  {
+    "hypothesis": "Stress",
+    "test_name": "Extreme noise (SNR \u2248 0.1)",
+    "passed": "True",
+    "details": {
+      "mean_improvement_percent": -2.8875862476840752,
+      "expected": "Near zero improvement at extreme noise"
+    },
+    "execution_time": 0.002895355224609375
+  },
+  {
+    "hypothesis": "Stress",
+    "test_name": "Very short signals",
+    "passed": true,
+    "details": {
+      "results_by_length": [
+        {
+          "length": 20,
+          "detected": 0,
+          "error": null
+        },
+        {
+          "length": 30,
+          "detected": 0,
+          "error": null
+        },
+        {
+          "length": 40,
+          "detected": 0,
+          "error": null
+        },
+        {
+          "length": 50,
+          "detected": 1,
+          "error": null
+        }
+      ]
+    },
+    "execution_time": 0.0003571510314941406
+  },
+  {
+    "hypothesis": "Stress",
+    "test_name": "Multiple seams detection",
+    "passed": true,
+    "details": {
+      "true_seams": [
+        75,
+        150,
+        225
+      ],
+      "detected_seams": [
+        76,
+        223
+      ],
+      "num_detected": 2
+    },
+    "execution_time": 0.0013532638549804688
+  }
+]
