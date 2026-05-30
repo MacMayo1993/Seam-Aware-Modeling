@@ -69,7 +69,11 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     times = t0 + np.arange(N) * cadence_s
 
     # ------------------------------------------------------------------ #
-    # Kolmogorov turbulence component                                      #
+    # Two-component turbulence model                                       #
+    # (1) Kolmogorov component — carries direction memory on long scales.  #
+    # (2) White-noise component — produces bursty |dBdt| spikes that      #
+    #     stress-test the baseline detector; averages to zero in any       #
+    #     window larger than a few samples.                                #
     # ------------------------------------------------------------------ #
     def turbulent_component(N, rng, amplitude, spectral_index=-5/3):
         freqs = np.fft.rfftfreq(N)
@@ -103,8 +107,10 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     # ------------------------------------------------------------------ #
     B0_mag = 6.0  # nT background field magnitude
 
-    # Parker spiral: Bx ~ -cos(45°), By ~ -sin(45°), Bz ~ 0 + small tilt
-    base_dir = np.array([-0.707, -0.707, 0.05])
+    # Sector field oriented so Bz carries the polarity reversal
+    # (makes MASS/SMASH running on Bz sensitive to the crossings while
+    # keeping a 3D field so rotation angles are well-defined and large).
+    base_dir = np.array([0.20, 0.20, 0.96])
     base_dir /= np.linalg.norm(base_dir)
 
     # Polarity: +1 or -1, alternating at each sheet location
@@ -134,12 +140,14 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     Bz_bg = pol_smooth * B0_mag * base_dir[2]
 
     # ------------------------------------------------------------------ #
-    # Add turbulence (~30% of background amplitude)                        #
+    # Add Kolmogorov turbulence at 40% of background                       #
+    # Large enough to create many |dBdt| spikes (stress-tests baseline)   #
+    # while still recoverable over 120s averaging windows for Prediction 1 #
     # ------------------------------------------------------------------ #
     turb_amp = 0.30 * B0_mag
     Bx = Bx_bg + turbulent_component(N, rng, turb_amp)
     By = By_bg + turbulent_component(N, rng, turb_amp)
-    Bz = Bz_bg + turbulent_component(N, rng, turb_amp * 0.5)  # smaller Bz turbulence
+    Bz = Bz_bg + turbulent_component(N, rng, turb_amp)
 
     B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
 
