@@ -29,6 +29,7 @@
 \newcommand{\RSS}{\mathrm{RSS}}
 \newcommand{\PVI}{\mathrm{PVI}}
 \newcommand{\FDF}{\mathrm{FDF}}
+\newcommand{\dBmag}{\left|d|\mathbf{B}|/dt\right|}
 
 \title{\textbf{MASS/SMASH: A Seam-Aware, MDL-Regularized Detector \\
 for Magnetic Current Sheets in Turbulent Solar Wind}}
@@ -59,10 +60,10 @@ A detection is accepted only when the compression gain from modeling a
 structural break exceeds this cost, providing a principled mechanism for
 conservative event selection.
 
-We validate MASS/SMASH against 120 known injected sector-boundary crossings in
+We validate MASS/SMASH against 120 known injected polarity-reversal discontinuities in
 30 days of synthetic solar wind data (3-s cadence; 6 nT background field; 30\%
 Kolmogorov turbulence), benchmarked against a partial-variance-of-increments
-(PVI) detector and a $|d\mathbf{B}/dt|$ threshold baseline.
+(PVI) detector and a $d|\mathbf{B}|/dt$ threshold baseline.
 Against the injected crossings, MASS/SMASH achieves a precision of 0.921
 (false discovery fraction 7.9\%) and recall of 0.483 (F1 = 0.634), compared to
 PVI's precision 0.989 / recall 0.750 (F1 = 0.853) and the baseline's
@@ -72,17 +73,18 @@ with only 5 false detections; the baseline produces 132 detections with 12
 false positives.
 
 Magnetic field rotation-angle analysis reveals that MASS/SMASH detections are
-systematically offset $\approx 30\s$ from the true polarity center: the algorithm
-locates the onset of the tanh transition profile (steepest gradient) rather than
-the sign-flip midpoint.
+systematically offset by approximately $30\s$ from the true polarity center.
+This offset arises from the finite chunked-inference procedure, MDL gain
+maximization, and the forward-ordered antipodal correlation formula, rather
+than from a physically distinct sub-feature of the tanh transition profile.
 When rotation angles are computed at the matched injected crossing positions
 rather than at the detection positions, MASS/SMASH true-positive events have
-mean angles of $127^\circ$--$134^\circ$ at 30--120 s averaging windows,
+mean angles of $128^\circ$--$134^\circ$ at 30--120 s averaging windows,
 statistically indistinguishable from both the PVI catalog (130°--134°) and
 the full injected set (128°--133°).
 The previously apparent depletion of near-$\pi$ events in MASS/SMASH detections
-is therefore an artifact of detection localization, not evidence of different
-physical event classes.
+is therefore a localization artifact, not evidence of different physical event
+classes.
 We discuss the implications for multi-method current-sheet surveys and outline
 extensions to full 3-component detection and real spacecraft data.
 \end{abstract}
@@ -124,19 +126,19 @@ the denominator is a running-window variance normalization.
 PVI peaks above a threshold (typically $3\sigma$) are used to identify
 coherent structures including current sheets and flux tube boundaries
 \citep{Greco2008,Osman2011,Osman2014}.
-Simpler threshold methods on $|d\mathbf{B}/dt|$ or $|\mathbf{B}|$ are also
-widely used as rapid screeners.
+Simpler threshold methods on the scalar magnitude derivative $d|\mathbf{B}|/dt$
+or on $|\mathbf{B}|$ directly are also widely used as rapid screeners.
 Wavelet-based and spectral methods have been applied to characterize
 intermittency without constructing an explicit event catalog
 \citep{Bruno2013}.
 
 These methods share a structural feature: detection is driven by the magnitude
 of a local gradient or fluctuation.
-A threshold on $\PVI$ or $|d\mathbf{B}/dt|$ will fire wherever the field
+A threshold on $\PVI$ or $d|\mathbf{B}|/dt$ will fire wherever the field magnitude
 changes rapidly, regardless of whether the surrounding signal structure changes
-character across the event.
+character across the event or whether the full vector rotates coherently.
 In strongly turbulent intervals, gradient-based methods can produce substantial
-false discovery fractions; in our benchmark, the $|d\mathbf{B}/dt|$ detector
+false discovery fractions; in our benchmark, the $d|\mathbf{B}|/dt$ detector
 produces 132 detections for 120 true crossings with 12 false detections ($\FDF
 = 9.1\%$), and PVI produces 91 detections with 1 false detection ($\FDF = 1.1\%$)
 but misses 25\% of the injected crossings.
@@ -321,9 +323,13 @@ $\hat{\mathbf{b}}_0 = (0.201, 0.201, 0.958)$ (after normalization), giving a
 field strength of $B_0 = 6\nT$ and placing $\approx 96\%$ of the polarity
 reversal amplitude in the Bz component, which is the component input to MASS/SMASH
 in the benchmark.
-One hundred and twenty heliospheric current sheet (HCS) crossings are placed at
-Poisson-random times with mean rate $\sim$4 per day and minimum spacing of one
-hour, consistent with the observed rate near 1 AU
+One hundred and twenty synthetic sector-boundary-like polarity reversals are
+placed at Poisson-random times with mean rate $\sim$4 per day and minimum
+spacing of one hour.
+We use the term ``polarity reversal'' deliberately to avoid conflating these
+synthetic injections with the large-scale heliospheric current sheet (HCS),
+which typically crosses at $\sim$1--2 per solar rotation; the synthetic rate is
+consistent with smaller-scale flux-tube boundary crossings observed near 1 AU
 during moderately active intervals \citep{Wilcox1965}.
 At each crossing the polarity transitions smoothly via
 \begin{equation}
@@ -361,10 +367,21 @@ PVI is simultaneously a detector (evaluated against injected crossings) and
 a reference catalog (for secondary comparisons); the 91 PVI events are not
 used as the primary ground truth.
 
-\textbf{$|d\mathbf{B}/dt|$ baseline.}
+\textbf{$d|\mathbf{B}|/dt$ baseline.}
 The baseline applies a threshold of $\mu + 2.5\sigma$ to the time derivative
-of $|\mathbf{B}|$, with minimum inter-event separation of 300 s.
-This represents the simplest operational screening method.
+of the scalar field magnitude:
+\begin{equation}
+  \mathrm{score}(t) \;=\; \left|\frac{d\,|\mathbf{B}|}{dt}\right|,
+  \label{eq:baseline}
+\end{equation}
+with minimum inter-event separation of 300 s.
+We note that this statistic is physically distinct from the vector gradient
+$|d\mathbf{B}/dt|$: a polarity reversal can rotate $\mathbf{B}$ by $\approx 180^\circ$
+while leaving $|\mathbf{B}|$ nearly constant, so $d|\mathbf{B}|/dt$ may not
+fire strongly at a clean sector-boundary crossing.
+We retain this detector as the simplest operational screener and acknowledge
+that a vector-gradient or vector-PVI baseline would be a stronger comparator;
+that comparison is left for future work.
 
 \subsection{Evaluation Metrics}
 \label{subsec:metrics}
@@ -433,15 +450,15 @@ MASS/SMASH (MDL gain $> 20$ bits) & 30 s  & 63  & 18 & 45 & 0.286 & 0.150 & 0.19
 PVI ($\PVI > 3.0$)                & 150 s & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
 PVI ($\PVI > 3.0$)                & 30 s  & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
 \midrule
-$|d\mathbf{B}/dt|$ baseline       & 150 s & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
-$|d\mathbf{B}/dt|$ baseline       & 30 s  & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
+$d|\mathbf{B}|/dt$ baseline       & 150 s & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
+$d|\mathbf{B}|/dt$ baseline       & 30 s  & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Several findings are evident from Table~\ref{tab:main_results}.
 
-\textbf{The $|d\mathbf{B}/dt|$ baseline achieves perfect recall.}
+\textbf{The $d|\mathbf{B}|/dt$ baseline achieves perfect recall.}
 All 120 injected crossings are matched within 150 s; the 12 false detections
 correspond to high-gradient turbulent fluctuations that did not originate from
 injected crossings.
@@ -527,22 +544,23 @@ KS $p$ = two-sample KS test $p$-value comparing MASS/SMASH (at detection
 position) vs.\ PVI; ``At inj.'' columns are computed at the matched injected
 crossing center for MASS/SMASH true positives only ($n = 58$).}
 \label{tab:angles}
-\begin{tabular}{lcccccccc}
+\begin{tabular}{lccccc}
 \toprule
- & \multicolumn{3}{c}{At detection position} & & \multicolumn{2}{c}{At inj.\ crossing (MS TP)} \\
-\cmidrule(lr){2-4}\cmidrule(lr){6-7}
-Window & PVI $\bar{\omega}$ & MS $\bar{\omega}$ & KS $p$ & &
-         MS $\bar{\omega}$ & Inj.\ all $\bar{\omega}$ \\
+ & \multicolumn{2}{c}{At detection pos.} & & \multicolumn{2}{c}{At inj.\ crossing (MS TP)} \\
+\cmidrule(lr){2-3}\cmidrule(lr){5-6}
+Window & PVI $\bar{\omega}$ & MS $\bar{\omega}$ & KS $p$ &
+         MS $\bar{\omega}$ & Inj.\ $\bar{\omega}$ \\
 \midrule
-10 s  & 114° & \phantom{0}0.5° & $1.7\times10^{-44}$ & & 101° & 108° \\
-30 s  & 130° & \phantom{0}3.9° & $1.1\times10^{-42}$ & & 128° & 128° \\
-60 s  & 132° & \phantom{0}42°  & $4.1\times10^{-31}$ & & 132° & 132° \\
-120 s & 134° & \phantom{0}83°  & $2.1\times10^{-13}$ & & 134° & 133° \\
+10 s  & 114° & \phantom{00}1° & $1.7\times10^{-44}$ & 101° & 108° \\
+30 s  & 130° & \phantom{00}4° & $1.1\times10^{-42}$ & 128° & 128° \\
+60 s  & 132° & \phantom{0}42° & $4.1\times10^{-31}$ & 132° & 132° \\
+120 s & 134° & \phantom{0}83° & $2.1\times10^{-13}$ & 134° & 133° \\
 \midrule
-\multicolumn{8}{l}{\small $f_\pi$ (fraction $\omega>160^\circ$):
-  PVI: 3\%/7\%/7\%/8\%;
-  MS at detect: 0\%/0\%/0\%/2\%;
-  MS at inj.\ crossing: 0\%/2\%/2\%/3\%} \\
+\multicolumn{6}{l}{\small $f_\pi$ ($\omega>160^\circ$):
+  PVI 3/7/7/8\%;
+  MS-detect 0/0/0/2\%;
+  MS-inj.\ 0/2/2/3\%
+  (rows: 10/30/60/120 s)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -599,7 +617,7 @@ This is an informative null result that constrains the framework.
 \label{subsec:char}
 
 MASS/SMASH occupies a distinct operating point in the precision-recall space.
-Its principal advantage over the $|d\mathbf{B}/dt|$ baseline is precision:
+Its principal advantage over the $d|\mathbf{B}|/dt$ baseline is precision:
 5 false detections versus 12 for the baseline (at 150-s tolerance), for comparable
 false discovery fractions (7.9\% vs.\ 9.1\%).
 Its principal disadvantage relative to the baseline is recall: 0.483 versus
@@ -632,9 +650,9 @@ The offset is not associated with a physically meaningful sub-feature of the
 transition profile; it is an implementation artifact.
 
 Practically, the $\pm 30\s$ precision is sufficient for most solar wind survey
-applications: current sheet crossing rates of $\sim$4/day correspond to
-$\sim 6$-hour inter-event spacing, so the $\pm 30\s$ positioning error is
-$< 0.01\%$ of the typical inter-event interval.
+applications: at $\sim$4 events/day the typical inter-event spacing is
+$\sim$6 hours (21{,}600 s), so the $\pm 30\s$ uncertainty is
+$\approx 0.14\%$ of the typical inter-event interval.
 For applications where transition morphology matters --- measuring current sheet
 thickness, reconnection jet width, or onset-to-peak delay --- a post-detection
 tanh profile fit constrained by the MASS/SMASH detection position and MDL gain
@@ -644,15 +662,16 @@ score would provide sub-10-s localization.
 \label{subsec:comp}
 
 PVI and MASS/SMASH together would detect 114 of 120 injected crossings --- 95\%
-of the full ground-truth population --- with a combined false discovery fraction
-of approximately 6\%.
+of the ground-truth population --- with a combined false discovery fraction of
+approximately 5\% (6 false positives from 1 + 5, out of $\approx$120 combined
+detections).
 The 6 missed crossings are those for which neither method fires: the crossing
 amplitude is too small for PVI, and the turbulence context is too noisy for
 the MDL gain to be significant.
 
-For routine survey work, the $|d\mathbf{B}/dt|$ baseline achieves perfect recall
+For routine survey work, the $d|\mathbf{B}|/dt$ baseline achieves perfect recall
 at the cost of 9.1\% false detections, which is often acceptable.
-In this synthetic benchmark the $|d\mathbf{B}/dt|$ baseline already achieves
+In this synthetic benchmark the $d|\mathbf{B}|/dt$ baseline already achieves
 perfect recall, so MASS/SMASH cannot add coverage.
 However, in real data --- where the baseline false discovery fraction may be
 higher and no injected ground truth exists --- MASS/SMASH could serve as a
@@ -700,12 +719,16 @@ structures that are not represented in our single-regime model.
 Application to Wind, ACE, Parker Solar Probe, and Solar Orbiter data is required
 before quantitative performance claims can be extended to real observations.
 
-\textbf{Single-component detection.}
+\textbf{Single-component detection and favorable synthetic geometry.}
 MASS/SMASH processes only the Bz component.
-Oblique crossings, where the polarity reversal is distributed across components,
-will have lower SNR in Bz and therefore lower MDL gain.
-Full 3-component MDL detection --- processing the full $\mathbf{B}$ vector or
-$|\mathbf{B}|$ alongside Bz --- would improve recall for oblique events.
+The synthetic benchmark was constructed with $\approx 96\%$ of the polarity
+reversal amplitude in Bz (field direction $\hat{\mathbf{b}}_0 = (0.20, 0.20,
+0.96)$), which makes the benchmark favorable for Bz-based detection.
+A follow-up benchmark should randomize the field orientation so that the
+reversal amplitude is distributed across components, testing performance on
+oblique crossings where no single component dominates.
+Full 3-component or magnitude-based MDL detection would improve recall for
+such cases.
 
 \textbf{PVI as a reference catalog.}
 Although we use injected crossings as ground truth, the PVI catalog is also
@@ -739,7 +762,7 @@ yields the following principal findings.
 \begin{enumerate}
 
 \item \textbf{MASS/SMASH achieves 92\% precision (FDF = 7.9\%) at 150-s
-tolerance}, comparable to the $|d\mathbf{B}/dt|$ baseline (FDF = 9.1\%) and
+tolerance}, comparable to the $d|\mathbf{B}|/dt$ baseline (FDF = 9.1\%) and
 PVI (FDF = 1.1\%), while detecting 63 events versus 132 for the baseline
 and 91 for PVI.
 Its recall of 48\% reflects the conservative 20-bit MDL gain criterion.
