@@ -55,7 +55,7 @@ with a field polarity reversal) and a roughness discontinuity detector that
 identifies abrupt changes in local signal variance --- with a Minimum
 Description Length (MDL) model-selection step that penalizes detections at an
 explicit information cost of $\approx \log_2 N$ bits per seam.
-A detection is accepted only when the compression gain from modelling a
+A detection is accepted only when the compression gain from modeling a
 structural break exceeds this cost, providing a principled mechanism for
 conservative event selection.
 
@@ -158,13 +158,13 @@ A seam is retained only when the description-length reduction exceeds this cost.
 This formulation is related to a broader class of MDL/BIC changepoint methods
 \citep{Rissanen1978,Schwarz1978} and piecewise-model structural-break detection
 methods that are well established in time-series analysis.
-The specific novelty of MASS/SMASH, to the best of our knowledge, is the
-combination of an antisymmetry (antipodal correlation) detector with a roughness
-discontinuity detector and a model-zoo MDL selection step, applied to magnetic
-current-sheet identification in solar wind data.
+To our knowledge, MASS/SMASH is the first solar wind current-sheet detection
+framework to combine an antipodal symmetry candidate score, a roughness
+discontinuity detector, and explicit MDL-regularized seam acceptance.
 We make no claim that this is the first application of MDL to time-series
-changepoint detection; we do claim it is a new application of the seam/antipodal
-framework to solar wind plasma physics.
+changepoint detection; we do not claim superiority over PVI or the baseline
+in all settings; we present MASS/SMASH as a structurally motivated complementary
+selector with empirically characterized performance.
 
 The paper is organized as follows.
 Section~\ref{sec:algorithm} describes the MASS/SMASH algorithm.
@@ -199,15 +199,22 @@ The antipodal correlation detector scores each candidate position $\tau$ by:
 \end{equation}
 where $w$ is the half-window size (default 20 samples) and both windows are
 $z$-score normalized before computing the Pearson correlation.
-High $\mathcal{A}(\tau)$ indicates the signal before $\tau$ is strongly
-anticorrelated with the signal after $\tau$ --- the defining antisymmetry of
-a field polarity reversal.
 
-For an idealized tanh-profile crossing centred at $\tau_0$,
-$B(t) = B_0 \tanh((t-\tau_0)/\delta)$, the antipodal score is maximized where
-the two half-windows symmetrically straddle the transition.
-In the presence of turbulent noise, the score is reduced in proportion to the
-signal-to-noise ratio of the reversal amplitude over the turbulence variance.
+A note on the formula: equation~\ref{eq:antipodal} compares the
+\emph{forward-ordered} pre-window $y[\tau-w:\tau]$ with the
+\emph{forward-ordered} negated post-window $-y[\tau:\tau+w]$.
+This is not identical to true \emph{mirror} antisymmetry, which would require
+one window to be reversed before correlation:
+$\mathrm{corr}(y[\tau-w:\tau],\,-\,\mathrm{reverse}(y[\tau:\tau+w]))$.
+For the specific case of a sharp polarity reversal (nearly step-function in
+character, narrow transition width relative to $w$), both windows are
+approximately uniform --- one at $+B_0$, one at $-B_0$ after negation --- and
+forward-ordered correlation equals mirror-reversed correlation to a good
+approximation.
+For wider transitions or asymmetric profiles, the two formulas differ.
+We characterize the empirical localization behavior in
+Section~\ref{subsec:offset} rather than making an analytic claim about which
+profile feature the detector locates precisely.
 Candidates are local maxima of $\mathcal{A}$ above a threshold
 (default 0.35), retained after NMS with minimum separation 60 s.
 
@@ -447,8 +454,9 @@ false discovery fraction).
 The 30 missed crossings are weak events --- those with smaller Bz amplitude at
 the crossing center due to overlapping turbulent fluctuations --- that do not
 exceed the $\PVI > 3.0$ threshold.
-PVI performance is again identical at both tolerance levels because PVI peaks
-closely coincide with the tanh inflection points.
+PVI performance is identical at both tolerance levels because PVI peaks the
+field gradient at the tanh transition center, which the injected catalog also
+records at the tanh midpoint; the two are within a few samples of each other.
 
 \textbf{MASS/SMASH has the second-highest precision among the three methods.}
 Of 63 MASS/SMASH detections, 58 (92.1\%) are within 150 s of an injected
@@ -460,10 +468,10 @@ most MASS/SMASH detections are offset from the crossing center by more than
 30 s; Section~\ref{subsec:offset} explains this offset.
 
 \textbf{MASS/SMASH finds crossings that PVI misses.}
-Of the 63 MASS/SMASH detections matched to injected crossings, 24 correspond
-to crossings not in the PVI catalog (i.e., crossings PVI missed).
+Of the 58 MASS/SMASH true-positive detections, 24 correspond to crossings not
+in the PVI catalog (i.e., crossings PVI missed).
 Thus MASS/SMASH and PVI each capture a distinct subset of the injected population;
-their joint catalog would cover 90 + 24 = 114 of 120 injected crossings.
+their joint catalog would cover $90 + 24 = 114$ of 120 injected crossings.
 
 \subsection{Detection Localization: A Systematic Offset from the Polarity Center}
 \label{subsec:offset}
@@ -479,26 +487,28 @@ detection, the displacement from the matched injected crossing center:
 where $\tau_i^\mathrm{MS}$ is the MASS/SMASH detection position and
 $\tau_i^\mathrm{inj}$ is the nearest injected crossing center within 150 s.
 
-The offset distribution is approximately uniform across $[-50, +50]$ samples
-($[-150\s, +150\s]$) but with notable clustering near $\Delta\tau \approx \pm 10$
-samples ($\pm 30\s$).
-This is consistent with a known geometric effect: the antipodal correlation
-$\mathcal{A}(\tau)$ (equation~\ref{eq:antipodal}) is maximized where the signal
-is most antisymmetric, which for the tanh profile
-$B(t) \propto \tanh((t-t_0)/\delta)$ is not at the midpoint $t_0$ but rather
-near the inflection points $t_0 \pm \delta/3$, where the signal
-transitions between its asymptotic values and the symmetric plateau.
-For transition widths $\delta \in [15\s, 60\s]$, the inflection points are
-10--20 s from the midpoint, consistent with the observed clustering.
+The offset distribution clusters near $\Delta\tau \approx \pm 10$
+samples ($\pm 30\s$), with a spread of up to $\pm 50$ samples ($\pm 150\s$).
+We note that the mathematical inflection point of the tanh function
+$\mathrm{pol}(t) = \tanh((t-t_\mathrm{cross})/(\delta/3))$ is at
+$t_\mathrm{cross}$ --- the polarity center itself.
+The observed $\pm 30\s$ localization uncertainty therefore does not arise from
+a deterministic shift to a tanh sub-feature.
+Instead, it reflects the combined effect of: (1) the finite chunk step size
+(300 s between chunk starts, with the seam position quantized within each
+200-sample window), (2) MDL scoring that maximizes segment-to-segment
+compressibility gain rather than antisymmetry score, and (3) the forward-ordered
+correlation formula discussed in Section~\ref{subsec:antipodal}, which does
+not measure exact mirror antisymmetry.
+The net result is a localization precision of approximately $\pm 30\s$ --- one
+order of magnitude better than the chunk step size, but not sub-transition-width
+precision.
 
-MASS/SMASH thus identifies the \emph{onset} of the transition profile --- where
-the magnetic field begins its directional change --- rather than the polarity
-midpoint.
-This is a systematic, predictable offset that could be corrected in downstream
-analysis by applying a transition-model-based centroid correction.
-Alternatively, for applications requiring precise polarity-center localization,
-a post-detection sharpening step using the sign-flip midpoint of the detected
-segment would be appropriate.
+For applications requiring precise polarity-center localization, a
+post-detection profile-fitting step (e.g., fitting a tanh model to the Bz
+segment around each detection) would recover sub-10-s accuracy.
+The MDL gain score could serve as a quality metric to prioritize which events
+warrant this refinement.
 
 \subsection{Rotation Angle Analysis}
 \label{subsec:angles}
@@ -510,25 +520,29 @@ MASS/SMASH true positives only).
 
 \begin{table}[t]
 \centering
-\caption{Magnetic field rotation angle analysis. Columns:
-$\bar{\omega}^\mathrm{detect}$ = mean angle at detection position;
-$\bar{\omega}^\mathrm{inj}$ = mean angle at matched injected crossing center
-(true positives only, $n=58$ for MASS/SMASH);
-$f_\pi$ = fraction with $\omega > 160^\circ$;
-KS $p$ = two-sample KS test of MASS/SMASH ($\omega^\mathrm{detect}$) vs.\ PVI.}
+\caption{Magnetic field rotation angle analysis.
+$\bar{\omega}$ = mean angle in degrees;
+$f_\pi$ = fraction of events with $\omega > 160^\circ$;
+KS $p$ = two-sample KS test $p$-value comparing MASS/SMASH (at detection
+position) vs.\ PVI; ``At inj.'' columns are computed at the matched injected
+crossing center for MASS/SMASH true positives only ($n = 58$).}
 \label{tab:angles}
-\begin{tabular}{lccccccc}
+\begin{tabular}{lcccccccc}
 \toprule
- & \multicolumn{3}{c}{At detection position} &
-   \multicolumn{2}{c}{At inj.\ crossing (TP only)} & \\
-\cmidrule(lr){2-4}\cmidrule(lr){5-6}
-Window & PVI $\bar{\omega}$ & MS $\bar{\omega}^\mathrm{detect}$ &
-  KS $p$ & MS $\bar{\omega}^\mathrm{inj}$ & Inj.\ all $\bar{\omega}$ \\
+ & \multicolumn{3}{c}{At detection position} & & \multicolumn{2}{c}{At inj.\ crossing (MS TP)} \\
+\cmidrule(lr){2-4}\cmidrule(lr){6-7}
+Window & PVI $\bar{\omega}$ & MS $\bar{\omega}$ & KS $p$ & &
+         MS $\bar{\omega}$ & Inj.\ all $\bar{\omega}$ \\
 \midrule
-10 s  & 114° & 0.5° & $1.7\times10^{-44}$ & 101° & 108° \\
-30 s  & 130° & 3.9° & $1.1\times10^{-42}$ & 128° & 128° \\
-60 s  & 132° & 42°  & $4.1\times10^{-31}$ & 132° & 132° \\
-120 s & 134° & 83°  & $2.1\times10^{-13}$ & 134° & 133° \\
+10 s  & 114° & \phantom{0}0.5° & $1.7\times10^{-44}$ & & 101° & 108° \\
+30 s  & 130° & \phantom{0}3.9° & $1.1\times10^{-42}$ & & 128° & 128° \\
+60 s  & 132° & \phantom{0}42°  & $4.1\times10^{-31}$ & & 132° & 132° \\
+120 s & 134° & \phantom{0}83°  & $2.1\times10^{-13}$ & & 134° & 133° \\
+\midrule
+\multicolumn{8}{l}{\small $f_\pi$ (fraction $\omega>160^\circ$):
+  PVI: 3\%/7\%/7\%/8\%;
+  MS at detect: 0\%/0\%/0\%/2\%;
+  MS at inj.\ crossing: 0\%/2\%/2\%/3\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -605,20 +619,26 @@ introducing the seam.
 Conversely, for the 58 detected true positives, the transition is sufficiently
 prominent relative to the local turbulence that the MDL criterion fires cleanly.
 
-\subsection{The Detection Offset as a Physical Diagnostic}
+\subsection{The Detection Offset: Causes and Uses}
 \label{subsec:offset_interp}
 
-The systematic $\approx 30\s$ offset between MASS/SMASH detections and the
-true polarity center is a reproducible feature of the antipodal correlation
-mechanism.
-Rather than treating this as a deficiency, it can be leveraged as a diagnostic:
-the detection position marks the \emph{transition onset} (where the field begins
-rotating from its asymptotic value), while the true polarity center lies
-$\approx 30\s$ downstream.
-In principle, MASS/SMASH could be adapted to report the transition onset,
-onset-to-center delay, and implied transition width as outputs, providing
-morphological characterization of each crossing without the need for an
-independent profile-fitting step.
+The $\approx \pm 30\s$ localization uncertainty of MASS/SMASH relative to the
+injected polarity center arises from algorithmic discretization (the MDL chunk
+step size is 300 s but the seam position within each chunk is resolved to
+individual samples) and from the forward-ordered antipodal correlation formula,
+which does not guarantee detection at the exact signal midpoint for wide
+transitions (Section~\ref{subsec:antipodal}).
+The offset is not associated with a physically meaningful sub-feature of the
+transition profile; it is an implementation artifact.
+
+Practically, the $\pm 30\s$ precision is sufficient for most solar wind survey
+applications: current sheet crossing rates of $\sim$4/day correspond to
+$\sim 6$-hour inter-event spacing, so the $\pm 30\s$ positioning error is
+$< 0.01\%$ of the typical inter-event interval.
+For applications where transition morphology matters --- measuring current sheet
+thickness, reconnection jet width, or onset-to-peak delay --- a post-detection
+tanh profile fit constrained by the MASS/SMASH detection position and MDL gain
+score would provide sub-10-s localization.
 
 \subsection{Complementarity with PVI}
 \label{subsec:comp}
@@ -632,10 +652,12 @@ the MDL gain to be significant.
 
 For routine survey work, the $|d\mathbf{B}/dt|$ baseline achieves perfect recall
 at the cost of 9.1\% false detections, which is often acceptable.
-MASS/SMASH is most valuable as a \emph{follow-on selector}: applied to the
-$|d\mathbf{B}/dt|$ initial catalog, it could reduce false detections while
-also flagging crossings that the baseline missed entirely (those in the 24-event
-PVI-MASS/SMASH intersection that are absent from the baseline's false-positive list).
+In this synthetic benchmark the $|d\mathbf{B}/dt|$ baseline already achieves
+perfect recall, so MASS/SMASH cannot add coverage.
+However, in real data --- where the baseline false discovery fraction may be
+higher and no injected ground truth exists --- MASS/SMASH could serve as a
+\emph{follow-on quality scorer}: applied to an initial baseline catalog, it
+provides a continuous MDL gain score that ranks events by structural evidence.
 A practical multi-stage pipeline would be:
 \begin{enumerate}
   \item Apply the baseline to obtain a high-recall ($>95\%$) initial catalog.
@@ -728,12 +750,12 @@ in the PVI catalog.
 A joint MASS/SMASH + PVI catalog would detect 95\% of injected crossings with
 $\sim$6\% false discovery fraction.
 
-\item \textbf{MASS/SMASH detections are systematically offset $\approx 30\s$
-from the polarity center.}
-The antipodal correlator fires at the transition onset (inflection point of the
-tanh profile) rather than the sign-flip midpoint.
-This is a predictable, correctable localization bias that could be turned into
-a morphological diagnostic.
+\item \textbf{MASS/SMASH detections have a localization precision of $\approx \pm 30\s$
+relative to the injected polarity center.}
+This empirical uncertainty arises from the finite MDL chunk step size and the
+forward-ordered (non-mirror-reversed) antipodal correlation formula.
+It is predictable and correctable via post-detection profile fitting, and the
+MDL gain score could prioritize which events warrant that refinement.
 
 \item \textbf{When corrected for the detection offset, MASS/SMASH true-positive
 events have the same rotation angle distribution as PVI events and the full
@@ -770,8 +792,10 @@ The benchmark reproduces fully from a single command using the included syntheti
 data generator.
 
 %% ============================================================
-\bibliographystyle{agufull08}
-\bibliography{references}
+%% References — inline thebibliography for portability (no separate .bib file).
+%% To use BibTeX instead: delete the thebibliography block and uncomment:
+%%   \bibliographystyle{agufull08}
+%%   \bibliography{references}
 
 \begin{thebibliography}{99}
 
