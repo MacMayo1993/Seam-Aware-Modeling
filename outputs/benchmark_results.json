@@ -1,0 +1,44 @@
+{
+  "mass_smash": {
+    "precision": 0.7924528301886793,
+    "recall": 0.8484848484848485,
+    "f1": 0.8195121951219513,
+    "tp": 84,
+    "fp": 22,
+    "fn": 15,
+    "n_detected": 106,
+    "n_catalog": 99
+  },
+  "baseline": {
+    "precision": 0.02063157894736842,
+    "recall": 0.98989898989899,
+    "f1": 0.040420705300061865,
+    "tp": 98,
+    "fp": 4652,
+    "fn": 1,
+    "n_detected": 4750,
+    "n_catalog": 99
+  },
+  "mass_smash_strict": {
+    "precision": 0.3113207547169811,
+    "recall": 0.3333333333333333,
+    "f1": 0.32195121951219513,
+    "tp": 33,
+    "fp": 73,
+    "fn": 66,
+    "n_detected": 106,
+    "n_catalog": 99
+  },
+  "baseline_strict": {
+    "precision": 0.010526315789473684,
+    "recall": 0.5050505050505051,
+    "f1": 0.020622808826562176,
+    "tp": 50,
+    "fp": 4700,
+    "fn": 49,
+    "n_detected": 4750,
+    "n_catalog": 99
+  },
+  "tolerance_primary_samples": 50,
+  "tolerance_strict_samples": 10
+}
