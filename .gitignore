@@ -53,3 +53,10 @@ docs/_build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Large generated data files (reproducible by running validation/ scripts)
+outputs/wind_mfi_B.npy
+outputs/wind_mfi_times.npy
+outputs/pvi_series.npy
+outputs/ms_hit_count.npy
+outputs/ms_mdl_gain.npy
