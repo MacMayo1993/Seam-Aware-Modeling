@@ -190,6 +190,71 @@ whether a putative current sheet crossing is "real" (earns its bits) or noise.
     print(f"Saved {save_path}")
 
 
+def write_prediction1_section(p1_results, report_path='outputs/SEAM_MHD_Report.md'):
+    """Append Prediction 1 results to the existing report."""
+    verdict = p1_results.get('verdict', 'UNKNOWN')
+    signal_windows = p1_results.get('signal_windows_s', [])
+
+    verdict_text = {
+        'SIGNAL': (
+            "**SIGNAL DETECTED.** MASS/SMASH selects current sheets with a "
+            "statistically significant excess of ~180° rotation angles vs PVI "
+            "baseline, robust to phase-randomized surrogates. This is consistent "
+            "with topological ℤ₂ orientation protection (π-flux from sub-Planck "
+            "residual defects)."
+        ),
+        'NULL': (
+            "**NULL RESULT.** Rotation angle distributions are statistically "
+            "indistinguishable between MASS/SMASH and PVI selections. The ℤ₂ "
+            "topological imprint is not detectable at this scale or in this "
+            "dataset. The propagation mechanism or bundle map coupling requires "
+            "revision before the framework can be empirically supported."
+        ),
+        'AMBIGUOUS': (
+            "**AMBIGUOUS RESULT.** Distributions differ between MASS/SMASH and "
+            "PVI selections but the predicted π-excess is not clearly significant "
+            "across multiple window sizes. Further investigation required — the "
+            "selection may differ in ways not predicted by the ℤ₂ framework."
+        ),
+    }.get(verdict, "Result undetermined.")
+
+    section = f"""
+---
+
+## Prediction 1: Rotation Angle Test
+
+**Framework prediction:** MASS/SMASH MDL penalty selects current sheets with
+excess ~180° magnetic field rotations (topological π-flux protection).
+
+**Verdict: {verdict}**
+
+{verdict_text}
+
+### Results by Window Size
+
+| Window | π-excess ratio | χ² p-value | Surrogate p | Signal |
+|--------|---------------|------------|-------------|--------|
+"""
+    for w in [10, 30, 60, 120]:
+        r = p1_results.get(f'window_{w}s', {})
+        if 'pi_excess_ratio' in r:
+            sig = '★ Yes' if r.get('signal') else 'No'
+            section += (
+                f"| {w}s | {r['pi_excess_ratio']:.2f}x | "
+                f"{r['chi2_p']:.4f} | {r['surrogate_p']:.4f} | {sig} |\n"
+            )
+
+    section += f"""
+Signal windows: {signal_windows if signal_windows else 'None'}
+
+*Figure: fig3_rotation_angles.png*
+"""
+
+    with open(report_path, 'a') as f:
+        f.write(section)
+    print(f"Updated {report_path} with Prediction 1 results")
+
+
 if __name__ == '__main__':
     times = np.load('outputs/wind_mfi_times.npy')
     B = np.load('outputs/wind_mfi_B.npy')
@@ -203,11 +268,14 @@ if __name__ == '__main__':
 
     Bz = B[:, 2]
 
-    # Pick a catalog event index far enough from the edges
     event_idx = min(5, len(catalog_peaks) - 1)
     plot_example_detection(times, Bz, pvi, ms_peaks, bl_peaks, catalog_peaks,
                            event_idx=event_idx)
     plot_precision_recall(results)
     write_report(results)
 
-    print("\nDone. Check outputs/ for figures and report.")
+    with open('outputs/prediction1_results.json') as f:
+        p1_results = json.load(f)
+    write_prediction1_section(p1_results)
+
+    print("\nDone. Check outputs/ for all figures and updated report.")

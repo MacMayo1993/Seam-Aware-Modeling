@@ -54,11 +54,13 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     """
     Generate synthetic solar-wind-like magnetic field for the benchmark.
 
-    Statistical properties:
-    - Mean |B| ≈ 7 nT, std ≈ 2 nT  (typical L1 solar wind)
-    - Kolmogorov-like power-law turbulence (f^{-5/3})
-    - ~1 current sheet per 6 hours (PVI > 3) — matches Osman et al. rate
-    - Current sheets = localized Bz sign reversals on ≈10 second timescale
+    Models heliospheric-current-sheet (HCS) sector boundary crossings:
+    - Background field alternates between two sectors with near-antiparallel
+      mean directions, separated by current sheets
+    - At each crossing the full B vector rotates ~180° (proper sector boundary)
+    - Kolmogorov turbulence (f^{-5/3}, amplitude ~ 30% of background) is
+      superimposed on the sector-structured background
+    - ~1 crossing per 6 hours over 30 days
     """
     rng = np.random.default_rng(seed)
 
@@ -67,34 +69,24 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     times = t0 + np.arange(N) * cadence_s
 
     # ------------------------------------------------------------------ #
-    # Turbulent background: Kolmogorov spectrum via FFT shaping           #
+    # Kolmogorov turbulence component                                      #
     # ------------------------------------------------------------------ #
-    def turbulent_component(N, rng, amplitude=3.0, spectral_index=-5/3):
+    def turbulent_component(N, rng, amplitude, spectral_index=-5/3):
         freqs = np.fft.rfftfreq(N)
-        freqs[0] = 1.0  # avoid div-by-zero at DC
-        power = freqs ** spectral_index
+        freqs[0] = 1.0
+        power = np.abs(freqs) ** spectral_index
         power[0] = 0.0
         phases = rng.uniform(0, 2 * np.pi, len(power))
         coeffs = np.sqrt(power) * np.exp(1j * phases)
         sig = np.fft.irfft(coeffs, n=N)
-        sig = sig / np.std(sig) * amplitude
-        return sig
-
-    Bx = turbulent_component(N, rng, amplitude=2.5) + rng.normal(0, 0.3, N)
-    By = turbulent_component(N, rng, amplitude=3.0) + rng.normal(0, 0.3, N)
-    Bz = turbulent_component(N, rng, amplitude=2.5) + rng.normal(0, 0.3, N)
-
-    # Add slow background drift to mimic sector structure
-    slow = np.linspace(-2, 2, N)
-    Bz += slow
+        return sig / (np.std(sig) + 1e-12) * amplitude
 
     # ------------------------------------------------------------------ #
-    # Embed current sheet reversals                                        #
-    # ~1 per 6 hours = ~120 over 30 days, but keep min 120 events        #
-    # Each reversal: sharp Bz sign flip over ~5–30 sample transition zone #
+    # Place sector boundaries (current sheets)                             #
     # ------------------------------------------------------------------ #
-    n_sheets = int(n_days * 24 / 6)  # ~120
-    min_sep = int(3600 / cadence_s)  # 1 hour
+    n_sheets = int(n_days * 24 / 6)   # ~120 sheets at 1/6 h rate
+    min_sep = int(3600 / cadence_s)   # 1-hour minimum separation
+
     sheet_locs = []
     attempts = 0
     while len(sheet_locs) < n_sheets and attempts < 100_000:
@@ -102,32 +94,57 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
         loc = rng.integers(min_sep, N - min_sep)
         if all(abs(loc - s) > min_sep for s in sheet_locs):
             sheet_locs.append(int(loc))
-
     sheet_locs = sorted(sheet_locs)
 
+    # ------------------------------------------------------------------ #
+    # Build sector-structured background: alternating field direction      #
+    # B0 ≈ 6 nT with a slowly varying Parker-spiral angle (~45° in the   #
+    # ecliptic).  Each sector flips the polarity (ℤ₂ sign flip).          #
+    # ------------------------------------------------------------------ #
+    B0_mag = 6.0  # nT background field magnitude
+
+    # Parker spiral: Bx ~ -cos(45°), By ~ -sin(45°), Bz ~ 0 + small tilt
+    base_dir = np.array([-0.707, -0.707, 0.05])
+    base_dir /= np.linalg.norm(base_dir)
+
+    # Polarity: +1 or -1, alternating at each sheet location
+    polarity = np.ones(N, dtype=float)
+    current_pol = 1.0
+    prev_loc = 0
     for loc in sheet_locs:
-        # Transition width: 5–30 samples
-        width = rng.integers(5, 31)
+        current_pol *= -1.0
+        polarity[loc:] = current_pol
+
+    # Smooth polarity transition at each sheet (tanh over transition width)
+    pol_smooth = polarity.copy()
+    for loc in sheet_locs:
+        width = rng.integers(5, 21)  # 15–60 s transition
         half = width // 2
-        start = max(0, loc - half)
-        end = min(N, loc + half)
+        s = max(0, loc - half)
+        e = min(N, loc + half)
+        x = np.linspace(-3, 3, e - s)
+        # Blend between -1 and +1 smoothly
+        pol_smooth[s:e] = np.tanh(x) * abs(polarity[loc]) * np.sign(
+            polarity[min(loc + 1, N - 1)]
+        )
 
-        # Smooth tanh transition (field reversal)
-        x = np.linspace(-3, 3, end - start)
-        taper = np.tanh(x)  # -1 → +1
+    # Background field = polarity × B0 × base_direction
+    Bx_bg = pol_smooth * B0_mag * base_dir[0]
+    By_bg = pol_smooth * B0_mag * base_dir[1]
+    Bz_bg = pol_smooth * B0_mag * base_dir[2]
 
-        # Amplitude of reversal: 2–8 nT
-        amp = rng.uniform(2.0, 8.0)
-        Bz[start:end] += amp * taper
-
-        # Small perturbation in Bx and By too
-        Bx[start:end] += rng.uniform(0.3, 1.5) * taper
-        By[start:end] += rng.uniform(0.3, 1.5) * np.flip(taper)
+    # ------------------------------------------------------------------ #
+    # Add turbulence (~30% of background amplitude)                        #
+    # ------------------------------------------------------------------ #
+    turb_amp = 0.30 * B0_mag
+    Bx = Bx_bg + turbulent_component(N, rng, turb_amp)
+    By = By_bg + turbulent_component(N, rng, turb_amp)
+    Bz = Bz_bg + turbulent_component(N, rng, turb_amp * 0.5)  # smaller Bz turbulence
 
     B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
 
     print(f"Synthetic solar wind: {N} samples, {n_days} days, "
-          f"{len(sheet_locs)} embedded current sheets")
+          f"{len(sheet_locs)} sector boundary crossings")
     print(f"  |B| mean={np.mean(B_mag):.2f} nT  std={np.std(B_mag):.2f} nT")
     print(f"  Bz  mean={np.mean(Bz):.2f} nT  std={np.std(Bz):.2f} nT")
 

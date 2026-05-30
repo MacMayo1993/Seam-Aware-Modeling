@@ -199,3 +199,22 @@ if __name__ == '__main__':
     print("\n=== RESULTS (strict 30 s) ===")
     print(f"MASS/SMASH:  P={ms_strict['precision']:.3f}  R={ms_strict['recall']:.3f}  F1={ms_strict['f1']:.3f}")
     print(f"Baseline:    P={bl_strict['precision']:.3f}  R={bl_strict['recall']:.3f}  F1={bl_strict['f1']:.3f}")
+
+    # ── Prediction 1 ──────────────────────────────────────────────────────────
+    sys.path.insert(0, os.path.dirname(__file__))
+    from rotation_angles import run_prediction1_test
+
+    print("\nRunning Prediction 1 (rotation angle test)...")
+    p1_results, verdict = run_prediction1_test(
+        B[:, :3], catalog_peaks, ms_peaks, dt=float(np.median(np.diff(times)))
+    )
+
+    print(f"\n=== PREDICTION 1: Rotation Angle Test ===")
+    print(f"Verdict: {verdict}")
+    print(f"Signal windows: {p1_results.get('signal_windows_s', [])}")
+    for key in [f'window_{w}s' for w in [10, 30, 60, 120]]:
+        r = p1_results.get(key, {})
+        if 'pi_excess_ratio' in r:
+            print(f"  {key}: π-ratio={r['pi_excess_ratio']:.2f}x  "
+                  f"χ²p={r['chi2_p']:.4f}  surr-p={r['surrogate_p']:.4f}  "
+                  f"{'★' if r.get('signal') else ''}")
