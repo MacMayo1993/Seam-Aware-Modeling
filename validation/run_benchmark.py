@@ -201,12 +201,23 @@ if __name__ == '__main__':
     print(f"Baseline:    P={bl_strict['precision']:.3f}  R={bl_strict['recall']:.3f}  F1={bl_strict['f1']:.3f}")
 
     # ── Prediction 1 ──────────────────────────────────────────────────────────
+    # Use a lower gain threshold for the rotation-angle test to get enough
+    # events for statistical power (precision/recall trade-off is irrelevant
+    # for the angle distribution comparison).
     sys.path.insert(0, os.path.dirname(__file__))
     from rotation_angles import run_prediction1_test
 
-    print("\nRunning Prediction 1 (rotation angle test)...")
+    hit_count = np.load('outputs/ms_hit_count.npy')
+    mdl_gain  = np.load('outputs/ms_mdl_gain.npy')
+    dt_val    = float(np.median(np.diff(times)))
+    ms_peaks_p1, _ = _filter_detections(hit_count, mdl_gain, dt_val,
+                                         min_hits=1, gain_threshold=2.0, min_sep_s=300)
+    print(f"\nPrediction 1 detection set: {len(ms_peaks_p1)} events "
+          f"(gain>2 threshold, vs {len(ms_peaks)} for benchmark)")
+
+    print("Running Prediction 1 (rotation angle test)...")
     p1_results, verdict = run_prediction1_test(
-        B[:, :3], catalog_peaks, ms_peaks, dt=float(np.median(np.diff(times)))
+        B[:, :3], catalog_peaks, ms_peaks_p1, dt=dt_val
     )
 
     print(f"\n=== PREDICTION 1: Rotation Angle Test ===")

@@ -26,19 +26,19 @@ the sign-flip center while PVI peaks at the gradient maximum; offset ≤ 150 s i
 
 | Detector | Precision | Recall | F1 | Detections | Catalog Events |
 |---|---|---|---|---|---|
-| MASS/SMASH | 0.792 | 0.848 | 0.820 | 106 | 99 |
-| Baseline (\|dB/dt\|) | 0.021 | 0.990 | 0.040 | 4750 | 99 |
+| MASS/SMASH | 1.000 | 0.041 | 0.079 | 4 | 97 |
+| Baseline (\|dB/dt\|) | 0.638 | 0.907 | 0.749 | 138 | 97 |
 
 **Strict metric** — 30-second tolerance:
 
 | Detector | Precision | Recall | F1 |
 |---|---|---|---|
-| MASS/SMASH | 0.311 | 0.333 | 0.322 |
-| Baseline (\|dB/dt\|) | 0.011 | 0.505 | 0.021 |
+| MASS/SMASH | 0.500 | 0.021 | 0.040 |
+| Baseline (\|dB/dt\|) | 0.638 | 0.907 | 0.749 |
 
-**Key finding:** MASS/SMASH achieves F1=0.82 vs baseline F1=0.04
-(×20 improvement) while using only 106 detections
-vs the baseline's 4750 — orders of magnitude more selective.
+**Key finding:** MASS/SMASH achieves F1=0.08 vs baseline F1=0.75
+(×0 improvement) while using only 4 detections
+vs the baseline's 138 — orders of magnitude more selective.
 
 ---
 
@@ -91,3 +91,27 @@ whether a putative current sheet crossing is "real" (earns its bits) or noise.
 ---
 
 *Figures: fig1_example.png (example crossing), fig2_benchmark.png (P/R/F1 comparison)*
+
+---
+
+## Prediction 1: Rotation Angle Test
+
+**Framework prediction:** MASS/SMASH MDL penalty selects current sheets with
+excess ~180° magnetic field rotations (topological π-flux protection).
+
+**Verdict: AMBIGUOUS**
+
+**AMBIGUOUS RESULT.** Distributions differ between MASS/SMASH and PVI selections but the predicted π-excess is not clearly significant across multiple window sizes. Further investigation required — the selection may differ in ways not predicted by the ℤ₂ framework.
+
+### Results by Window Size
+
+| Window | π-excess ratio | χ² p-value | Surrogate p | Signal |
+|--------|---------------|------------|-------------|--------|
+| 10s | 0.00x | 0.3160 | 1.0000 | No |
+| 30s | 0.00x | 0.0297 | 1.0000 | No |
+| 60s | 0.15x | 0.0536 | 0.0000 | No |
+| 120s | 0.29x | 0.1059 | 0.0000 | No |
+
+Signal windows: None
+
+*Figure: fig3_rotation_angles.png*
