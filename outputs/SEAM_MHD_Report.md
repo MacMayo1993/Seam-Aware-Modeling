@@ -26,19 +26,19 @@ the sign-flip center while PVI peaks at the gradient maximum; offset ≤ 150 s i
 
 | Detector | Precision | Recall | F1 | Detections | Catalog Events |
 |---|---|---|---|---|---|
-| MASS/SMASH | 1.000 | 0.041 | 0.079 | 4 | 97 |
-| Baseline (\|dB/dt\|) | 0.638 | 0.907 | 0.749 | 138 | 97 |
+| MASS/SMASH | 0.540 | 0.374 | 0.442 | 63 | 91 |
+| Baseline (\|dB/dt\|) | 0.682 | 0.989 | 0.807 | 132 | 91 |
 
 **Strict metric** — 30-second tolerance:
 
 | Detector | Precision | Recall | F1 |
 |---|---|---|---|
-| MASS/SMASH | 0.500 | 0.021 | 0.040 |
-| Baseline (\|dB/dt\|) | 0.638 | 0.907 | 0.749 |
+| MASS/SMASH | 0.238 | 0.165 | 0.195 |
+| Baseline (\|dB/dt\|) | 0.682 | 0.989 | 0.807 |
 
-**Key finding:** MASS/SMASH achieves F1=0.08 vs baseline F1=0.75
-(×0 improvement) while using only 4 detections
-vs the baseline's 138 — orders of magnitude more selective.
+**Key finding:** MASS/SMASH achieves F1=0.44 vs baseline F1=0.81
+(×1 improvement) while using only 63 detections
+vs the baseline's 132 — orders of magnitude more selective.
 
 ---
 
@@ -107,10 +107,10 @@ excess ~180° magnetic field rotations (topological π-flux protection).
 
 | Window | π-excess ratio | χ² p-value | Surrogate p | Signal |
 |--------|---------------|------------|-------------|--------|
-| 10s | 0.00x | 0.3160 | 1.0000 | No |
-| 30s | 0.00x | 0.0297 | 1.0000 | No |
-| 60s | 0.15x | 0.0536 | 0.0000 | No |
-| 120s | 0.29x | 0.1059 | 0.0000 | No |
+| 10s | 0.00x | 0.2522 | 1.0000 | No |
+| 30s | 0.00x | 0.0405 | 1.0000 | No |
+| 60s | 0.00x | 0.0405 | 1.0000 | No |
+| 120s | 0.15x | 0.0757 | 0.0000 | No |
 
 Signal windows: None
 
