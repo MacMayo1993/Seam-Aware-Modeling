@@ -1,6 +1,6 @@
-%% MASS/SMASH paper — full first draft
-%% Target: Journal of Geophysical Research: Space Physics
-%% LaTeX: standard article class with AGU-compatible notation
+%% MASS/SMASH paper — revised draft incorporating peer critique
+%% Target: Journal of Geophysical Research: Space Physics  /  Solar Physics
+%% LaTeX standard article, AGU-compatible notation
 
 \documentclass[12pt,letterpaper]{article}
 
@@ -15,6 +15,7 @@
 \usepackage{siunitx}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{multirow}
 
 \geometry{margin=1in}
 \doublespacing
@@ -27,10 +28,10 @@
 \newcommand{\MDL}{\mathrm{MDL}}
 \newcommand{\RSS}{\mathrm{RSS}}
 \newcommand{\PVI}{\mathrm{PVI}}
-\newcommand{\half}{\tfrac{1}{2}}
+\newcommand{\FDF}{\mathrm{FDF}}
 
-\title{\textbf{MASS/SMASH: An Information-Theoretic Framework for\\
-Detecting Magnetic Current Sheets in Turbulent Solar Wind}}
+\title{\textbf{MASS/SMASH: A Seam-Aware, MDL-Regularized Detector \\
+for Magnetic Current Sheets in Turbulent Solar Wind}}
 
 \author{
   Mac Mayo\\
@@ -46,49 +47,49 @@ Detecting Magnetic Current Sheets in Turbulent Solar Wind}}
 
 \begin{abstract}
 We introduce MASS/SMASH (Multi-seAm Seam-Sensitive Modeling / Symmetric
-Minimum-description-length Antipodal Seam Hunting), an information-theoretic
-algorithm for detecting current sheet crossings in solar wind magnetic field data.
-The method identifies locations where the magnetic field undergoes an abrupt
-orientation reversal by combining two physics-motivated detectors --- an
-antipodal correlation scanner that scores positions where the signal satisfies
-$B(t) \approx -B(t+\Delta t)$, and a roughness discontinuity detector that
-identifies abrupt changes in local signal variance --- with a Minimum Description
-Length (MDL) model-selection criterion that penalizes false detections at an
-explicit information-theoretic cost of approximately $\log_2 N$ bits per seam.
-A detection survives only if the improvement in data compression from allowing
-a structural break exceeds this cost, providing principled suppression of
-noise-induced false positives.
+Minimum-description-length Antipodal Seam Hunting), an algorithm for detecting
+magnetic discontinuities in solar wind time series that combines two
+physics-motivated candidate detectors --- an antipodal correlation scanner that
+scores positions where $B(t) \approx -B(t+\Delta t)$ (antisymmetry consistent
+with a field polarity reversal) and a roughness discontinuity detector that
+identifies abrupt changes in local signal variance --- with a Minimum
+Description Length (MDL) model-selection step that penalizes detections at an
+explicit information cost of $\approx \log_2 N$ bits per seam.
+A detection is accepted only when the compression gain from modelling a
+structural break exceeds this cost, providing a principled mechanism for
+conservative event selection.
 
-We validate MASS/SMASH on 30 days of synthetic solar wind magnetic field data
-(3-second cadence; mean $|\mathbf{B}| = 6.5\nT$; 91 embedded sector-boundary
-crossings) against a PVI-derived ground truth catalog and a standard
-$|d\mathbf{B}/dt|$ threshold baseline.
-At a 150-second detection tolerance, MASS/SMASH achieves a precision of 0.54 and
-recall of 0.37 (F1 = 0.44) with 63 detections, compared to the baseline's
-precision 0.68, recall 0.99 (F1 = 0.81) with 132 detections.
-While the baseline has higher aggregate F1, MASS/SMASH makes fewer, more targeted
-claims: it detects a distinct sub-population of current sheets that we characterize
-through magnetic field rotation angle analysis.
+We validate MASS/SMASH against 120 known injected sector-boundary crossings in
+30 days of synthetic solar wind data (3-s cadence; 6 nT background field; 30\%
+Kolmogorov turbulence), benchmarked against a partial-variance-of-increments
+(PVI) detector and a $|d\mathbf{B}/dt|$ threshold baseline.
+Against the injected crossings, MASS/SMASH achieves a precision of 0.921
+(false discovery fraction 7.9\%) and recall of 0.483 (F1 = 0.634), compared to
+PVI's precision 0.989 / recall 0.750 (F1 = 0.853) and the baseline's
+precision 0.909 / recall 1.000 (F1 = 0.952).
+MASS/SMASH is the most conservative of the three methods, detecting 63 events
+with only 5 false detections; the baseline produces 132 detections with 12
+false positives.
 
-Across all four averaging window sizes tested (10--120 s), two-sample
-Kolmogorov-Smirnov tests confirm that MASS/SMASH and PVI select events from
-statistically distinct populations ($p < 10^{-9}$ in all cases, $p < 10^{-26}$
-at the 10 s window), while rotation angle analysis reveals MASS/SMASH
-preferentially captures gradient-dominated, partially rotated sheets (median
-angle $\approx 100$°--130°) rather than the cleanest full polarity reversals
-($\omega > 160$°) that dominate the PVI catalog.
-This suggests MASS/SMASH is most sensitive to events where the signal
-decomposition structure changes across the boundary --- a signature of the
-energy-dissipating transition layer --- rather than the asymptotic far-field
-polarity.
-We discuss the implications of these complementary selection functions for
-multi-method current sheet surveys and outline extensions of the framework to
-full 3-component vector detection and real spacecraft observations.
+Magnetic field rotation-angle analysis reveals that MASS/SMASH detections are
+systematically offset $\approx 30\s$ from the true polarity center: the algorithm
+locates the onset of the tanh transition profile (steepest gradient) rather than
+the sign-flip midpoint.
+When rotation angles are computed at the matched injected crossing positions
+rather than at the detection positions, MASS/SMASH true-positive events have
+mean angles of $127^\circ$--$134^\circ$ at 30--120 s averaging windows,
+statistically indistinguishable from both the PVI catalog (130°--134°) and
+the full injected set (128°--133°).
+The previously apparent depletion of near-$\pi$ events in MASS/SMASH detections
+is therefore an artifact of detection localization, not evidence of different
+physical event classes.
+We discuss the implications for multi-method current-sheet surveys and outline
+extensions to full 3-component detection and real spacecraft data.
 \end{abstract}
 
 \textbf{Keywords:} solar wind turbulence; magnetic current sheets; magnetic
-reconnection; Minimum Description Length; information theory; seam detection;
-partial variance of increments
+reconnection; heliospheric current sheet; Minimum Description Length;
+information theory; change-point detection; partial variance of increments
 
 \clearpage
 
@@ -97,22 +98,21 @@ partial variance of increments
 \label{sec:intro}
 %% ============================================================
 
-Magnetic current sheets --- thin quasi-two-dimensional structures across which
-the magnetic field reversal approaches $180^\circ$ --- are among the most
-energetically significant features in the solar wind.
-They mark the boundaries between flux tubes of opposed polarity, concentrate
-free magnetic energy through extreme gradients, and are sites of magnetic
-reconnection, particle heating, and intermittent energy dissipation
-\citep{Matthaeus1986,Servidio2009,Retino2007,Osman2014}.
-At 1 AU, their occurrence rate ($\sim$1--4 per hour) and thickness
-($\sim 10^2$--$10^3$ km) have been catalogued extensively from Wind, ACE, and
-Cluster spacecraft, and the statistical relationship between current sheets and
-non-thermal particle distributions has motivated increasingly detailed
-classification of crossing types \citep{Greco2008,Greco2009,Osman2011,
-Chasapis2015,Perri2012}.
+Localized magnetic field discontinuities --- here called \emph{current sheets}
+in the broad sense of coherent structures with strong spatial field gradients and
+substantial directional rotation --- are among the most energetically important
+features of the turbulent solar wind.
+They concentrate free magnetic energy, serve as preferential sites of magnetic
+reconnection and particle heating, and produce the intermittent signature of the
+turbulent energy cascade at MHD and kinetic scales
+\citep{Matthaeus1986,Servidio2009,Retino2007,Osman2014,Chasapis2015}.
+Their occurrence rate ($\sim$1--4 per hour at 1 AU), thickness
+($\sim 10^2$--$10^3$ km), and statistical relationship to plasma heating have
+been extensively studied with Wind, ACE, Cluster, MMS, and Parker Solar Probe
+data \citep{Greco2008,Greco2009,Osman2011,Perri2012,Chasapis2015}.
 
-Detection of current sheet crossings in practice relies on a small number of
-algorithmic approaches.
+In practice, automated detection of current-sheet crossings relies on a small
+number of algorithmic approaches.
 The Partial Variance of Increments \citep[PVI;][]{Greco2008} forms the
 dimensionless ratio
 \begin{equation}
@@ -121,129 +121,121 @@ dimensionless ratio
 \end{equation}
 where $\dBvec(t,\tau) = \Bvec(t+\tau) - \Bvec(t)$ is the lagged increment and
 the denominator is a running-window variance normalization.
-PVI peaks above a threshold (typically $3\sigma$) identify high-gradient field
-discontinuities and have been used as the primary ground truth catalog in
-numerous studies \citep{Osman2011,Osman2014}.
+PVI peaks above a threshold (typically $3\sigma$) are used to identify
+coherent structures including current sheets and flux tube boundaries
+\citep{Greco2008,Osman2011,Osman2014}.
 Simpler threshold methods on $|d\mathbf{B}/dt|$ or $|\mathbf{B}|$ are also
-widely used as fast screeners.
-Wavelet-based and spectral methods have been applied to characterize intermittency
-without requiring an explicit event catalog \citep{Bruno2013}.
+widely used as rapid screeners.
+Wavelet-based and spectral methods have been applied to characterize
+intermittency without constructing an explicit event catalog
+\citep{Bruno2013}.
 
-Each of these approaches shares a structural limitation: detection is driven by
-the magnitude of the local gradient or fluctuation, without explicit reference
-to the \emph{structure} of the transition.
-A threshold on $\PVI$ will fire on any large-amplitude fluctuation, regardless
-of whether it represents a coherent field reversal or a brief turbulent spike.
-False positive rates in strongly turbulent intervals can be substantial; the
-baseline $|d\mathbf{B}/dt|$ detector in our benchmark produces 132 detections
-for 91 true events at a matched threshold, a 32\% false positive rate that
-is characteristic of gradient-based methods in turbulent conditions.
+These methods share a structural feature: detection is driven by the magnitude
+of a local gradient or fluctuation.
+A threshold on $\PVI$ or $|d\mathbf{B}/dt|$ will fire wherever the field
+changes rapidly, regardless of whether the surrounding signal structure changes
+character across the event.
+In strongly turbulent intervals, gradient-based methods can produce substantial
+false discovery fractions; in our benchmark, the $|d\mathbf{B}/dt|$ detector
+produces 132 detections for 120 true crossings with 12 false detections ($\FDF
+= 9.1\%$), and PVI produces 91 detections with 1 false detection ($\FDF = 1.1\%$)
+but misses 25\% of the injected crossings.
 
-Here we introduce a structurally motivated alternative: MASS/SMASH, which
-detects current sheets as \emph{seams} --- positions where the signal is
-antisymmetric, i.e., where $B(t) \approx -B(t+\Delta t)$, and where the
-statistical character (variance, spectral content) of the signal changes
-abruptly.
-Rather than thresholding a derived quantity, MASS/SMASH poses detection as a
-model-selection problem: it compares the description length (information cost)
-of fitting the time series as a single homogeneous process against the cost of
-fitting two independent segments separated by a structural break, with an
-explicit penalty for the seam itself.
-A detection is accepted only when the improvement in data compression exceeds
-the information cost of encoding the seam location.
+We introduce an alternative motivated by the \emph{structural} signature of a
+current sheet: the signal on opposite sides of the crossing is locally
+antisymmetric.
+MASS/SMASH detects crossings as \emph{seams} --- positions where the time series
+satisfies $B(t) \approx -B(t+\Delta t)$ and where the signal variance changes
+abruptly --- and accepts only detections where an explicit information-theoretic
+cost criterion is satisfied.
+Rather than thresholding a derived local statistic, the algorithm poses detection
+as a model-selection problem: it compares the Minimum Description Length (MDL)
+of fitting the signal as a single homogeneous process against the MDL of fitting
+two segments separated by a structural break, with the seam penalized at
+$\sim \log_2 N$ bits.
+A seam is retained only when the description-length reduction exceeds this cost.
 
-This framework is motivated in part by the mathematical structure of magnetic
-field orientation: the space of magnetic field directions modulo polarity is the
-projective space $\mathbb{RP}^2$, and a sector boundary crossing is precisely a
-discontinuity in a section of the corresponding orientation bundle.
-The antipodal correlation detector --- the core diagnostic of MASS/SMASH --- is
-directly sensitive to the $\mathbb{Z}_2$ identification structure of this space.
-We note that this motivation from orientation geometry is the origin of the
-``seam'' terminology, but we do not make strong theoretical claims about
-topological protection or quantized flux here; the algorithm is validated
-purely on its empirical detection performance.
+This formulation is related to a broader class of MDL/BIC changepoint methods
+\citep{Rissanen1978,Schwarz1978} and piecewise-model structural-break detection
+methods that are well established in time-series analysis.
+The specific novelty of MASS/SMASH, to the best of our knowledge, is the
+combination of an antisymmetry (antipodal correlation) detector with a roughness
+discontinuity detector and a model-zoo MDL selection step, applied to magnetic
+current-sheet identification in solar wind data.
+We make no claim that this is the first application of MDL to time-series
+changepoint detection; we do claim it is a new application of the seam/antipodal
+framework to solar wind plasma physics.
 
 The paper is organized as follows.
-Section~\ref{sec:algorithm} describes the MASS/SMASH algorithm in detail.
-Section~\ref{sec:validation} describes the synthetic validation data, ground
-truth catalog, baseline comparator, and evaluation methodology.
-Section~\ref{sec:results} presents detection performance metrics and the rotation
-angle characterization of each detector's selected events.
-Section~\ref{sec:discussion} interprets the complementary selection functions,
-discusses the physical implications of the distinct sub-populations, and
-outlines limitations and future extensions.
-Section~\ref{sec:conclusions} summarizes the main findings.
+Section~\ref{sec:algorithm} describes the MASS/SMASH algorithm.
+Section~\ref{sec:validation} describes the synthetic validation data, evaluation
+against known injected crossings, and the comparison detectors.
+Section~\ref{sec:results} presents detection performance and the rotation angle
+analysis.
+Section~\ref{sec:discussion} interprets the localization finding, discusses
+complementarity with PVI, and outlines limitations.
+Section~\ref{sec:conclusions} summarizes the main contributions.
 
 %% ============================================================
 \section{The MASS/SMASH Algorithm}
 \label{sec:algorithm}
 %% ============================================================
 
-MASS/SMASH processes a univariate time series $y_1, \ldots, y_N$ and returns a
-set of \emph{seam} locations $\{\tau_1, \ldots, \tau_m\}$ together with an
-information-theoretic quality score for each.
-The pipeline has four stages: (1) seam candidate proposal via two complementary
-detectors, (2) non-maximum suppression, (3) per-configuration MDL scoring over
-all candidate subsets up to $m_\mathrm{max}$ seams, and (4) global MDL selection.
+MASS/SMASH processes a univariate time series $y_1, \ldots, y_N$ and returns
+a set of seam locations $\{\tau_1, \ldots, \tau_m\}$ with associated MDL
+gain scores.
+The pipeline has four stages: (1) candidate proposal from two detectors,
+(2) non-maximum suppression (NMS), (3) per-configuration MDL scoring, and
+(4) global MDL selection.
 
 \subsection{Antipodal Correlation Detector}
 \label{subsec:antipodal}
 
-The antipodal correlation detector scores each candidate position $\tau$ by the
-Pearson correlation between the pre-seam window and the negated post-seam window:
+The antipodal correlation detector scores each candidate position $\tau$ by:
 \begin{equation}
   \mathcal{A}(\tau) \;=\; \mathrm{corr}\!\left(y[\tau-w:\tau],\;
     -\,y[\tau:\tau+w]\right),
   \label{eq:antipodal}
 \end{equation}
-where $w$ is the half-window size (default $w = 20$ samples).
-The windows are $z$-score normalized before correlation to make the score
-scale-invariant.
-A high value of $\mathcal{A}(\tau)$ indicates that the signal before $\tau$ is
-strongly anticorrelated with the signal after $\tau$ --- the defining signature
-of a magnetic field sign flip.
+where $w$ is the half-window size (default 20 samples) and both windows are
+$z$-score normalized before computing the Pearson correlation.
+High $\mathcal{A}(\tau)$ indicates the signal before $\tau$ is strongly
+anticorrelated with the signal after $\tau$ --- the defining antisymmetry of
+a field polarity reversal.
 
-This detector is directly sensitive to the antisymmetry of a sector boundary
-crossing: if $B(t) = B_0 \cdot \mathrm{sign}(t) \cdot f(t/\delta)$ for some
-normalized transition profile $f$ symmetric about $\tau = 0$, then
-$y[{-w:0}] = -y[0:w]$ exactly, giving $\mathcal{A}(0) = 1$.
-Turbulent fluctuations reduce $\mathcal{A}$ proportionally to the
-signal-to-noise ratio of the reversal.
-
-Candidate positions are those local maxima of $\mathcal{A}$ that exceed an
-empirically set threshold ($\mathcal{A} > 0.35$ in the benchmark
-configuration).
-A non-maximum suppression (NMS) pass retains at most $k^* = 3$ candidates
-with minimum inter-candidate separation of 60 s ($= 20$ samples at 3-s cadence).
+For an idealized tanh-profile crossing centred at $\tau_0$,
+$B(t) = B_0 \tanh((t-\tau_0)/\delta)$, the antipodal score is maximized where
+the two half-windows symmetrically straddle the transition.
+In the presence of turbulent noise, the score is reduced in proportion to the
+signal-to-noise ratio of the reversal amplitude over the turbulence variance.
+Candidates are local maxima of $\mathcal{A}$ above a threshold
+(default 0.35), retained after NMS with minimum separation 60 s.
 
 \subsection{Roughness Discontinuity Detector}
 \label{subsec:roughness}
 
-The roughness detector captures abrupt changes in local signal variance:
+The roughness at position $i$ is $\mathcal{R}(i) = \sigma(\Delta y[i:i+w_r])$,
+where $\Delta y$ denotes first differences and $w_r$ is the roughness window
+(default 20 samples).
+The detector score is the normalized roughness change:
 \begin{equation}
-  \mathcal{R}(i) \;=\; \sigma\!\left(\Delta y[i:i+w_r]\right),
-  \quad
   \mathcal{D}(\tau) \;=\;
-    \frac{|\mathcal{R}(\tau) - \mathcal{R}(\tau-1)|}{\sigma(\mathcal{R})},
+    \frac{|\mathcal{R}(\tau) - \mathcal{R}(\tau-1)|}{\sigma(\mathcal{R})}.
   \label{eq:roughness}
 \end{equation}
-where $\Delta y$ denotes the first difference, $w_r$ is the roughness window
-(default 20 samples), and $\mathcal{D}$ is the normalized roughness change.
-Seam candidates are local maxima of $\mathcal{D}$ above a threshold
-$\mathcal{D} > 0.20$, again with NMS.
-
-The roughness detector is complementary to the antipodal scanner: it fires at
-the boundary of the current sheet transition layer where the gradient
-distribution changes from the ordered far-field regime to the turbulent
-reconnection layer, even when the field amplitude does not undergo a clean sign
-flip on the scale of the window.
+Candidates are local maxima of $\mathcal{D}$ above threshold 0.20, again with
+NMS.
+The roughness detector is complementary to the antipodal scanner: it fires where
+the local variance structure changes, which can include the edges of the
+current-sheet transition layer even when the antipodal symmetry is diluted by
+strong turbulence.
 
 \subsection{MDL Model Selection}
 \label{subsec:mdl}
 
-After merging the top-$k^*$ candidates from both detectors, MASS/SMASH
-evaluates all seam configurations (all subsets of at most $m_\mathrm{max}$
-candidates) using the following MDL objective in bits:
+After merging the top-$k^*$ candidates from both detectors (default $k^*=3$
+per detector), MASS/SMASH scores all seam configurations (subsets of at most
+$m_\mathrm{max}$ candidates) with the MDL objective in bits:
 \begin{equation}
   \MDL(m, \hat{\boldsymbol{\theta}}) \;=\;
     \underbrace{\frac{N}{2}\log_2\frac{\RSS}{N}}_{\text{data fit}}
@@ -253,74 +245,54 @@ candidates) using the following MDL objective in bits:
     \underbrace{\frac{\alpha}{2}\,m\,\log_2 N}_{\text{seam encoding}},
   \label{eq:mdl}
 \end{equation}
-where $\RSS = \sum_t (y_t - \hat{y}_t)^2$ is the residual sum of squares
-pooled across all segments, $p$ is the total number of model parameters across
-all segments, $m$ is the number of seams, and $\alpha$ is a seam penalty
-coefficient (default $\alpha = 2.0$).
+where $\RSS$ is the pooled residual sum of squares across segments, $p$ is the
+total model parameter count, $m$ is the number of seams, and $\alpha = 2.0$
+is the seam penalty coefficient.
+The seam encoding term reflects the information cost of recording $m$ seam
+positions from $N$ possible locations ($\approx m\log_2 N$ bits) and explicitly
+encodes the principle that each seam must compress the data by more than the
+cost of specifying its location.
 
-The seam penalty $\frac{\alpha}{2} m \log_2 N$ reflects the information cost of
-encoding $m$ seam positions from $N$ possible locations: $\log_2\binom{N}{m}
-\approx m \log_2 N$ bits.
-With $\alpha = 2.0$, the penalty roughly doubles the Bayesian Information
-Criterion cost of a seam, making MASS/SMASH conservative --- a seam is accepted
-only when the improvement in residuals is substantial.
-
-Within each segment induced by a candidate seam configuration, MASS/SMASH
-evaluates a \emph{model zoo} of per-segment candidates: Fourier series at
-three complexity levels ($K = 4, 8, 12$ harmonics), polynomials of degrees 2,
-3, and 5, and autoregressive models of orders $p = 5, 10, 15$.
-The best model per segment is selected by its individual BIC contribution,
-and the pooled $\RSS$ and $p$ are summed across segments for equation~\ref{eq:mdl}.
-The configuration (choice of seam positions and per-segment models) that
-minimizes the total MDL score is returned as the solution.
-A configuration with $m = 0$ seams (no structural break) is always included in
-the search; a detection is reported only when some $m > 0$ configuration achieves
-strictly lower MDL than the no-seam baseline.
+Within each segment, MASS/SMASH evaluates a model zoo: Fourier series at
+three complexity levels ($K = 4, 8, 12$ harmonics), polynomials of degree
+2, 3, and 5, and autoregressive models of orders 5, 10, and 15.
+The best model per segment is selected by its BIC contribution; the pooled
+$\RSS$ and $p$ enter equation~\ref{eq:mdl}.
+The configuration minimizing total MDL is returned; a no-seam configuration
+($m=0$) is always included, so a detection requires an explicit MDL improvement.
 
 \subsection{Chunked Inference on Long Time Series}
 \label{subsec:chunked}
 
-For continuous solar wind data at 3-s cadence over 30 days
-($N = 864{,}000$ samples), MASS/SMASH is applied in a sliding-window fashion:
-600-s windows (200 samples) advance in 300-s steps (100 samples), yielding
-8,638 overlapping chunks.
-Within each chunk, up to one seam is identified ($m_\mathrm{max} = 1$) and
-characterized by its MDL improvement (gain = MDL$_\text{no-seam}$ $-$
-MDL$_\text{best}$ in bits).
+For 30 days at 3-s cadence ($N = 864{,}000$ samples), MASS/SMASH is applied
+in a sliding-window fashion: 600-s windows (200 samples) at 300-s steps,
+yielding 8,638 overlapping chunks.
+Each chunk is processed independently with $m_\mathrm{max}=1$.
+Each sample accumulates a cumulative MDL gain across all windows in which it
+was selected as a seam.
+A global NMS pass with 300-s minimum separation then retains peaks above
+a gain threshold.
+We use 20 bits for the main detection benchmark (requiring the seam to earn
+its information cost by a wide margin) and 2 bits for exploratory analysis.
 
-Across the full 30-day record, each sample position accumulates a hit count
-(number of overlapping windows in which that position was selected as a seam)
-and a cumulative MDL gain.
-A global non-maximum suppression pass with a 300-s minimum separation retains
-peaks with MDL gain above a chosen threshold.
-For the main benchmark we use a gain threshold of 20 bits, reflecting confidence
-that the detection has earned its information cost by a wide margin;
-for the rotation angle analysis (Section~\ref{subsec:angles}) we use a relaxed
-gain threshold of 2 bits to increase the sample size for statistical tests.
-
-The full chunked inference pipeline is summarized in
-Algorithm~\ref{alg:chunked}.
+Algorithm~\ref{alg:chunked} summarizes the full pipeline.
 
 \begin{algorithm}[t]
 \caption{MASS/SMASH chunked inference}
 \label{alg:chunked}
 \begin{algorithmic}[1]
-\Require Signal $y[0:N]$, times $t[0:N]$, window $W$, step $S$, gain threshold $G$
-\State Initialize $\mathrm{hit}[0:N] \gets 0$, $\mathrm{gain}[0:N] \gets 0$
-\For{$\mathrm{start} = 0, S, 2S, \ldots, N-W$}
-  \State $\mathrm{end} \gets \mathrm{start} + W$
-  \State Run MASS/SMASH on $y[\mathrm{start}:\mathrm{end}]$ with $m_\mathrm{max}=1$
-  \If{best solution has $m > 0$ and MDL gain $> 0$}
-    \State $g \gets$ MDL$_\text{no-seam}$ $-$ MDL$_\text{best}$
+\Require Signal $y[0:N]$, window $W$, step $S$, gain threshold $G$
+\State Initialize $\mathrm{gain}[0:N] \gets 0$
+\For{$\mathrm{start} \in \{0, S, 2S, \ldots, N-W\}$}
+  \State Run MASS/SMASH on $y[\mathrm{start}:\mathrm{start}+W]$ with $m_\mathrm{max}=1$
+  \If{best solution has $m>0$ and MDL gain $g>0$}
     \For{each local seam index $\tau_\ell$}
-      \State $\mathrm{hit}[\mathrm{start}+\tau_\ell] \mathrel{+}= 1$;~
-             $\mathrm{gain}[\mathrm{start}+\tau_\ell] \mathrel{+}= g$
+      \State $\mathrm{gain}[\mathrm{start}+\tau_\ell] \mathrel{+}= g$
     \EndFor
   \EndIf
 \EndFor
-\State \textbf{Filter:} retain positions with $\mathrm{gain} > G$
-\State \textbf{NMS:} greedy score-ranked suppression, $\Delta\tau_\mathrm{min} = 300\s$
-\State \Return detected seam positions and scores
+\State Retain positions with $\mathrm{gain} > G$; NMS with $\Delta\tau_\mathrm{min} = 300\s$
+\State \Return detected positions and scores
 \end{algorithmic}
 \end{algorithm}
 
@@ -332,463 +304,474 @@ Algorithm~\ref{alg:chunked}.
 \subsection{Synthetic Solar Wind Data}
 \label{subsec:synth}
 
-We validate MASS/SMASH on a 30-day, 3-s-cadence synthetic solar wind magnetic
-field time series ($N = 864{,}000$ samples) generated to mimic the statistical
-properties of Wind/MFI observations during the March 2001 interval studied by
-\citet{Osman2014}.
+We validate MASS/SMASH on a 30-day, 3-s-cadence synthetic magnetic field time
+series ($N = 864{,}000$ samples) calibrated to mimic Wind/MFI observations during
+the March 2001 interval studied by \citet{Osman2014}.
 
-The background field follows a sector-boundary model: the magnetic field
-direction alternates between two near-antiparallel orientations, separated by
-120 heliospheric current sheet (HCS) crossings placed at Poisson-random times
-with a mean rate of one per six hours (matching the $\sim$4-per-day rate
-observed near 1 AU during moderately active periods; \citealt{Wilcox1965}).
-The mean field direction is $\hat{\mathbf{b}}_0 = (0.201, 0.201, 0.958)$ after
-normalization, so that the Bz component carries 96\% of the polarity reversal
-amplitude; this choice ensures that the Bz-based MASS/SMASH detector is
-confronted with the full amplitude of the sector crossing.
-At each HCS crossing the polarity transitions smoothly via a hyperbolic tangent
-profile
+The background field follows a sector-boundary model.
+The nominal field direction is
+$\hat{\mathbf{b}}_0 = (0.201, 0.201, 0.958)$ (after normalization), giving a
+field strength of $B_0 = 6\nT$ and placing $\approx 96\%$ of the polarity
+reversal amplitude in the Bz component, which is the component input to MASS/SMASH
+in the benchmark.
+One hundred and twenty heliospheric current sheet (HCS) crossings are placed at
+Poisson-random times with mean rate $\sim$4 per day and minimum spacing of one
+hour, consistent with the observed rate near 1 AU
+during moderately active intervals \citep{Wilcox1965}.
+At each crossing the polarity transitions smoothly via
 \begin{equation}
-  \pol(t) \;=\; \tanh\!\left(\frac{t - t_\mathrm{cross}}{\delta/3}\right),
+  \mathrm{pol}(t) \;=\; \tanh\!\left(\frac{t - t_\mathrm{cross}}{\delta/3}\right)
   \label{eq:tanh}
 \end{equation}
-with random transition widths $\delta$ drawn uniformly from $[15\s, 60\s]$,
-comparable to observed current sheet thicknesses at 1 AU \citep{Vasquez2007}.
+with transition widths $\delta$ drawn uniformly from $[15\s, 60\s]$, comparable
+to observed current sheet thicknesses at 1 AU \citep{Vasquez2007}.
 
-Turbulence is added as Kolmogorov-spectrum noise generated in the Fourier domain:
-power spectral density $P(f) \propto |f|^{-5/3}$, independently for each field
-component, with amplitude $\sigma_\mathrm{turb} = 0.30 B_0$ where $B_0 = 6\nT$
-is the background field magnitude.
-This turbulence level is consistent with typical 1-AU amplitude ratios
-$\delta B/B \sim 0.2$--$0.4$ in the inertial range \citep{Bruno2013}.
-The resulting field has $|\mathbf{B}|_\mathrm{rms} = 6.5\nT$, $\sigma_{|\mathbf{B}|} = 1.6\nT$,
-and $\sigma_{B_z} = 6.0\nT$ (where the large Bz variance reflects the
-polarity reversals).
+Turbulence is superimposed with power spectral density $P(f) \propto |f|^{-5/3}$
+(Kolmogorov spectrum), amplitude $\sigma_\mathrm{turb} = 0.30 B_0 = 1.8\nT$ per
+component, consistent with typical amplitude ratios $\delta B/B \sim 0.2$--$0.4$
+in the inertial range at 1 AU \citep{Bruno2013}.
+The resulting field has $|\mathbf{B}|_\mathrm{rms} = 6.5\nT$,
+$\sigma_{|\mathbf{B}|} = 1.6\nT$, and $\sigma_{B_z} = 6.0\nT$.
 
-\subsection{Ground Truth Catalog}
-\label{subsec:catalog}
+The 120 injected crossing centers are recorded at the exact tanh midpoints
+(where $\mathrm{pol}(t) = 0$) and used as the primary ground truth in all
+performance evaluations.
 
-The ground truth catalog is constructed using PVI (equation~\ref{eq:pvi}) with
+\subsection{Comparison Detectors}
+\label{subsec:comparators}
+
+We compare MASS/SMASH against two detectors.
+
+\textbf{PVI detector.}
+PVI (equation~\ref{eq:pvi}) is computed from the full 3-component field with
 lag $\tau = 1$ sample (3 s) and a 90-s normalization window.
 Crossings are identified as peaks with $\PVI > 3.0$ and minimum inter-event
-separation of 300 s (enforced via \texttt{scipy.signal.find\_peaks} with
-distance parameter), yielding 91 catalog events over the 30-day interval.
-This PVI threshold is the standard choice for strong discontinuities in solar
-wind studies \citep{Greco2008,Osman2011} and corresponds approximately to the
-99th percentile of the PVI distribution in our synthetic data.
+separation of 300 s, yielding 91 detections for the 30-day interval.
+This PVI threshold corresponds approximately to the 99th percentile of the
+PVI distribution in our data and is the standard choice for strong
+discontinuities in solar wind studies \citep{Greco2008,Osman2011}.
+PVI is simultaneously a detector (evaluated against injected crossings) and
+a reference catalog (for secondary comparisons); the 91 PVI events are not
+used as the primary ground truth.
 
-Because PVI peaks at the gradient maximum --- which occurs at the edges of the
-tanh transition profile rather than its center --- there is an inherent
-geometric offset between the catalog position (gradient peak) and the
-sign-flip center (where the antipodal correlator fires).
-For a 60-s transition at 3-s cadence this offset is $\lesssim 100$--150 s.
-We therefore evaluate detections at two tolerance levels: a primary tolerance of
-150 s (50 samples) that accommodates this offset, and a strict tolerance of 30 s
-(10 samples) that requires coincidence with the gradient peak itself.
-
-\subsection{Baseline Detector}
-\label{subsec:baseline}
-
-The baseline is a standard $|d\mathbf{B}/dt|$ threshold detector applied to the
-magnetic field magnitude $|\mathbf{B}(t)|$:
-\begin{equation}
-  \text{score}(t) \;=\; \left|\nabla_t |\mathbf{B}|\right|,
-  \label{eq:baseline}
-\end{equation}
-where the gradient is estimated by first differences.
-Events are peaks of $\text{score}(t)$ exceeding $\mu + 2.5\sigma$ (where
-$\mu$, $\sigma$ are the global mean and standard deviation of the score time
-series), with a minimum separation of 300 s.
-This detector is representative of the simplest operational current-sheet
-screener used in survey studies.
+\textbf{$|d\mathbf{B}/dt|$ baseline.}
+The baseline applies a threshold of $\mu + 2.5\sigma$ to the time derivative
+of $|\mathbf{B}|$, with minimum inter-event separation of 300 s.
+This represents the simplest operational screening method.
 
 \subsection{Evaluation Metrics}
 \label{subsec:metrics}
 
-A detected event at position $\hat{\tau}$ is a true positive (TP) if there
-exists a catalog event within the tolerance window.
-Each catalog event can be matched at most once (greedy first-match assignment).
-Let TP, FP, FN denote true positives, false positives, and false negatives.
-We report precision $P = \mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$, recall
-$R = \mathrm{TP}/(\mathrm{TP}+\mathrm{FN})$, and
-$\mathrm{F1} = 2PR/(P+R)$.
+A detected event at position $\hat{\tau}$ is a true positive (TP) if it falls
+within a tolerance window of a known injected crossing center; each crossing
+is matched at most once.
+We report precision $P = \mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$,
+recall $R = \mathrm{TP}/(\mathrm{TP}+\mathrm{FN})$, F1, and the
+false discovery fraction $\FDF = 1 - P$.
+Two tolerance levels are used: 150 s (50 samples) to accommodate the geometric
+offset between the PVI gradient peak and the sign-flip center (Section~\ref{subsec:offset}),
+and 30 s (10 samples) as a strict reference.
 
-\subsection{Rotation Angle Characterization}
+\subsection{Rotation Angle Analysis}
 \label{subsec:rotation_method}
 
-To characterize the physical nature of events selected by each detector, we
-compute the magnetic field rotation angle across each detected crossing.
-For event at sample index $p$, with averaging window $w_\mathrm{avg}$:
+For each detection at sample index $p$, the magnetic field rotation angle is:
 \begin{align}
-  \Bhat_\mathrm{before} &= \frac{\langle\Bvec\rangle_{[p-w_\mathrm{avg}:p]}}{
-    |\langle\Bvec\rangle_{[p-w_\mathrm{avg}:p]}|}, \\[4pt]
-  \Bhat_\mathrm{after} &= \frac{\langle\Bvec\rangle_{[p:p+w_\mathrm{avg}]}}{
-    |\langle\Bvec\rangle_{[p:p+w_\mathrm{avg}]}|}, \\[4pt]
+  \Bhat_\mathrm{before} &=
+    \frac{\langle\Bvec\rangle_{[p-w_a:p]}}{|\langle\Bvec\rangle_{[p-w_a:p]}|}, \quad
+  \Bhat_\mathrm{after} \;=\;
+    \frac{\langle\Bvec\rangle_{[p:p+w_a]}}{|\langle\Bvec\rangle_{[p:p+w_a]}|},
+  \label{eq:Bhat} \\
   \omega &= \arccos\!\left(\mathrm{clip}(\Bhat_\mathrm{before}
-    \cdot \Bhat_\mathrm{after}, -1, 1)\right).
+    \cdot \Bhat_\mathrm{after}, -1, 1)\right),
   \label{eq:omega}
 \end{align}
-We test four averaging window sizes: $w_\mathrm{avg} \in \{10, 30, 60, 120\}\s$.
+with averaging windows $w_a \in \{10, 30, 60, 120\}\s$.
+We compute $\omega$ both at the raw detection position $p$ and, for matched
+true positives, at the corresponding injected crossing center, in order to
+separate localization effects from physical differences between detector
+populations.
 
-Statistical tests compare the angle distributions between MASS/SMASH and PVI
-detections:
-(1) a two-sample Kolmogorov-Smirnov (KS) test on the full distribution
-$P(\omega)$, and
-(2) a $\chi^2$ contingency test on the $\pi$-excess fraction
-$f_\pi = P(\omega > 160^\circ)$.
-To control for the possibility that any distributional difference is caused
-by spectral properties of the time series rather than the seam-detection
-algorithm, we apply a phase-randomized surrogate test: 100 surrogate
-realizations of the magnetic field are constructed by randomizing Fourier phases
-independently for each component while preserving the power spectrum, and
-$f_\pi$ is recomputed at the MASS/SMASH peak locations for each surrogate.
-The surrogate $p$-value is the fraction of surrogates exceeding the observed
-$f_\pi$.
+Statistical comparison of angle distributions between detectors uses a
+two-sample Kolmogorov-Smirnov (KS) test.
+Phase-randomized surrogates (100 realizations; independent Fourier phase
+randomization per component) provide a null model for testing whether
+distributional differences are explainable by spectral properties alone.
+Because only 100 surrogates are computed, the minimum reportable surrogate
+$p$-value is $p < 0.01$.
 
 %% ============================================================
 \section{Results}
 \label{sec:results}
 %% ============================================================
 
-\subsection{Detection Performance}
+\subsection{Detection Performance Against Injected Crossings}
 \label{subsec:detection}
 
-Table~\ref{tab:main_results} summarizes detection performance for MASS/SMASH
-and the $|d\mathbf{B}/dt|$ baseline at both tolerance levels.
+Table~\ref{tab:main_results} summarizes performance for all three detectors
+against the 120 injected crossing centers.
 
 \begin{table}[t]
 \centering
-\caption{Detection performance on the 30-day synthetic solar wind benchmark.
-PVI catalog: 91 events.}
+\caption{Detection performance against 120 known injected crossing centers.
+FDF = false discovery fraction = $1 - P$.}
 \label{tab:main_results}
-\begin{tabular}{lcccccc}
+\begin{tabular}{lcccccccc}
 \toprule
-Detector & Tolerance & $N_\mathrm{det}$ & TP & FP & Precision & Recall & F1 \\
+Detector & Tol. & $N_\mathrm{det}$ & TP & FP & $P$ & $R$ & F1 & FDF \\
 \midrule
-MASS/SMASH & 150 s & 63 & 34 & 29 & 0.540 & 0.374 & 0.442 \\
-MASS/SMASH & 30 s  & 63 & 15 & 48 & 0.238 & 0.165 & 0.195 \\[4pt]
-$|d\mathbf{B}/dt|$ baseline & 150 s & 132 & 90 & 42 & 0.682 & 0.989 & 0.807 \\
-$|d\mathbf{B}/dt|$ baseline & 30 s  & 132 & 90 & 42 & 0.682 & 0.989 & 0.807 \\
+MASS/SMASH (MDL gain $> 20$ bits) & 150 s & 63  & 58 & 5  & 0.921 & 0.483 & 0.634 & 7.9\% \\
+MASS/SMASH (MDL gain $> 20$ bits) & 30 s  & 63  & 18 & 45 & 0.286 & 0.150 & 0.197 & 71.4\% \\
+\midrule
+PVI ($\PVI > 3.0$)                & 150 s & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
+PVI ($\PVI > 3.0$)                & 30 s  & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
+\midrule
+$|d\mathbf{B}/dt|$ baseline       & 150 s & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
+$|d\mathbf{B}/dt|$ baseline       & 30 s  & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The baseline detector achieves near-perfect recall (0.989) at 150 s tolerance,
-missing only one catalog event, but at the cost of 42 false positives (32\% of
-its detections).
-Notably, the baseline performance is identical at both tolerance levels,
-reflecting the fact that $|d\mathbf{B}/dt|$ peaks closely coincide with the PVI
-gradient peaks (both are gradient-based statistics on the same underlying signal).
+Several findings are evident from Table~\ref{tab:main_results}.
 
-MASS/SMASH achieves recall of 0.374 at 150 s tolerance with 34 true positives
-from 63 detections. Precision (0.540) is slightly lower than the baseline (0.682),
-indicating a comparable false positive rate per detection but substantially
-fewer total events. At strict 30-s tolerance, MASS/SMASH recall falls to 0.165,
-confirming that its detections are systematically offset from the gradient peak
-by $\sim 30$--150 s --- consistent with the antipodal correlator firing at the
-sign-flip center rather than at the edges of the transition where $|d\mathbf{B}/dt|$
-peaks.
+\textbf{The $|d\mathbf{B}/dt|$ baseline achieves perfect recall.}
+All 120 injected crossings are matched within 150 s; the 12 false detections
+correspond to high-gradient turbulent fluctuations that did not originate from
+injected crossings.
+Because the baseline and the tanh crossings are both gradient-based, the
+baseline performance is identical at the 30-s and 150-s tolerance levels.
 
-The 45\% reduction in total detections (63 versus 132) reflects the stringent
-MDL gain threshold (20 bits). MASS/SMASH makes fewer claims per unit time,
-trading recall for selectivity: it reports events only when the structural
-evidence for a seam is unambiguous in an information-theoretic sense.
+\textbf{PVI achieves the highest precision but misses 25\% of injected crossings.}
+PVI finds 90 of 120 injected crossings with only 1 spurious detection (a 1.1\%
+false discovery fraction).
+The 30 missed crossings are weak events --- those with smaller Bz amplitude at
+the crossing center due to overlapping turbulent fluctuations --- that do not
+exceed the $\PVI > 3.0$ threshold.
+PVI performance is again identical at both tolerance levels because PVI peaks
+closely coincide with the tanh inflection points.
 
-\subsection{Rotation Angle Distributions}
+\textbf{MASS/SMASH has the second-highest precision among the three methods.}
+Of 63 MASS/SMASH detections, 58 (92.1\%) are within 150 s of an injected
+crossing --- comparable in precision to both PVI and the baseline.
+MASS/SMASH recall (0.483) is substantially lower than the baseline (1.000) or
+PVI (0.750), reflecting the conservative MDL gain threshold (20 bits).
+At strict 30-s tolerance, MASS/SMASH recall falls to 0.150, indicating that
+most MASS/SMASH detections are offset from the crossing center by more than
+30 s; Section~\ref{subsec:offset} explains this offset.
+
+\textbf{MASS/SMASH finds crossings that PVI misses.}
+Of the 63 MASS/SMASH detections matched to injected crossings, 24 correspond
+to crossings not in the PVI catalog (i.e., crossings PVI missed).
+Thus MASS/SMASH and PVI each capture a distinct subset of the injected population;
+their joint catalog would cover 90 + 24 = 114 of 120 injected crossings.
+
+\subsection{Detection Localization: A Systematic Offset from the Polarity Center}
+\label{subsec:offset}
+
+The fall to 0.150 recall at 30-s tolerance (versus 0.483 at 150 s) reveals that
+most MASS/SMASH true positives are offset from the injected crossing center by
+30--150 s.
+To characterize this offset, we computed, for each true positive MASS/SMASH
+detection, the displacement from the matched injected crossing center:
+\begin{equation}
+  \Delta\tau_i = \tau_i^\mathrm{MS} - \tau_i^\mathrm{inj},
+\end{equation}
+where $\tau_i^\mathrm{MS}$ is the MASS/SMASH detection position and
+$\tau_i^\mathrm{inj}$ is the nearest injected crossing center within 150 s.
+
+The offset distribution is approximately uniform across $[-50, +50]$ samples
+($[-150\s, +150\s]$) but with notable clustering near $\Delta\tau \approx \pm 10$
+samples ($\pm 30\s$).
+This is consistent with a known geometric effect: the antipodal correlation
+$\mathcal{A}(\tau)$ (equation~\ref{eq:antipodal}) is maximized where the signal
+is most antisymmetric, which for the tanh profile
+$B(t) \propto \tanh((t-t_0)/\delta)$ is not at the midpoint $t_0$ but rather
+near the inflection points $t_0 \pm \delta/3$, where the signal
+transitions between its asymptotic values and the symmetric plateau.
+For transition widths $\delta \in [15\s, 60\s]$, the inflection points are
+10--20 s from the midpoint, consistent with the observed clustering.
+
+MASS/SMASH thus identifies the \emph{onset} of the transition profile --- where
+the magnetic field begins its directional change --- rather than the polarity
+midpoint.
+This is a systematic, predictable offset that could be corrected in downstream
+analysis by applying a transition-model-based centroid correction.
+Alternatively, for applications requiring precise polarity-center localization,
+a post-detection sharpening step using the sign-flip midpoint of the detected
+segment would be appropriate.
+
+\subsection{Rotation Angle Analysis}
 \label{subsec:angles}
 
-To understand what physical events each detector selects, we computed the
-magnetic field rotation angle $\omega$ (equation~\ref{eq:omega}) at each
-detected crossing for the relaxed MASS/SMASH detection set (42 events,
-MDL gain $> 2$ bits) and the full 91-event PVI catalog, across four averaging
-window sizes.
+Table~\ref{tab:angles} compares the magnetic field rotation angles computed
+at two positions: at the raw detection position ($\omega^\mathrm{detect}$),
+and at the matched injected crossing center ($\omega^\mathrm{inj}$, for
+MASS/SMASH true positives only).
 
 \begin{table}[t]
 \centering
-\caption{Magnetic field rotation angle statistics. $\bar\omega$: mean angle.
-  $f_\pi$: fraction with $\omega > 160^\circ$.
-  KS $p$: two-sample KS test $p$-value (MASS/SMASH vs.\ PVI).
-  Surr.\ $p$: fraction of phase-randomized surrogates exceeding MASS/SMASH $f_\pi$.}
+\caption{Magnetic field rotation angle analysis. Columns:
+$\bar{\omega}^\mathrm{detect}$ = mean angle at detection position;
+$\bar{\omega}^\mathrm{inj}$ = mean angle at matched injected crossing center
+(true positives only, $n=58$ for MASS/SMASH);
+$f_\pi$ = fraction with $\omega > 160^\circ$;
+KS $p$ = two-sample KS test of MASS/SMASH ($\omega^\mathrm{detect}$) vs.\ PVI.}
 \label{tab:angles}
 \begin{tabular}{lccccccc}
 \toprule
-Window & \multicolumn{2}{c}{PVI catalog ($n=91$)} &
-  \multicolumn{2}{c}{MASS/SMASH ($n=42$)} &
-  KS $p$ & $\chi^2$ $p$ & Surr.\ $p$ \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-& $\bar\omega$ & $f_\pi$ & $\bar\omega$ & $f_\pi$ & & & \\
+ & \multicolumn{3}{c}{At detection position} &
+   \multicolumn{2}{c}{At inj.\ crossing (TP only)} & \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-6}
+Window & PVI $\bar{\omega}$ & MS $\bar{\omega}^\mathrm{detect}$ &
+  KS $p$ & MS $\bar{\omega}^\mathrm{inj}$ & Inj.\ all $\bar{\omega}$ \\
 \midrule
-10 s  & --   & 0.052 & --   & 0.000 & $1.3\times10^{-26}$ & 0.316 & 1.00 \\
-30 s  & --   & 0.134 & --   & 0.000 & $9.8\times10^{-25}$ & 0.030 & 1.00 \\
-60 s  & 132° & 0.155 & --   & 0.024 & $6.2\times10^{-21}$ & 0.054 & 0.00 \\
-120 s & --   & 0.165 & --   & 0.048 & $2.4\times10^{-9}$  & 0.106 & 0.00 \\
+10 s  & 114° & 0.5° & $1.7\times10^{-44}$ & 101° & 108° \\
+30 s  & 130° & 3.9° & $1.1\times10^{-42}$ & 128° & 128° \\
+60 s  & 132° & 42°  & $4.1\times10^{-31}$ & 132° & 132° \\
+120 s & 134° & 83°  & $2.1\times10^{-13}$ & 134° & 133° \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Several findings emerge from Table~\ref{tab:angles}.
+\textbf{At detection positions, MASS/SMASH events show anomalously small rotation angles.}
+At 10-s and 30-s averaging windows, the mean angle at MASS/SMASH detection
+positions is near $0^\circ$.
+This anomaly is a direct consequence of the detection offset described in
+Section~\ref{subsec:offset}: if the detection fires $\approx 10$ samples (30 s)
+before the crossing center, then a 10-s (3-sample) averaging window on each
+side of the detection position will straddle the transition profile rather than
+bracket it.
+The upstream window then averages a mixture of pre-transition and transition
+field values, driving the mean field toward zero and producing a spurious small
+rotation angle.
+The KS statistics ($p < 10^{-13}$ at all window sizes) confirm that detection
+positions show statistically distinct angle distributions compared to PVI events,
+but this distinction is a localization artifact, not evidence of different
+physical event classes.
 
-\textbf{(1) The two detectors select statistically distinct event populations.}
-The KS test $p$-values are extremely small at all window sizes, ranging from
-$p < 10^{-26}$ at the 10-s window to $p \approx 2 \times 10^{-9}$ at 120 s.
-This is not a sample size artifact: with $n_\mathrm{PVI} = 91$ and $n_\mathrm{MS} = 42$,
-the KS test has moderate power. The distributional difference is large.
+\textbf{At matched injected crossing positions, MASS/SMASH events have angles
+consistent with the full injected population and with PVI events.}
+When $\omega$ is computed at the matched injected crossing center for the 58
+MASS/SMASH true positives, the mean angles are $101^\circ$ (10 s window),
+$128^\circ$ (30 s), $132^\circ$ (60 s), and $134^\circ$ (120 s) ---
+statistically indistinguishable from both the PVI catalog values
+($114^\circ$, $130^\circ$, $132^\circ$, $134^\circ$) and the full injected
+population ($108^\circ$, $128^\circ$, $132^\circ$, $133^\circ$) at 30--120 s
+windows.
+The previously observed depletion of near-$\pi$ rotation events in MASS/SMASH
+detections therefore reflects the detection position offset, not a physically
+distinct sub-population of current sheet events.
 
-\textbf{(2) MASS/SMASH selects events with smaller rotation angles.}
-The $\pi$-excess fraction $f_\pi = P(\omega > 160^\circ)$ is substantially
-lower for MASS/SMASH detections than for PVI events at all window sizes:
-0.0\% vs.\ 5.2\% at 10 s, 0.0\% vs.\ 13.4\% at 30 s, 2.4\% vs.\ 15.5\% at
-60 s, and 4.8\% vs.\ 16.5\% at 120 s.
-MASS/SMASH events are concentrated in the 90°--150° range across all window sizes,
-while the PVI catalog contains a significant tail above 150° at all scales.
-The $\pi$-excess ratio $f_\pi^\mathrm{MS} / f_\pi^\mathrm{PVI}$ ranges from 0.00
-to 0.29, far below the $> 1.3$ criterion that would indicate MASS/SMASH
-preferentially selects full reversals.
-
-\textbf{(3) The surrogate test is inconclusive in the predicted direction.}
-At window sizes 60 s and 120 s, the MASS/SMASH $f_\pi$ is \emph{lower} than
-all 100 phase-randomized surrogates (surrogate $p = 0.00$), meaning the
-depletion of large-angle events in MASS/SMASH detections is not explainable by
-spectral properties alone.
-At 10 s and 30 s, every surrogate exceeds or equals the MASS/SMASH $f_\pi$
-(surrogate $p = 1.00$), consistent with near-zero $f_\pi$ reflecting genuine
-small-angle selectivity rather than a spectral effect.
-The overall verdict from the Prediction 1 test is \textbf{AMBIGUOUS}: the angle
-distributions are significantly different (high KS significance), but the
-difference is in the direction \emph{opposite} to the $\pi$-excess prediction
-of the $\mathbb{Z}_2$ topological framework.
+\textbf{Prediction 1 verdict revised.}
+An earlier analysis (prior to accounting for the detection offset) classified
+the rotation angle result as AMBIGUOUS: the distribution of $\omega$ at
+detection positions was highly significantly different from PVI (KS $p <
+10^{-26}$), but not in the direction of a $\pi$-excess as hypothesized.
+Corrected for the offset, the MASS/SMASH true-positive events have the same
+angle distribution as PVI events; the apparent anomaly was a localization
+artifact.
+The verdict for the topological $\pi$-excess prediction is therefore
+\textbf{NULL}: there is no evidence that the MDL selection criterion
+preferentially selects large-rotation events over moderate-rotation events
+among genuine current sheet crossings.
+This is an informative null result that constrains the framework.
 
 %% ============================================================
 \section{Discussion}
 \label{sec:discussion}
 %% ============================================================
 
-\subsection{Complementary Selection Functions of MASS/SMASH and PVI}
+\subsection{Detection Characteristics of MASS/SMASH}
+\label{subsec:char}
+
+MASS/SMASH occupies a distinct operating point in the precision-recall space.
+Its principal advantage over the $|d\mathbf{B}/dt|$ baseline is precision:
+5 false detections versus 12 for the baseline (at 150-s tolerance), for comparable
+false discovery fractions (7.9\% vs.\ 9.1\%).
+Its principal disadvantage relative to the baseline is recall: 0.483 versus
+1.000.
+Compared to PVI, MASS/SMASH has slightly lower precision (0.921 vs.\ 0.989)
+but achieves an important complementary benefit: it finds 24 crossings that PVI
+misses.
+
+The physical reason MASS/SMASH misses more crossings than the baseline is the
+stringent MDL gain criterion (20 bits).
+For the algorithm to accept a seam, the two-segment model must compress the
+data substantially better than a single-segment model.
+In strongly turbulent intervals, many current-sheet crossings are embedded in
+high-variance background fluctuations that a single polynomial or AR model
+cannot fit well regardless of seam placement, reducing the relative gain from
+introducing the seam.
+Conversely, for the 58 detected true positives, the transition is sufficiently
+prominent relative to the local turbulence that the MDL criterion fires cleanly.
+
+\subsection{The Detection Offset as a Physical Diagnostic}
+\label{subsec:offset_interp}
+
+The systematic $\approx 30\s$ offset between MASS/SMASH detections and the
+true polarity center is a reproducible feature of the antipodal correlation
+mechanism.
+Rather than treating this as a deficiency, it can be leveraged as a diagnostic:
+the detection position marks the \emph{transition onset} (where the field begins
+rotating from its asymptotic value), while the true polarity center lies
+$\approx 30\s$ downstream.
+In principle, MASS/SMASH could be adapted to report the transition onset,
+onset-to-center delay, and implied transition width as outputs, providing
+morphological characterization of each crossing without the need for an
+independent profile-fitting step.
+
+\subsection{Complementarity with PVI}
 \label{subsec:comp}
 
-The central empirical finding of this study is that MASS/SMASH and PVI identify
-largely non-overlapping sub-populations of the current sheet catalog
-(34 shared true positives from 91 catalog events, a joint detection fraction
-of 37\%), and that the two populations have markedly different rotation angle
-distributions.
+PVI and MASS/SMASH together would detect 114 of 120 injected crossings --- 95\%
+of the full ground-truth population --- with a combined false discovery fraction
+of approximately 6\%.
+The 6 missed crossings are those for which neither method fires: the crossing
+amplitude is too small for PVI, and the turbulence context is too noisy for
+the MDL gain to be significant.
 
-We interpret this complementarity as follows.
-PVI is a gradient statistic: it peaks where the rate of change of the magnetic
-field is largest, which for a tanh-profile current sheet occurs at the inflection
-points of the transition ($\pm \delta/3$ from the polarity center).
-At these positions, the mean field before and after a half-window is close to
-the asymptotic upstream/downstream values, which are anti-parallel by
-construction; hence PVI events show high $f_\pi$.
+For routine survey work, the $|d\mathbf{B}/dt|$ baseline achieves perfect recall
+at the cost of 9.1\% false detections, which is often acceptable.
+MASS/SMASH is most valuable as a \emph{follow-on selector}: applied to the
+$|d\mathbf{B}/dt|$ initial catalog, it could reduce false detections while
+also flagging crossings that the baseline missed entirely (those in the 24-event
+PVI-MASS/SMASH intersection that are absent from the baseline's false-positive list).
+A practical multi-stage pipeline would be:
+\begin{enumerate}
+  \item Apply the baseline to obtain a high-recall ($>95\%$) initial catalog.
+  \item Apply MASS/SMASH with a moderate gain threshold (e.g., 5 bits) to
+    re-score each event and flag those with strong structural evidence.
+  \item Use the MDL gain score as a continuous quality metric rather than a
+    binary threshold.
+\end{enumerate}
 
-MASS/SMASH's antipodal correlator is similarly designed to fire at the
-polarity center.
-However, the MDL selection criterion imposes an additional filter: the
-structural change at the seam must compress the signal better than a
-single-segment model.
-In practice, this favors events where the two segments have genuinely
-\emph{different} statistical characters --- not just opposite signs.
-For a clean sector reversal embedded in low turbulence, the pre-seam and
-post-seam segments are statistically similar (same variance, same spectral
-content, opposite mean), and the MDL gain from splitting is modest.
-For a roughness-dominated event --- where the transition is accompanied by
-a change in spectral content or variance, as in a reconnecting current sheet
-with enhanced turbulence downstream --- the MDL gain is large and the seam
-passes the threshold.
+\subsection{On the Topological Prediction and the Null Result}
+\label{subsec:nullresult}
 
-This interpretation is consistent with the rotation angle data: if MASS/SMASH
-is selecting events with genuine structural asymmetry between the upstream
-and downstream domains, the rotation angle might be large or moderate depending
-on the specific turbulence geometry, but it need not be close to 180°.
-The depletion of large-angle events in the MASS/SMASH catalog, and the
-corresponding enrichment in the 90°--150° range, suggests MASS/SMASH is
-most sensitive to partially rotated sheets accompanied by a significant
-variance or spectral change --- precisely the signature expected for active
-reconnection exhaust regions, where reconnected flux tubes are rotated but
-not yet fully relaxed \citep{Gosling2005,Phan2006}.
+The rotation angle analysis, once corrected for the detection offset, provides
+a null result for Prediction 1: the MDL selection criterion does not
+preferentially select current sheets with near-$\pi$ rotation angles.
+This is an informative constraint.
+The MDL criterion is sensitive to the compressibility advantage of a two-segment
+model over a one-segment model, which depends on the amplitude of the structural
+change relative to the noise, not specifically on the rotation angle.
+A crossing with a 120° rotation at high SNR will score higher MDL gain than a
+crossing with a 170° rotation at low SNR.
+The null result therefore does not imply the topological motivation for the
+antipodal correlator is incorrect; it implies that the MDL gain metric, as
+implemented, does not directly proxy the rotation angle.
 
-\subsection{Implications for Multi-Method Current Sheet Surveys}
-\label{subsec:multimethod}
-
-These results have a practical implication for solar wind current sheet surveys:
-PVI and MASS/SMASH, despite both nominally targeting ``current sheets,'' are
-sensitive to different aspects of the transition structure.
-A combined catalog using both methods would provide richer characterization
-than either method alone.
-Specifically:
-\begin{itemize}
-  \item PVI events (high $f_\pi$, high recall) represent the complete population
-    of strong field-gradient events, including both clean sector reversals and
-    turbulent spikes.
-  \item MASS/SMASH events (lower $f_\pi$, lower recall, different structural
-    character) may preferentially identify the subset of current sheets with
-    active structural transitions --- candidate reconnection sites rather than
-    mere polarity boundaries.
-\end{itemize}
-A productive follow-up would be to cross-correlate MASS/SMASH detections in
-real Wind or Parker Solar Probe data with plasma signatures of active
-reconnection (Hall electric fields, accelerated jets, enhanced electron heating;
-\citealt{Phan2006,Gosling2005}), to test whether the different structural
-character revealed by the rotation angle analysis corresponds to a genuine
-difference in reconnection activity.
-
-\subsection{On the Prediction 1 Test and the Topological Framework}
-\label{subsec:prediction1}
-
-One motivation for developing MASS/SMASH was a conjecture that the MDL penalty
-function, by selecting seams that compress the signal better, might implicitly
-enforce a kind of topological selectivity analogous to the $\mathbb{Z}_2$
-orientation-flip structure of magnetic field reversals.
-Concretely, Prediction 1 hypothesized that MASS/SMASH detections would show
-a statistically significant \emph{excess} of near-$\pi$ rotation angles
-($\omega > 160^\circ$) relative to the PVI catalog, indicating that the
-information-theoretic criterion preferentially selects clean polarity reversals
-over partial rotations.
-
-The data do not support this prediction.
-MASS/SMASH events have significantly \emph{fewer} large-angle events than PVI
-events at all window sizes.
-The surrogate test confirms this deficit is not a spectral artifact.
-Two conclusions follow.
-First, the MDL criterion, as currently configured with $\alpha = 2.0$ and the
-given model zoo, does not implicitly select $\mathbb{Z}_2$-symmetric events.
-Second, and more informatively, the MDL criterion is sensitive to a physically
-different aspect of current sheets than polarity angle --- most likely the
-presence of a structural asymmetry between the two sides of the transition,
-which is the signature of active rather than passive current sheets.
-
-We emphasize that the null result on Prediction 1 is informative and not
-discouraging: it constrains the space of possible connections between the
-seam framework and the topological structure of magnetic field orientation,
-and it identifies a specific mechanism (structural asymmetry sensitivity rather
-than angle sensitivity) that can guide future theoretical development.
-A revised framework in which the seam penalty is explicitly calibrated to the
-rotation angle geometry --- rather than to the general MDL cost --- might
-recover a measurable $\pi$-excess signal.
+A direct topological test would require a version of the algorithm that
+explicitly penalizes the seam acceptance on the basis of the 3D rotation angle
+rather than purely on the 1D Bz MDL gain.
+That extension is left for future work.
 
 \subsection{Limitations}
 \label{subsec:limits}
 
-Several limitations of the present study should be noted.
-
 \textbf{Synthetic data only.}
-The validation is performed on synthetic solar wind data constructed to
-match statistical properties of Wind/MFI observations.
-While the turbulence spectrum and current sheet rate are calibrated to
-published values, the results may not generalize quantitatively to real
-spacecraft data.
-In particular, real solar wind current sheets exhibit a broader range of
-transition widths, surrounding plasma conditions, and heliospheric structure
-effects that are not captured in our single-regime model.
-Application to Wind, ACE, Parker Solar Probe, and Solar Orbiter data is a
-necessary next step.
+All quantitative results are from synthetic data calibrated to match statistical
+properties of Wind/MFI observations.
+Real solar wind current sheets exhibit a wider range of transition profiles,
+background field orientations, plasma $\beta$ conditions, and co-rotating
+structures that are not represented in our single-regime model.
+Application to Wind, ACE, Parker Solar Probe, and Solar Orbiter data is required
+before quantitative performance claims can be extended to real observations.
 
 \textbf{Single-component detection.}
-MASS/SMASH in the present implementation processes only the Bz component of
-the magnetic field.
-Full three-component or magnitude-normalized detection would improve sensitivity
-to oblique crossings and provide rotation angle information as an input to
-the detector rather than as a post-hoc diagnostic.
+MASS/SMASH processes only the Bz component.
+Oblique crossings, where the polarity reversal is distributed across components,
+will have lower SNR in Bz and therefore lower MDL gain.
+Full 3-component MDL detection --- processing the full $\mathbf{B}$ vector or
+$|\mathbf{B}|$ alongside Bz --- would improve recall for oblique events.
 
-\textbf{PVI as ground truth.}
-Using PVI events as the ground truth catalog conflates two issues: events that
-are truly current sheets, and events that are detected by PVI.
-MASS/SMASH events not in the PVI catalog may include real current sheets that
-PVI misses, inflating the apparent false positive rate.
-Without an independent reference (e.g., direct current density measurements
-from multi-spacecraft configurations, or MHD simulation data with known
-reconnection sites), separating these cases requires additional diagnostics
-beyond the scope of this study.
+\textbf{PVI as a reference catalog.}
+Although we use injected crossings as ground truth, the PVI catalog is also
+reported as a secondary reference.
+Readers comparing MASS/SMASH against PVI events rather than against injected
+crossings should note that the metrics reflect ``agreement with PVI,'' not
+detection accuracy.
+MASS/SMASH achieves only F1 = 0.44 by this secondary metric, largely because
+it detects 24 events that PVI misses but which are genuine injected crossings.
 
-\textbf{Parameter sensitivity.}
-The MDL gain threshold (20 bits) and seam penalty ($\alpha = 2.0$) are
-set heuristically.
-A systematic calibration against labeled training data, or a Bayesian
-integration over the penalty parameter, would provide a more principled
-precision-recall operating point.
+\textbf{Parameter calibration.}
+The MDL gain threshold (20 bits), seam penalty ($\alpha = 2.0$), antipodal
+threshold (0.35), and roughness threshold (0.20) are set heuristically.
+A systematic grid search or Bayesian calibration against labeled training data
+would provide a better-characterized precision-recall operating point and enable
+quantitative comparison with other algorithms.
 
 %% ============================================================
 \section{Conclusions}
 \label{sec:conclusions}
 %% ============================================================
 
-We have introduced MASS/SMASH, an algorithm for detecting magnetic current
-sheets in solar wind data that combines an antipodal correlation detector ---
-sensitive to sign-flip antisymmetry at a candidate crossing --- with a
-roughness discontinuity detector and a Minimum Description Length model
-selection criterion that penalizes spurious detections at an
-information-theoretic cost of $\sim \log_2 N$ bits per seam.
-The key properties of the algorithm and its validation on synthetic solar wind
-data are as follows.
+We have introduced MASS/SMASH, an MDL-regularized algorithm for detecting
+magnetic current sheets as structural seams in univariate solar wind time series.
+The algorithm combines an antipodal correlation detector, a roughness
+discontinuity detector, and an information-theoretic model-selection step that
+penalizes seams at $\sim \log_2 N$ bits each.
+Validation against 120 known injected crossings in synthetic solar wind data
+yields the following principal findings.
 
 \begin{enumerate}
 
-\item \textbf{Principled selectivity.}
-The MDL criterion provides a formal mechanism to suppress false detections:
-a seam is accepted only when the gain in description length exceeds the
-information cost of encoding its location.
-This yields 63 detections over 30 days, compared to 132 for the $|d\mathbf{B}/dt|$
-baseline, with comparable precision (0.54 vs.\ 0.68) but substantially
-lower recall (0.37 vs.\ 0.99) relative to the PVI catalog.
+\item \textbf{MASS/SMASH achieves 92\% precision (FDF = 7.9\%) at 150-s
+tolerance}, comparable to the $|d\mathbf{B}/dt|$ baseline (FDF = 9.1\%) and
+PVI (FDF = 1.1\%), while detecting 63 events versus 132 for the baseline
+and 91 for PVI.
+Its recall of 48\% reflects the conservative 20-bit MDL gain criterion.
 
-\item \textbf{Structural rather than gradient sensitivity.}
-The rotation angle analysis reveals that MASS/SMASH and PVI select events from
-statistically distinct populations ($p < 10^{-26}$ by KS test at the 10-s
-window), with MASS/SMASH preferentially detecting events in the 90°--150°
-rotation range rather than the $> 160°$ full reversals that dominate the PVI
-catalog.
-This is interpreted as evidence that MASS/SMASH is sensitive to structural
-asymmetry between the upstream and downstream field configurations, which is
-the expected signature of actively reconnecting current sheets.
+\item \textbf{MASS/SMASH is complementary to PVI.}
+Of the 58 true-positive MASS/SMASH detections, 24 correspond to crossings not
+in the PVI catalog.
+A joint MASS/SMASH + PVI catalog would detect 95\% of injected crossings with
+$\sim$6\% false discovery fraction.
 
-\item \textbf{Informative null on topological prediction.}
-Prediction 1 --- that the MDL criterion would preferentially select full-$\pi$
-rotation events --- is not supported.
-MASS/SMASH events have significantly \emph{fewer} large-angle events than PVI,
-ruling out the simple conjecture that MDL selection implicitly enforces
-$\mathbb{Z}_2$ polarity symmetry and constraining the theoretical framework.
+\item \textbf{MASS/SMASH detections are systematically offset $\approx 30\s$
+from the polarity center.}
+The antipodal correlator fires at the transition onset (inflection point of the
+tanh profile) rather than the sign-flip midpoint.
+This is a predictable, correctable localization bias that could be turned into
+a morphological diagnostic.
 
-\item \textbf{Complementarity with PVI.}
-The low overlap between MASS/SMASH and PVI catalogs (37\% joint detection rate)
-suggests the two methods are genuinely complementary.
-A combined survey would provide richer physical characterization of the current
-sheet population than either method alone.
+\item \textbf{When corrected for the detection offset, MASS/SMASH true-positive
+events have the same rotation angle distribution as PVI events and the full
+injected population.}
+The previously apparent small-angle anomaly at detection positions was a
+localization artifact.
+The corrected verdict for the topological $\pi$-excess prediction (Prediction 1)
+is NULL: the MDL gain criterion does not selectively prefer large-rotation events
+over moderate-rotation events among genuine current sheet crossings.
 
 \end{enumerate}
 
-The next steps for the MASS/SMASH framework are: (a) application to Wind/MFI,
-ACE/MAG, and Parker Solar Probe FIELDS data to validate on real observations;
-(b) extension to three-component vector detection with the rotation angle as
-an explicit input feature rather than a post-hoc diagnostic;
-(c) cross-correlation of MASS/SMASH events with plasma reconnection signatures
-to test the structural asymmetry interpretation; and
-(d) systematic calibration of the MDL seam penalty against labeled event
-catalogs.
+Future work will focus on: (a) validation on Wind/MFI, Parker Solar Probe
+FIELDS, and Solar Orbiter MAG data; (b) extension to full 3-component or
+vector-magnitude detection; (c) transition-onset to polarity-center correction
+as a post-processing step; (d) systematic MDL gain threshold calibration; and
+(e) cross-correlation of MASS/SMASH events with plasma reconnection signatures
+(electron jets, Hall fields, enhanced particle heating) to characterize the
+physical events selected by the antipodal/MDL criterion.
 
 \section*{Acknowledgments}
 
-The author thanks the Wind/MFI team \citep{Lepping1995} for the publicly
-archived magnetometer data used in developing and testing the acquisition
-pipeline, and the NASA/SPDF CDAWeb service for data distribution.
-Synthetic data generation, PVI catalog construction, and all benchmark analyses
-were performed in Python using NumPy \citep{Harris2020}, SciPy \citep{Virtanen2020},
-and Matplotlib \citep{Hunter2007}.
+The author thanks the Wind/MFI team \citep{Lepping1995} and the NASA/SPDF CDAWeb
+service for public archive access used during algorithm development.
+Data generation and analysis used NumPy \citep{Harris2020}, SciPy
+\citep{Virtanen2020}, and Matplotlib \citep{Hunter2007}.
 
 \section*{Data and Code Availability}
 
-All code for the MASS/SMASH algorithm, synthetic data generation, PVI catalog
-construction, and benchmark analysis is available at
-\url{https://github.com/macmayo1993/seam-aware-modeling} under a permissive
-open-source license.
-The benchmark reproduces fully from a single \texttt{python validation/run\_benchmark.py}
-command using the included synthetic data generator.
+All code for MASS/SMASH, synthetic data generation, PVI catalog construction,
+and benchmark analysis is available at
+\url{https://github.com/macmayo1993/seam-aware-modeling}.
+The benchmark reproduces fully from a single command using the included synthetic
+data generator.
 
 %% ============================================================
 \bibliographystyle{agufull08}
 \bibliography{references}
-
-%% ============================================================
-%% REFERENCES (inline for portability; convert to .bib as needed)
-%% ============================================================
 
 \begin{thebibliography}{99}
 
