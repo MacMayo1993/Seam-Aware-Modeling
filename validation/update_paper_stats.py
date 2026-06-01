@@ -220,8 +220,12 @@ def run():
         r'The missed events are consistently the same'
     )
     paper_text = paper_text.replace(
-        r'MASS/SMASH cleanly partitions the\ninjected population into a high-confidence set (19 events, always detected,\nprecision 1.000) and a low-confidence set (9 events, never detected at the',
-        r'MASS/SMASH cleanly partitions the\ninjected population into a high-confidence set (always detected,\nprecision 1.000) and a low-confidence set (never detected at the'
+        'MASS/SMASH cleanly partitions the\n'
+        'injected population into a high-confidence set (19 events, always detected,\n'
+        'precision 1.000) and a low-confidence set (9 events, never detected at the',
+        'MASS/SMASH cleanly partitions the\n'
+        'injected population into a high-confidence set (always detected,\n'
+        'precision 1.000) and a low-confidence set (never detected at the'
     )
 
     # 6. Prose: F1 comparisons at 30% and 50%
@@ -242,12 +246,11 @@ def run():
 
     # 7. Conclusions item 2: generalize "19 strong... 9 weak" counts
     paper_text = paper_text.replace(
-        r'Above 20\% turbulence, the same 19 strong crossings are always detected'
-        r'\n(100\% precision) and the same 9 weak crossings are never detected.',
-        r'Above 20\% turbulence, a stable subset of strong crossings are'
-        r'\nconsistently detected (100\% precision) and the remaining weak'
-        r'\ncrossings are consistently missed (mean $\pm$ std across'
-        f' {n_seed} seeds).'
+        'Above 20\\% turbulence, the same 19 strong crossings are always detected\n'
+        '(100\\% precision) and the same 9 weak crossings are never detected.',
+        'Above 20\\% turbulence, a stable subset of strong crossings are\n'
+        'consistently detected (100\\% precision) and the remaining weak\n'
+        f'crossings are consistently missed (mean $\\pm$ std across {n_seed} seeds).'
     )
     # Also update the R range in conclusions item 8 (pPVI section)
     ms_r_lo_str = f'{min(ms_r_means):.3f}'
