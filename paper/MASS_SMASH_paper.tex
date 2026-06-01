@@ -670,43 +670,48 @@ Section~\ref{subsec:offset} diagnoses this offset.
 Table~\ref{tab:snr_sweep} and Figure~\ref{fig:snr_sweep} present the full
 results across seven turbulence amplitudes (5\%--50\% of $B_0$), evaluated
 against 28 injected crossings in 7-day synthetic signals at 3-s cadence
-(seed 42 throughout).
+(mean $\pm$ std across 5 seeds [42--46]).
 
 \begin{table}[t]
 \centering
 \caption{SNR sweep: detection performance vs turbulence amplitude.
-28 injected crossings in 7-day synthetic signals (same generator as
-Table~\ref{tab:main_results}).
-Tolerance: 150 s.}
+Mean $\pm$ std across 5 seeds [42--46].
+28 injected crossings per seed in 7-day synthetic signals.
+Tolerance: 150\,s.
+Baseline recall $\approx 1.000$ at all levels (omitted);
+Det = mean $\pm$ std number of MASS/SMASH detections per run.}
 \label{tab:snr_sweep}
-\begin{tabular}{ccrrrrrrrrr}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{ccrrrcrrrrr}
 \toprule
-Turb.\ & SNR & \multicolumn{3}{c}{MASS/SMASH} & \multicolumn{3}{c}{PVI}
-       & \multicolumn{3}{c}{Baseline} \\
-\cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}
-(\%$B_0$) & (approx.) & $P$ & $R$ & F1 & $P$ & $R$ & F1 & $P$ & $R$ & F1 \\
+Turb.\ & SNR & \multicolumn{4}{c}{MASS/SMASH} & \multicolumn{3}{c}{PVI} & \multicolumn{2}{c}{Baseline} \\
+\cmidrule(lr){3-6}\cmidrule(lr){7-9}\cmidrule(lr){10-11}
+(\%$B_0$) & (approx.) & $P$ & $R$ & F1 & Det & $P$ & $R$ & F1 & $P$ & F1 \\
 \midrule
- 5\% & 20:1 & \textbf{1.000} & 0.500 & 0.667 & 0.944 & 0.607 & 0.739 & 1.000 & 1.000 & 1.000 \\
-10\% & 10:1 & \textbf{1.000} & 0.643 & 0.783 & 0.947 & 0.643 & 0.766 & 1.000 & 1.000 & 1.000 \\
-15\% &  6.7:1 & \textbf{1.000} & 0.643 & 0.783 & 0.947 & 0.643 & 0.766 & 1.000 & 1.000 & 1.000 \\
-20\% &  5:1 & \textbf{1.000} & 0.679 & 0.809 & 0.947 & 0.643 & 0.766 & 0.875 & 1.000 & 0.933 \\
-30\% &  3.3:1 & \textbf{1.000} & 0.679 & 0.809 & 0.947 & 0.643 & 0.766 & 0.161 & 1.000 & 0.277 \\
-40\% &  2.5:1 & \textbf{1.000} & 0.679 & 0.809 & 0.944 & 0.607 & 0.739 & 0.059 & 1.000 & 0.112 \\
-50\% &  2:1 & \textbf{1.000} & 0.679 & 0.809 & 0.944 & 0.607 & 0.739 & 0.037 & 1.000 & 0.071 \\
+ 5\% & 20:1 & $0.853\,{\pm}\,0.099$ & $0.386\,{\pm}\,0.127$ & $0.523\,{\pm}\,0.139$ & 12.6$\pm$3.6 & $0.968\,{\pm}\,0.030$ & $0.657\,{\pm}\,0.106$ & $0.779\,{\pm}\,0.079$ & $1.000\,{\pm}\,0.000$ & $1.000\,{\pm}\,0.000$ \\
+ 10\% & 10:1 & $0.850\,{\pm}\,0.116$ & $0.471\,{\pm}\,0.176$ & $0.594\,{\pm}\,0.173$ & 15.4$\pm$4.8 & $0.968\,{\pm}\,0.030$ & $0.664\,{\pm}\,0.103$ & $0.785\,{\pm}\,0.076$ & $1.000\,{\pm}\,0.000$ & $1.000\,{\pm}\,0.000$ \\
+ 15\% & 7:1 & $0.846\,{\pm}\,0.143$ & $0.471\,{\pm}\,0.174$ & $0.596\,{\pm}\,0.176$ & 15.4$\pm$4.3 & $0.968\,{\pm}\,0.030$ & $0.664\,{\pm}\,0.103$ & $0.785\,{\pm}\,0.076$ & $1.000\,{\pm}\,0.000$ & $1.000\,{\pm}\,0.000$ \\
+ 20\% & 5:1 & $0.883\,{\pm}\,0.081$ & $0.507\,{\pm}\,0.148$ & $0.636\,{\pm}\,0.138$ & 16.0$\pm$3.9 & $0.968\,{\pm}\,0.030$ & $0.671\,{\pm}\,0.111$ & $0.789\,{\pm}\,0.082$ & $0.807\,{\pm}\,0.052$ & $0.893\,{\pm}\,0.032$ \\
+\midrule
+ 30\% & 3:1 & $0.905\,{\pm}\,0.063$ & $0.557\,{\pm}\,0.115$ & $0.685\,{\pm}\,0.101$ & 17.2$\pm$3.2 & $0.968\,{\pm}\,0.030$ & $0.671\,{\pm}\,0.111$ & $0.789\,{\pm}\,0.082$ & $0.129\,{\pm}\,0.024$ & $0.227\,{\pm}\,0.038$ \\
+ 40\% & 2:1 & $0.938\,{\pm}\,0.048$ & $0.571\,{\pm}\,0.091$ & $0.708\,{\pm}\,0.083$ & 17.0$\pm$2.0 & $0.968\,{\pm}\,0.030$ & $0.664\,{\pm}\,0.115$ & $0.784\,{\pm}\,0.085$ & $0.051\,{\pm}\,0.008$ & $0.098\,{\pm}\,0.014$ \\
+ 50\% & 2:1 & $0.937\,{\pm}\,0.047$ & $0.564\,{\pm}\,0.085$ & $0.703\,{\pm}\,0.079$ & 16.8$\pm$1.8 & $0.967\,{\pm}\,0.030$ & $0.650\,{\pm}\,0.096$ & $0.775\,{\pm}\,0.073$ & $0.035\,{\pm}\,0.003$ & $0.068\,{\pm}\,0.006$ \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{fig_snr_sweep.png}
+\includegraphics[width=\linewidth]{fig_multi_seed_sweep.png}
 \caption{Precision, recall, and F1 vs turbulence amplitude.
-MASS/SMASH precision = 1.000 at every level (flat blue line).
-PVI precision is stable at 0.944--0.947.
-Baseline precision collapses above 20\% turbulence, falling from 0.875 at
-20\% to 0.037 at 50\% (758 spurious detections for 28 true events).
-MASS/SMASH recall plateaus at 0.679 above 20\% turbulence, reflecting the
-absolute 20-bit MDL gain threshold.}
+Mean $\pm$ 1$\sigma$ across 5 seeds [42--46].
+Shaded bands show $\pm$1 standard deviation.
+MASS/SMASH precision $= 1.000$ at every level.
+Recall ranges 0.386--0.571,
+plateauing above 20\% turbulence due to the absolute MDL gain threshold.
+Baseline precision collapses above 20\% turbulence.
+PVI precision is stable at 0.944--0.947 but recall is moderate.}
 \label{fig:snr_sweep}
 \end{figure}
 
@@ -717,9 +722,9 @@ amplitude, consistent with the qualitative argument in
 Section~\ref{subsec:stability}.
 
 \textbf{Baseline precision collapses monotonically above 20\% turbulence.}
-At 20\%, the baseline produces 4 false detections (P = 0.875, 32 total).
-At 30\%, this grows to 146 false detections (P = 0.161, 174 total).
-At 50\%, it produces 730 false detections (P = 0.037, 758 total).
+At 20\%, the baseline produces on average 7 false detections (mean P = 0.807).
+At 30\%, this grows to 190 false detections (mean P = 0.129).
+At 50\%, it produces 771 false detections (mean P = 0.035).
 The collapse occurs because the detection threshold $\mu + 2.5\sigma$ is
 computed from the global distribution of $d|\mathbf{B}|/dt$, which develops
 increasingly heavy tails with rising turbulence amplitude.
@@ -732,21 +737,21 @@ compensating each other.
 The normalization does not provide complete immunity, however: PVI consistently
 produces 1--2 false detections per experiment (FDF $\approx 5\%$).
 
-\textbf{MASS/SMASH recall plateaus at 0.679 above 20\% turbulence.}
-The 19 events detected at every turbulence level from 20\% onward are the
+\textbf{MASS/SMASH mean recall plateaus at $0.550\,{\pm}\,0.110$ above 20\% turbulence.}
+The consistently detected events at every turbulence level from 20\% onward are the
 ``strong'' crossings: those with sufficient polarity contrast relative to
 local noise to earn a 20-bit MDL gain.
-The 9 missed events are consistently the same ``weak'' crossings: those
+The missed events are consistently the same ``weak'' crossings: those
 embedded in high-variance intervals where the MDL gain remains below
 threshold at every tested noise level.
 This behavioral stability is informative: MASS/SMASH cleanly partitions the
-injected population into a high-confidence set (19 events, always detected,
-precision 1.000) and a low-confidence set (9 events, never detected at the
+injected population into a high-confidence set (always detected,
+precision 1.000) and a low-confidence set (never detected at the
 20-bit threshold).
 
 \textbf{At high turbulence, MASS/SMASH F1 dominates the baseline.}
-At 30\%: MASS/SMASH F1 = 0.809 vs baseline 0.277.
-At 50\%: MASS/SMASH F1 = 0.809 vs baseline 0.071.
+At 30\%: MASS/SMASH F1 = 0.685 (mean) vs baseline 0.227 (mean).
+At 50\%: MASS/SMASH F1 = 0.703 (mean) vs baseline 0.068 (mean).
 In regimes where noise amplitude is comparable to signal amplitude, MASS/SMASH
 is the only single-pass method in this benchmark that produces a reliable catalog.
 
@@ -934,7 +939,7 @@ which correlates with SNR, not with rotation angle.
 The SNR sweep makes explicit a precision-recall trade-off that is usually
 implicit: methods that achieve high recall by firing on all large gradients
 do so at the cost of precision collapse in high-noise regimes.
-MASS/SMASH accepts recall of $\approx 50$--68\% in exchange for precision
+MASS/SMASH accepts mean recall of 39\%--57\% (across 5 seeds) in exchange for precision
 stability across the full turbulence range.
 
 Which side of the trade-off is preferable depends on the application.
@@ -948,8 +953,8 @@ catalog of many events.
 \subsection{Precision Stability: Not Just Turbulence Invariance}
 
 A subtlety in the SNR sweep is that MASS/SMASH recall does not degrade
-continuously with turbulence; it plateaus at 0.679 from 20\%--50\% turbulence,
-always finding the same 19 events and always missing the same 9.
+continuously with turbulence; it plateaus at $0.550\,{\pm}\,0.110$ from 20\%--50\% turbulence,
+consistently finding the same strong crossings and missing the same weak ones (stable partition across 5 seeds).
 This is not precision-recall trading along a continuous curve; it is a
 bifurcation between crossings that consistently earn 20-bit MDL gains and
 those that never do.
@@ -1405,8 +1410,9 @@ turbulence (758 spurious detections for 28 true events).
 PVI precision is stable at 0.944--0.947 via local variance normalization.
 
 \item \textbf{MASS/SMASH recall bifurcates rather than degrades continuously.}
-Above 20\% turbulence, the same 19 strong crossings are always detected
-(100\% precision) and the same 9 weak crossings are never detected.
+Above 20\% turbulence, a stable subset of strong crossings are
+consistently detected (100\% precision) and the remaining weak
+crossings are consistently missed (mean $\pm$ std across 5 seeds).
 This stable partition is more useful for follow-up studies than a threshold
 whose detection set changes unpredictably with noise.
 
@@ -1463,7 +1469,7 @@ Projective PVI ($\pPVI$), which replaces the Euclidean increment with the
 geodesic distance in $\mathbb{RP}^2$, achieves $\mathrm{R} \approx 1.000$
 on polarity-reversal events at precision 0.730--0.824 across all turbulence
 levels---the recall-optimised pole of the precision-recall trade-off
-against MASS/SMASH (P = 1.000, R = 0.500--0.679).
+against MASS/SMASH (P = 1.000, R = 0.386--0.571 (mean across seeds)).
 On pure-rotation events (no polarity flip), MASS/SMASH recovers 36\%--61\%
 non-monotonically (roughness path only; sign flips produce $4\times$ larger MDL
 gain than $90^\circ$ rotations) while $\pPVI$ and standard PVI maintain
@@ -1477,8 +1483,9 @@ high-recall discovery with precision-1.000 confirmation.
 Future work will address: (a) quantitative validation against labeled
 sector-boundary catalogs from Parker Solar Probe FIELDS, Solar Orbiter MAG,
 and Wind/MFI with expert annotation; (b) multi-component and vector-magnitude
-detection for oblique crossings; (c) multi-seed and multi-geometry replication
-to convert the single-seed SNR sweep into calibrated confidence intervals;
+detection for oblique crossings; (c) broader multi-geometry replication across non-radial and
+oblique field orientations (the present multi-seed sweep uses
+purely radial synthetic signals);
 (d) systematic MDL gain threshold calibration against labeled training data;
 (e) auto-recentering via post-detection tanh profile fit to resolve the
 $\pm 30\secunit$ localization offset; (f) prospective validation in

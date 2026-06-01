@@ -84,8 +84,9 @@ def run():
         ms_det_mean = stats[key]['mass_smash']['n_det']['mean']
         ms_det_std  = stats[key]['mass_smash']['n_det']['std']
         snr_str = f'{r["snr"]:.0f}:1'
+        turb_pct = round(r['turb'] * 100)
         latex_rows.append(
-            f" {r['turb']:.0%} & {snr_str}"
+            f" {turb_pct}\\% & {snr_str}"
             f" & ${fmt_p(r['ms_p_mean'], r['ms_p_std'])}$"
             f" & ${fmt(r['ms_r_mean'],   r['ms_r_std'])}$"
             f" & ${fmt(r['ms_f_mean'],   r['ms_f_std'])}$"
