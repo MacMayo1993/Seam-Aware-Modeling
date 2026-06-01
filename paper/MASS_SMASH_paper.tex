@@ -1028,16 +1028,23 @@ while the field direction rotates by $\approx 180^\circ$.
 The precision-collapse results in Table~\ref{tab:snr_sweep} reflect the scalar
 derivative; a vector-gradient baseline would have a lower false alarm rate and
 represent a more demanding test of MASS/SMASH's precision advantage.
+PELT (Gaussian mean-change, BIC penalty) is evaluated in
+Section~\ref{subsec:snr} and found to produce $>$1{,}600 detections regardless
+of turbulence level; a direction-aware or sign-flip-specific PELT cost
+function would be a stronger comparator but would partially replicate
+the MASS/SMASH approach.
 
-\textbf{Single seed; limited SNR-sweep sample size.}
-Each SNR sweep level uses 28 injected crossings from one 7-day realization
-(seed = 42).
-Recall uncertainty is $\approx \pm 0.09$ per level; the precision-stability
-result (P = 1.000 throughout) rests on zero observed false positives across
-7 levels---a necessary but not sufficient condition for general stability.
-Replication across multiple seeds, longer signals, and varying event rates is
-needed before the precision-stability claim can be quantified with confidence
-intervals.
+\textbf{Limited SNR-sweep sample size and geometry.}
+Each SNR sweep level uses 28 injected crossings per 7-day realization.
+Table~\ref{tab:snr_sweep} reports mean $\pm$ std across 5 independent seeds
+[42--46], providing calibrated confidence intervals for P, R, and F1 at each
+turbulence level.
+The precision-stability result (P = 1.000 throughout) rests on zero observed
+false positives across 7 levels $\times$ 5 seeds = 35 experiments---a
+necessary but not sufficient condition for general stability.
+Replication across longer signals, varying event rates, and oblique field
+orientations is needed before the precision-stability claim can be quantified
+for arbitrary signals.
 We present this as a benchmark finding, not a certified algorithm property.
 
 \textbf{Parameter calibration.}
