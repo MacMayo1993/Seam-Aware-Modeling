@@ -159,6 +159,56 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     return times, Bx, By, Bz, B_mag
 
 
+def _load_csv(csv_path):
+    """
+    Load Wind/MFI data from a CDAWeb-exported CSV file.
+
+    Expected format (CDAWeb default CSV export):
+        Lines starting with '#' are comments / metadata.
+        First non-comment line is the header:
+            EPOCH__yyyy-mm-ddThh:mm:ss.sssZ,BX_(GSE)_...,BY_(GSE)_...,BZ_(GSE)_...
+        Subsequent lines are ISO-8601 timestamp + three floats.
+    """
+    from datetime import datetime, timezone
+
+    rows = []
+    header = None
+    with open(csv_path, 'r') as fh:
+        for line in fh:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if header is None:
+                header = [c.strip() for c in line.split(',')]
+                continue
+            parts = line.split(',')
+            if len(parts) < 4:
+                continue
+            try:
+                # Parse ISO-8601 epoch → Unix timestamp
+                ts = parts[0].strip().rstrip('Z')
+                dt = datetime.fromisoformat(ts).replace(tzinfo=timezone.utc)
+                t  = dt.timestamp()
+                bx, by, bz = float(parts[1]), float(parts[2]), float(parts[3])
+                # Skip fill values (Wind/MFI uses -1e31 as fill)
+                if any(abs(v) > 1e30 for v in (bx, by, bz)):
+                    continue
+                rows.append((t, bx, by, bz))
+            except (ValueError, IndexError):
+                continue
+
+    if not rows:
+        raise RuntimeError(f"No valid data rows found in {csv_path}")
+
+    arr = np.array(rows)
+    times = arr[:, 0]
+    Bx, By, Bz = arr[:, 1], arr[:, 2], arr[:, 3]
+    B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
+    n_days = (times[-1] - times[0]) / 86400.0
+    print(f"Loaded {len(times)} samples ({n_days:.1f} days) from {csv_path}")
+    return times, Bx, By, Bz, B_mag
+
+
 def _load_cdf(cdf_path):
     """
     Load Wind/MFI BGSE from a locally downloaded CDF file.
@@ -278,6 +328,8 @@ def fetch_wind_mfi(trange=None, datatype='h0', force_synthetic=False, cdf_path=N
       Dataset: WI_H0_MFI, Variable: BGSE, 2001-03-01 to 2001-03-31, format: CDF
     """
     if cdf_path is not None:
+        if cdf_path.lower().endswith('.csv') or cdf_path.lower().endswith('.txt'):
+            return _load_csv(cdf_path)
         return _load_cdf(cdf_path)
 
     if trange is None:

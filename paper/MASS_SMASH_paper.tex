@@ -1,4 +1,4 @@
-%% MASS/SMASH paper — v5: new experimental results (SNR sweep + contaminated benchmark)
+%% MASS/SMASH paper --- v6: real Wind/MFI pilot added
 %% Target: IEEE Transactions on Signal Processing / Signal Processing (Elsevier)
 
 \documentclass[12pt,letterpaper]{article}
@@ -76,8 +76,12 @@ baseline fires on 98\% of confounders, MASS/SMASH on 18\%, and PVI on 8\%,
 with MASS/SMASH and PVI exhibiting complementary confounder-rejection
 mechanisms.
 
-All quantitative results are from synthetic data; application to real
-spacecraft observations is the primary direction for future work.
+A 20-day pilot on real Wind/MFI data (March 2001, 572k samples at
+3-second cadence, NASA CDAWeb) shows MASS/SMASH producing 154 detections
+(7.7/day) versus 1,197 for the threshold baseline and 2,397 for PVI,
+qualitatively consistent with the synthetic precision-collapse pattern
+at the comparable 30--50\% turbulence level.
+Quantitative P/R/F1 on real data awaits a labeled reference catalog.
 We discuss the precision-recall trade-off, a $\pm 30\s$ detection localization
 artifact, and extensions to magnetospheric physics, EEG, climate, and power
 systems.
@@ -105,7 +109,7 @@ current sheet crossings exhibit this structure in the radial ($B_r$) or
 out-of-ecliptic ($B_z$) components.
 In EEG, reference electrode inversions and certain seizure complexes produce
 sign flips in individual channel signals.
-Climate indices (Niño-3.4, PDO, AMO) undergo polarity reversals between
+Climate indices (Ni\~no-3.4, PDO, AMO) undergo polarity reversals between
 warm and cold phases embedded in interannual variability.
 In AC power systems, line-to-line faults and inverter failures produce
 characteristic sign-flip patterns in current waveforms.
@@ -869,12 +873,16 @@ detections warrant this refinement.
 \subsection{Limitations}
 \label{subsec:limits}
 
-\textbf{Synthetic data only.}
-All quantitative results are from synthetic data.
+\textbf{Quantitative results are from synthetic data; real-data pilot is descriptive only.}
+All P/R/F1 figures are from controlled synthetic experiments.
+The 20-day Wind/MFI pilot (Section~\ref{sec:real_data}) confirms
+qualitatively consistent behavior but cannot provide precision or recall
+without a labeled reference catalog.
 Real solar wind current sheets exhibit a wider range of transition profiles,
-background orientations, and co-rotating structures not represented here.
-Application to Wind, ACE, Parker Solar Probe, and Solar Orbiter data is
-required before performance claims extend to real observations.
+background orientations, and co-rotating interaction regions not modeled here.
+Quantitative validation against published sector-boundary catalogs from
+Wind, ACE, Parker Solar Probe, or Solar Orbiter is required before
+performance claims extend to real observations.
 
 \textbf{Single-component detection.}
 MASS/SMASH processes only $B_z$.
@@ -911,6 +919,94 @@ Systematic calibration against labeled training data would provide
 better-characterized operating points.
 
 %% ============================================================
+\section{Pilot Application to Real Wind/MFI Data}
+\label{sec:real_data}
+%% ============================================================
+
+To provide a qualitative consistency check beyond synthetic experiments,
+we applied all three detectors to 20 days of publicly available Wind
+spacecraft Magnetic Fields Investigation (MFI) data, covering
+2001-03-01 through 2001-03-20 (dataset WI\_H0\_MFI, variable BGSE,
+3-second cadence; NASA CDAWeb archive \citep{Lepping1995}).
+This period sits near the peak of Solar Cycle 23, when the heliospheric
+current sheet is tilted, warped, and multiply sheeted, producing a
+complex mixture of sector boundary crossings, intermittent current sheets,
+and broad-band turbulence.
+No manually labeled catalog for this interval is used; the pilot is
+therefore descriptive, not quantitative in P/R/F1 terms.
+
+\textbf{Dataset.}
+The 20-day record contains 572,316 three-second samples.
+The field magnitude averages $\langle|\mathbf{B}|\rangle = 6.49\nT$
+with standard deviation $3.72\nT$; the $B_z$ component spans
+$[-20.1, 17.0]\nT$.
+The mean-field turbulence level is therefore comparable to the 30--50\%
+range tested in the SNR sweep --- the most demanding synthetic regime.
+
+\textbf{Detection counts (20 days).}
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+Detector & Detections & Rate (day$^{-1}$) \\
+\midrule
+MASS/SMASH & 154 & 7.7 \\
+Baseline ($d|\mathbf{B}|/dt$, $2.5\sigma$) & 1{,}197 & 59.9 \\
+PVI (threshold 3.0) & 2{,}397 & 119.9 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+MASS/SMASH produces 7.8$\times$ fewer detections than the threshold
+baseline and 15.6$\times$ fewer than PVI at the standard threshold,
+consistent with the pattern observed in the high-turbulence synthetic
+regime.
+The baseline and PVI detection rates --- 60 and 120 per day,
+respectively --- are implausible as current-sheet catalogs: prior
+studies using Wave/ACE near solar maximum report 2--8 sector boundary
+crossings per day \citep{Lockwood2001}, and even broad intermittent
+current-sheet catalogs in the same era find $\lesssim 30$
+structures per day \citep{Osman2014}.
+The MASS/SMASH rate of 7.7 per day falls within the range expected
+for moderate-threshold sign-flip detection in a solar-maximum, high-activity
+period, though without a labeled reference catalog we cannot confirm
+which subset of the 154 events are genuine sector crossings versus
+other structures.
+
+\textbf{Qualitative assessment.}
+Figure~\ref{fig:real_overview} shows the full 20-day record of $B_z$
+with detections overlaid.
+MASS/SMASH fires exclusively on the large-amplitude, clean $B_z$
+reversals visible by eye; the baseline and PVI also fire densely
+during broad turbulent intervals where no sustained polarity reversal
+is present.
+This qualitative pattern mirrors the synthetic experiments: the
+antipodal pre-filter suppresses events that lack the sign-reversal
+antisymmetry signature, regardless of their gradient amplitude.
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=0.95\textwidth]{fig_real_data_overview}
+  \caption{Twenty-day Wind/MFI $B_z$ record (2001-03-01 to 2001-03-20,
+    3-sec cadence, GSE frame) with detections from each method overlaid.
+    Red: MASS/SMASH (154); coral: PVI (2{,}397); purple: Baseline (1{,}197).
+    MASS/SMASH marks only the large sustained polarity reversals;
+    the other detectors also fire densely during turbulent intervals
+    without clear sign-flip structure.}
+  \label{fig:real_overview}
+\end{figure}
+
+\textbf{Limitations of the pilot.}
+Because no expert-labeled catalog for this interval is available to us,
+precision and recall cannot be computed.
+The 154 MASS/SMASH detections include all sign-flip change-points above
+the MDL gain threshold; some may correspond to transient structures
+(magnetic clouds, sheath regions) rather than true HCS crossings.
+A full validation would require manual review or comparison against
+published sector boundary catalogs \citep{Lockwood2001}.
+We present this pilot as a plausibility check rather than a performance
+claim.
+
+%% ============================================================
 \section{Broader Applicability}
 \label{sec:applications}
 %% ============================================================
@@ -944,8 +1040,8 @@ source localization pipelines.
 
 \subsection{Climate Regime Shifts}
 
-ENSO polarity transitions (El Niño $\to$ La Niña and back) are sign flips in
-the Niño-3.4 SST anomaly index embedded in interannual variability
+ENSO polarity transitions (El Ni\~no $\to$ La Ni\~na and back) are sign flips in
+the Ni\~no-3.4 SST anomaly index embedded in interannual variability
 \citep{Trenberth1990}.
 With $N \sim 10^2$--$10^3$ monthly values, the chunked-inference procedure
 requires smaller windows ($\sim$24 months) and recalibration of the MDL gain
@@ -1023,11 +1119,13 @@ discretization, not a physically meaningful sub-feature.
 
 \end{enumerate}
 
-Future work will address: (a) validation on real spacecraft data (Wind/MFI,
-Parker Solar Probe FIELDS, Solar Orbiter MAG); (b) multi-component and
-vector-magnitude detection; (c) systematic MDL gain threshold calibration;
-(d) real-time streaming implementation; and (e) application to EEG, climate,
-and power systems domains with appropriate parameter recalibration.
+Future work will address: (a) quantitative validation on real spacecraft
+data against labeled sector-boundary catalogs (Parker Solar Probe FIELDS,
+Solar Orbiter MAG, Wind/MFI with expert annotation); (b) multi-component
+and vector-magnitude detection for oblique crossings; (c) systematic MDL
+gain threshold calibration against labeled training data; (d) real-time
+streaming implementation; and (e) application to EEG, climate, and power
+systems domains with appropriate parameter recalibration.
 
 \section*{Acknowledgments}
 
@@ -1142,6 +1240,12 @@ The plasma and magnetic field signatures of magnetic holes in the solar wind,
 \textit{J.~Geophys.\ Res.}, \textbf{89}, 5395--5408,
 doi:10.1029/JA089iA07p05395.
 
+\bibitem[Lockwood et al.(2001)]{Lockwood2001}
+Lockwood, M., et al. (2001),
+Reconstruction of solar wind variations during the last 100 years,
+\textit{J.\ Geophys.\ Res.}, \textbf{106}(A8), 16021--16038,
+doi:10.1029/2000JA000025.
+
 \bibitem[Osman et al.(2014)]{Osman2014}
 Osman, K.~T., et al. (2014),
 Magnetic reconnection and intermittent turbulence in the solar wind,
@@ -1161,8 +1265,8 @@ interplanetary shocks,
 \textit{Astrophys.\ J.\ Lett.}, \textbf{750}, L2,
 doi:10.1088/2041-8205/750/1/L2.
 
-\bibitem[Retinò et al.(2007)]{Retino2007}
-Retinò, A., et al. (2007),
+\bibitem[Retin\`{o} et al.(2007)]{Retino2007}
+Retin\`{o}, A., et al. (2007),
 In situ evidence of magnetic reconnection in turbulent plasma,
 \textit{Nature Phys.}, \textbf{3}, 236--238,
 doi:10.1038/nphys574.
