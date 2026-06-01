@@ -48,6 +48,36 @@ def get_pvi_events(pvi, times, threshold=3.0, min_separation_s=300):
     return events, peaks
 
 
+def compute_projective_pvi(B_vec, lag=1, window=30):
+    """
+    Projective PVI: replaces the Euclidean increment with the geodesic distance
+    in the real projective plane RP².
+
+    d_RP²(B̂₁, B̂₂) = arccos(|B̂₁ · B̂₂|)  ∈  [0, π/2]
+
+    The antipodal identification |·| makes pure polarity reversals (B → −B)
+    give d = 0 (completely invisible), while genuine 3D field rotations give
+    large d.  Normalised identically to standard PVI.
+    """
+    B_norm = B_vec / (np.linalg.norm(B_vec, axis=1, keepdims=True) + 1e-12)
+
+    dots = np.sum(B_norm[lag:] * B_norm[:-lag], axis=1)          # (N-lag,)
+    d_proj = np.arccos(np.clip(np.abs(dots), 0.0, 1.0))           # (N-lag,)
+
+    d_full = np.zeros(len(B_vec))
+    d_full[lag:] = d_proj
+
+    from numpy.lib.stride_tricks import sliding_window_view
+    d_sq = d_full ** 2
+    pad  = window // 2
+    d_sq_padded = np.pad(d_sq, pad, mode='edge')
+    windows  = sliding_window_view(d_sq_padded, window)
+    local_rms = np.sqrt(np.mean(windows, axis=1))[:len(d_full)]
+
+    ppvi = d_full / (local_rms + 1e-12)
+    return ppvi
+
+
 if __name__ == '__main__':
     B = np.load('outputs/wind_mfi_B.npy')[:, :3]
     times = np.load('outputs/wind_mfi_times.npy')

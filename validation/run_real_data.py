@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fetch_data import fetch_wind_mfi
-from catalog import compute_pvi, get_pvi_events
+from catalog import compute_pvi, compute_projective_pvi, get_pvi_events
 from baseline import baseline_detector
 
 
@@ -145,12 +145,19 @@ def main():
     print(f"  |B| mean={np.mean(B_mag):.2f} nT, std={np.std(B_mag):.2f} nT")
     print(f"  Bz  range=[{np.min(Bz):.1f}, {np.max(Bz):.1f}] nT")
 
-    print("\nRunning PVI ...")
+    print("\nRunning Standard PVI ...")
     pvi = compute_pvi(B_vec)
     pvi_events, pvi_peaks = get_pvi_events(pvi, times,
                                             threshold=args.pvi_threshold,
                                             min_separation_s=300)
     print(f"  PVI: {len(pvi_peaks)} detections (threshold={args.pvi_threshold})")
+
+    print("\nRunning Projective PVI ...")
+    ppvi = compute_projective_pvi(B_vec)
+    _, ppvi_peaks = get_pvi_events(ppvi, times,
+                                   threshold=args.pvi_threshold,
+                                   min_separation_s=300)
+    print(f"  Projective PVI: {len(ppvi_peaks)} detections (threshold={args.pvi_threshold})")
 
     print("\nRunning Baseline ...")
     bl_peaks, _ = baseline_detector(B_mag, times, threshold_sigma=2.5)
@@ -177,6 +184,11 @@ def main():
             'threshold': float(args.pvi_threshold),
             'peak_indices': pvi_peaks.tolist(),
         },
+        'proj_pvi': {
+            'n_detections': int(len(ppvi_peaks)),
+            'threshold': float(args.pvi_threshold),
+            'peak_indices': ppvi_peaks.tolist(),
+        },
         'baseline': {
             'n_detections': int(len(bl_peaks)),
             'threshold_sigma': 2.5,
@@ -190,6 +202,7 @@ def main():
 
     np.save('outputs/real_ms_peaks.npy', ms_peaks)
     np.save('outputs/real_pvi_peaks.npy', pvi_peaks)
+    np.save('outputs/real_ppvi_peaks.npy', ppvi_peaks)
     np.save('outputs/real_bl_peaks.npy', bl_peaks)
     np.save('outputs/real_ms_hit_count.npy', hit_count)
     np.save('outputs/real_ms_mdl_gain.npy', mdl_gain)
@@ -199,11 +212,12 @@ def main():
                   'outputs/fig_real_data_overview.png')
 
     print("\n=== SUMMARY ===")
-    print(f"  Data:        {'Real Wind/MFI CDF' if args.cdf else 'Synthetic fallback'}")
-    print(f"  Duration:    {n_days:.1f} days  ({len(times)} samples at {dt:.0f}s)")
-    print(f"  MASS/SMASH:  {len(ms_peaks)} detections")
-    print(f"  PVI:         {len(pvi_peaks)} detections")
-    print(f"  Baseline:    {len(bl_peaks)} detections")
+    print(f"  Data:          {'Real Wind/MFI CDF' if args.cdf else 'Synthetic fallback'}")
+    print(f"  Duration:      {n_days:.1f} days  ({len(times)} samples at {dt:.0f}s)")
+    print(f"  MASS/SMASH:    {len(ms_peaks)} detections")
+    print(f"  Std PVI:       {len(pvi_peaks)} detections")
+    print(f"  Proj PVI:      {len(ppvi_peaks)} detections")
+    print(f"  Baseline:      {len(bl_peaks)} detections")
     if args.cdf:
         # Expected: ~120 current sheets in 30-day March 2001 interval
         # (literature: ~4/day × 30 days, but varies; ~80-150 is reasonable)
