@@ -240,6 +240,32 @@ def run():
         f' vs baseline {bl_50:.3f} (mean).'
     )
 
+    # 7. Conclusions item 2: generalize "19 strong... 9 weak" counts
+    paper_text = paper_text.replace(
+        r'Above 20\% turbulence, the same 19 strong crossings are always detected'
+        r'\n(100\% precision) and the same 9 weak crossings are never detected.',
+        r'Above 20\% turbulence, a stable subset of strong crossings are'
+        r'\nconsistently detected (100\% precision) and the remaining weak'
+        r'\ncrossings are consistently missed (mean $\pm$ std across'
+        f' {n_seed} seeds).'
+    )
+    # Also update the R range in conclusions item 8 (pPVI section)
+    ms_r_lo_str = f'{min(ms_r_means):.3f}'
+    ms_r_hi_str = f'{max(ms_r_means):.3f}'
+    paper_text = paper_text.replace(
+        r'P = 1.000, R = 0.500--0.679',
+        f'P = 1.000, R = {ms_r_lo_str}--{ms_r_hi_str} (mean across seeds)'
+    )
+
+    # 8. Future work: item (c) about multi-seed is now complete — reword it
+    paper_text = paper_text.replace(
+        r'(c) multi-seed and multi-geometry replication'
+        r'\nto convert the single-seed SNR sweep into calibrated confidence intervals;',
+        r'(c) broader multi-geometry replication across non-radial and'
+        r'\noblique field orientations (the present multi-seed sweep uses'
+        r'\npurely radial synthetic signals);'
+    )
+
     PAPER.write_text(paper_text)
     print(f"Wrote updated paper to {PAPER}")
 
