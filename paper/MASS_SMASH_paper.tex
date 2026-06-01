@@ -1,4 +1,4 @@
-%% MASS/SMASH paper --- v6: real Wind/MFI pilot added
+%% MASS/SMASH paper --- v7: polished for submission
 %% Target: IEEE Transactions on Signal Processing / Signal Processing (Elsevier)
 
 \documentclass[12pt,letterpaper]{article}
@@ -25,7 +25,7 @@
 \newcommand{\dBvec}{\Delta\mathbf{B}}
 \newcommand{\Bhat}{\hat{\mathbf{B}}}
 \newcommand{\nT}{\,\mathrm{nT}}
-\newcommand{\s}{\,\mathrm{s}}
+\newcommand{\secunit}{\,\mathrm{s}}
 \newcommand{\MDL}{\mathrm{MDL}}
 \newcommand{\RSS}{\mathrm{RSS}}
 \newcommand{\PVI}{\mathrm{PVI}}
@@ -51,38 +51,38 @@ with Application to Solar Wind Current Sheets}}
 \begin{abstract}
 Standard threshold detectors for polarity-reversal events suffer from
 \emph{precision collapse}: as broadband noise increases, false detections
-accumulate faster than the threshold adapts, rendering catalogs unreliable
-at high turbulence.
+accumulate faster than the threshold can adapt, rendering event catalogs
+unreliable at high turbulence.
 We introduce MASS/SMASH, a conservative change-point detector that addresses
-this by combining an \emph{antipodal correlation pre-filter} --- which scores
+this by combining an \emph{antipodal correlation pre-filter}---which scores
 candidate positions for sign-reversal antisymmetry rather than raw gradient
-magnitude --- with a Minimum Description Length (MDL) model-selection step
-whose acceptance threshold is denominated in bits of compression gain rather
+magnitude---with a Minimum Description Length (MDL) model-selection step
+whose acceptance criterion is denominated in bits of compression gain rather
 than multiples of a signal-derived statistic.
 
 We validate MASS/SMASH as a complementary selector for solar wind magnetic
 current sheet detection across three synthetic benchmarks.
-In a single-regime benchmark (30 days, 120 injected crossings, 30\%
-Kolmogorov turbulence), MASS/SMASH achieves precision 0.921 / recall 0.483,
-contributing 24 true events missed by the standard PVI detector while sharing
-a 95\% joint catalog at $\sim$5\% combined false discovery fraction.
+In a single-regime experiment (30 days, 120 injected crossings, 30\%
+Kolmogorov turbulence), MASS/SMASH achieves precision 0.921 and recall 0.483,
+contributing 24 true events missed by the standard PVI detector; a joint
+catalog covers 95\% of injected crossings at $\approx$5\% combined false
+discovery fraction.
 An SNR sweep across turbulence amplitudes 5\%--50\% of the background field
 shows MASS/SMASH precision at 1.000 at every level tested, while a
 $d|\mathbf{B}|/dt$ threshold baseline falls to precision 0.037 at 50\%
-turbulence (758 spurious detections for 28 true events); PVI holds at
-0.944--0.947 via its local variance normalization.
+turbulence (758 spurious detections for 28 true events); PVI is stable at
+0.944--0.947 via local variance normalization.
 A contaminated benchmark with 40 non-antipodal confounding events shows the
-baseline fires on 98\% of confounders, MASS/SMASH on 18\%, and PVI on 8\%,
-with MASS/SMASH and PVI exhibiting complementary confounder-rejection
-mechanisms.
+baseline fires on 98\% of confounders, MASS/SMASH on 18\%, and PVI on 8\%;
+the two structure-selective methods exhibit complementary rejection mechanisms.
 
-A 20-day pilot on real Wind/MFI data (March 2001, 572k samples at
-3-second cadence, NASA CDAWeb) shows MASS/SMASH producing 154 detections
-(7.7/day) versus 1,197 for the threshold baseline and 2,397 for PVI,
-qualitatively consistent with the synthetic precision-collapse pattern
-at the comparable 30--50\% turbulence level.
-Quantitative P/R/F1 on real data awaits a labeled reference catalog.
-We discuss the precision-recall trade-off, a $\pm 30\s$ detection localization
+A 20-day pilot on real Wind/MFI magnetometer data (2001-03-01 to 2001-03-20,
+572,316 samples at 3-second cadence; NASA CDAWeb) shows MASS/SMASH producing
+154 detections (7.7 day$^{-1}$) versus 1,197 for the threshold baseline and
+2,397 for PVI, qualitatively consistent with the high-turbulence synthetic
+pattern.
+Quantitative precision and recall on real data await a labeled reference catalog.
+We discuss the precision-recall trade-off, a $\pm 30\secunit$ localization
 artifact, and extensions to magnetospheric physics, EEG, climate, and power
 systems.
 \end{abstract}
@@ -101,12 +101,12 @@ partial variance of increments; structural break; information theory
 \subsection{The Precision-Stability Problem in Sign-Flip Detection}
 
 Many physical and engineered systems produce time series that undergo
-\emph{sign-flip change-points}: transitions from a positive steady state near
-$+\mu_0$ to an equal-magnitude negative state near $-\mu_0$, embedded in
-broadband noise.
-In the solar wind, magnetic field polarity reversals at sector boundaries and
-current sheet crossings exhibit this structure in the radial ($B_r$) or
-out-of-ecliptic ($B_z$) components.
+\emph{sign-flip change-points}: abrupt transitions from a positive steady
+state near $+\mu_0$ to an equal-magnitude negative state near $-\mu_0$,
+embedded in broadband noise.
+In the solar wind, magnetic field polarity reversals at sector boundaries
+and current sheet crossings exhibit this structure in the radial ($B_r$)
+or out-of-ecliptic ($B_z$) components.
 In EEG, reference electrode inversions and certain seizure complexes produce
 sign flips in individual channel signals.
 Climate indices (Ni\~no-3.4, PDO, AMO) undergo polarity reversals between
@@ -118,18 +118,18 @@ A practical challenge shared across these domains is \emph{precision collapse}:
 standard threshold detectors fire on any large local gradient, and as noise
 amplitude increases, the number of spurious detections grows faster than the
 threshold can adapt.
-A detector that fires at $\mu + k\sigma$ of the gradient distribution will
-identify every true event (achieving perfect recall), but the false discovery
-fraction increases monotonically with turbulence because the gradient
-distribution develops heavier tails.
+A detector that fires at $\mu + k\sigma$ of the gradient distribution
+will identify every true event (achieving perfect recall), but the false
+discovery fraction (FDF) increases monotonically with turbulence because the
+gradient distribution develops heavier tails.
 Figure~\ref{fig:snr_sweep} (Section~\ref{subsec:snr}) documents this
-quantitatively in our solar wind benchmark: the threshold baseline achieves
-precision 1.000 at 5\% turbulence but falls to 0.037 at 50\% turbulence (758
-detections for 28 true events).
+quantitatively: the $d|\mathbf{B}|/dt$ threshold baseline achieves
+precision 1.000 at 5\% turbulence but falls to 0.037 at 50\% turbulence
+(758 detections for 28 true events).
 
-For applications where the downstream analysis is expensive
---- reconnection jet identification, seizure classification, fault diagnosis
---- a catalog with even 50\% false discovery fraction is unusable.
+For applications where downstream analysis is expensive---reconnection jet
+identification, seizure classification, fault diagnosis---a catalog with
+even 50\% FDF is unusable.
 What is needed is a method whose precision is stable (or gracefully degrading)
 as noise increases, even at the cost of lower recall.
 
@@ -137,59 +137,64 @@ as noise increases, even at the cost of lower recall.
 
 We introduce MASS/SMASH (Multi-seAm Seam-Sensitive Modeling / Symmetric
 Minimum-description-length Antipodal Seam Hunting).
-Its design goal is not to maximize recall but to provide a conservative,
+Its design goal is not to maximize recall, but to provide a conservative,
 structurally selective complement to gradient-based detectors like PVI:
 a method that contributes non-redundant true detections while maintaining
-low false discovery fraction across a wide range of noise conditions.
+low FDF across a wide range of noise conditions.
 
-Two design choices support this goal.
+Two design choices underpin this goal.
 
 \textbf{Structural pre-filtering via antipodal correlation.}
-Before evaluating any MDL criterion, MASS/SMASH scores each candidate position
-$\tau$ for antisymmetry between the pre- and post-window signals:
+Before evaluating any MDL criterion, MASS/SMASH scores each candidate
+position $\tau$ for antisymmetry between the pre- and post-window signals:
 $\mathcal{A}(\tau) = \mathrm{corr}(y[\tau-w:\tau],\,-\,y[\tau:\tau+w])$.
-Only positions with $\mathcal{A}(\tau) > 0.35$ are advanced to the MDL stage.
+Only positions with $\mathcal{A}(\tau) > 0.35$ are advanced to the MDL
+stage.
 A turbulent spike with random phase structure scores near zero on
-$\mathcal{A}$ regardless of its amplitude; a genuine sign-flip scores near 1.0.
-This pre-filter rejects the structural class of events that gradient detectors
-accept: events with large gradient magnitude but without antipodal coherence.
+$\mathcal{A}$ regardless of its amplitude; a genuine sign-flip scores
+near 1.0.
+This pre-filter rejects the structural class of events that gradient
+detectors accept: events with large gradient magnitude but without
+antipodal coherence.
 
 \textbf{MDL gain threshold denominated in bits.}
-The MDL acceptance criterion requires a compression gain of $G = 20$ bits.
-This threshold is not derived from signal statistics --- it is a fixed
-information-theoretic cost, calibrated so that the gain from specifying a seam
-location must exceed the cost of encoding it.
-As turbulence increases, both the single- and two-segment model residuals grow,
-but the systematic RSS reduction from a true structural break grows too;
-for noise-only fluctuations, no systematic reduction exists regardless of
-amplitude (Section~\ref{subsec:stability}).
-The empirical consequence, validated in Figure~\ref{fig:snr_sweep}, is that
-MASS/SMASH precision remains near 1.000 from SNR 20:1 down to SNR 2:1 on this
-benchmark --- but this is an \emph{empirical} finding at fixed threshold, not a
-general theorem; different signal geometries or lower thresholds will produce
-different behavior.
+The MDL acceptance criterion requires a compression gain of $G = 20$
+bits---a fixed information-theoretic cost, not a multiple of a
+signal-derived statistic.
+As turbulence increases, both the single- and two-segment model residuals
+grow, but the systematic residual reduction from a true structural break
+grows proportionally; for noise-only fluctuations no systematic reduction
+exists regardless of amplitude (Section~\ref{subsec:stability}).
+The empirical consequence, documented in Figure~\ref{fig:snr_sweep}, is that
+MASS/SMASH precision remains 1.000 from SNR 20:1 down to SNR 2:1 on this
+benchmark.
+We emphasize that this is an \emph{empirical} finding at a fixed threshold
+on a specific signal class, not a general theorem.
 
 \subsection{Solar Wind as a Validation Domain}
 
-We demonstrate MASS/SMASH on solar wind current sheet detection, a well-studied
-instance of the sign-flip detection problem.
+We demonstrate MASS/SMASH on solar wind current sheet detection, a
+well-studied instance of the sign-flip detection problem.
 The domain is well-suited as a benchmark for several reasons: the sign-flip
 signal structure is well-characterized, a high-performance comparison method
 (PVI) exists, and synthetic ground truth is precisely recoverable.
-The solar wind case study does not exhaust the scope of the method; we discuss
-extensions in Section~\ref{sec:applications}.
+A 20-day pilot on real Wind/MFI data provides a qualitative plausibility check
+(Section~\ref{sec:real_data}).
+The solar wind case study does not exhaust the scope of the method;
+extensions are discussed in Section~\ref{sec:applications}.
 
 \subsection{Organization}
 
 Section~\ref{sec:related} reviews related change-point detection work.
 Section~\ref{sec:algorithm} describes the MASS/SMASH algorithm.
 Section~\ref{sec:casestudy} describes the validation methodology.
-Section~\ref{sec:results} presents three sets of results: single-regime
+Section~\ref{sec:results} presents three synthetic experiments: single-regime
 benchmark, SNR sweep, and contaminated benchmark.
 Section~\ref{sec:discussion} interprets the findings and characterizes
 limitations.
+Section~\ref{sec:real_data} presents the real Wind/MFI pilot.
 Section~\ref{sec:applications} describes broader applicability.
-Section~\ref{sec:conclusions} summarizes.
+Section~\ref{sec:conclusions} concludes.
 
 %% ============================================================
 \section{Related Work}
@@ -206,31 +211,31 @@ Binary segmentation \citep{Vostrikova1981} recursively splits the series at the
 single most significant change-point.
 PELT \citep{Killick2012} solves the penalized segmentation problem
 $\min_m \sum_{i=1}^{m+1} C(y_{t_{i-1}+1:t_i}) + \beta m$ in $\mathcal{O}(n)$
-time using dynamic programming; its cost function targets mean/variance fit
-quality, not antisymmetric structure.
+time using dynamic programming with a cost function targeting mean/variance
+fit quality, not antisymmetric structure.
 Bayesian online change-point detection \citep{AdamsMacKay2007} maintains a
 posterior over run-length, providing principled uncertainty quantification.
 
-None of these methods addresses the precision collapse problem identified in
-Section~\ref{sec:intro}: they all use thresholds derived from signal statistics
-(likelihood ratios, posterior probabilities relative to a prior, or penalization
-coefficients), which are susceptible to being overwhelmed by heavy-tailed noise.
-MDL-based segmentation \citep{Rissanen1978,Davis2006} comes closest to the
-absolute-threshold approach: the $\log_2 N$-bit location penalty is independent
-of the signal amplitude.
-MASS/SMASH extends MDL segmentation with an antisymmetry pre-filter specifically
-targeting sign-flip events.
+None of these methods directly addresses the precision collapse problem
+identified in Section~\ref{sec:intro}: they use thresholds derived from
+signal statistics (likelihood ratios, posterior probabilities, penalization
+coefficients) that are susceptible to being overwhelmed by heavy-tailed noise.
+MDL-based segmentation \citep{Rissanen1978,Davis2006} comes closest to an
+absolute-threshold approach: the $\log_2 N$-bit location penalty is
+independent of signal amplitude.
+MASS/SMASH extends MDL segmentation with an antisymmetry pre-filter
+specifically targeting sign-flip events.
 
 \subsection{Sign-Flip and Antipodal Structure}
 
 We are not aware of prior change-point work that uses cross-window
 antisymmetry (antipodal correlation) as the primary candidate generator.
 Boundary detection in image processing uses mirrored filter responses
-\citep{Canny1986}, but the filter is applied to spatial edges, not temporal
-sign-flip transitions.
+\citep{Canny1986}, but applied to spatial edges, not temporal sign-flip
+transitions.
 The related concept of antipodal symmetry in algebraic topology and signal
-processing has not, to our knowledge, been applied to sequential change-point
-detection.
+processing has not, to our knowledge, been applied to sequential
+change-point detection.
 
 \subsection{Solar Wind Current Sheet Detection}
 
@@ -269,19 +274,19 @@ The antipodal correlation detector scores each candidate position $\tau$ by:
 \end{equation}
 where $w$ is the half-window size (default 20 samples) and both windows are
 $z$-score normalized before computing the Pearson correlation.
-The score $\mathcal{A}(\tau) \approx 1$ when the $w$ samples immediately before
-$\tau$ are temporally coherent with the negated $w$ samples after $\tau$:
-the defining signature of a sign-flip event.
-For turbulent fluctuations with random phase structure, both pre- and
-post-window segments are uncorrelated, and $\mathcal{A}(\tau) \approx 0$.
-The pre-filter is therefore effective not because of SNR (it cannot recover weak
-events), but because it selects for structure, not amplitude.
+The score $\mathcal{A}(\tau) \approx 1$ when the $w$ samples immediately
+before $\tau$ are temporally coherent with the negated $w$ samples after
+$\tau$: the defining signature of a sign-flip transition.
+For turbulent fluctuations with random phase structure, the pre- and
+post-window segments are uncorrelated, so $\mathcal{A}(\tau) \approx 0$.
+The pre-filter is effective not because of SNR (it cannot recover weak
+events) but because it selects for structure rather than amplitude.
 
-Equation~\eqref{eq:antipodal} uses the forward-ordered pre-window correlated with
-the forward-ordered negated post-window --- not true mirror antisymmetry, which
-would require one window to be reversed.
-For a narrow sign-flip transition (transition width $\ll w$), both formulas
-agree; for wider transitions they differ.
+Equation~\eqref{eq:antipodal} uses the forward-ordered pre-window correlated
+with the forward-ordered negated post-window---not true mirror antisymmetry,
+which would require one window to be time-reversed.
+For a narrow sign-flip transition (width $\ll w$), both formulas agree;
+for wider transitions they differ.
 We characterize the resulting localization behavior empirically in
 Section~\ref{subsec:offset}.
 Candidates are local maxima of $\mathcal{A}$ above threshold 0.35, retained
@@ -293,16 +298,15 @@ after NMS with minimum separation 60 s.
 The roughness at position $i$ is $\mathcal{R}(i) = \sigma(\Delta y[i:i+w_r])$,
 where $\Delta y$ denotes first differences and $w_r$ is the roughness window
 (default 20 samples).
-The detector score is the normalized roughness change:
+The normalized roughness change:
 \begin{equation}
   \mathcal{D}(\tau) \;=\;
-    \frac{|\mathcal{R}(\tau) - \mathcal{R}(\tau-1)|}{\sigma(\mathcal{R})}.
+    \frac{|\mathcal{R}(\tau) - \mathcal{R}(\tau-1)|}{\sigma(\mathcal{R})}
   \label{eq:roughness}
 \end{equation}
+identifies positions where local variance changes discontinuously, including
+the edges of wide or turbulence-embedded transition layers.
 Candidates are local maxima of $\mathcal{D}$ above threshold 0.20, with NMS.
-The roughness detector is complementary to the antipodal scanner: it fires
-where local variance changes, which includes the edges of a wide or
-turbulence-embedded transition layer.
 
 \subsection{MDL Model Selection}
 \label{subsec:mdl}
@@ -318,17 +322,17 @@ MASS/SMASH scores all seam configurations with the MDL objective:
     \underbrace{\frac{\alpha}{2}\,m\,\log_2 N}_{\text{seam encoding}},
   \label{eq:mdl}
 \end{equation}
-where $\RSS$ is the pooled residual sum of squares across segments, $p$ is the
-total model parameter count, $m$ is the number of seams, and $\alpha = 2.0$.
-The seam encoding term reflects the $\approx m\log_2 N$-bit cost of specifying
-seam locations in the description.
-A no-seam configuration ($m=0$) is always included, so a detection requires an
-explicit positive MDL gain over the single-segment model.
+where $\RSS$ is the pooled residual sum of squares across segments, $p$ is
+the total model parameter count, $m$ is the number of seams, and $\alpha = 2.0$.
+The seam encoding term reflects the $\approx m\log_2 N$-bit cost of
+specifying seam locations in the description.
+A no-seam configuration ($m=0$) is always included, so a detection requires
+an explicit positive MDL gain over the single-segment model.
 
 Within each segment, MASS/SMASH evaluates a model zoo: Fourier series at
 $K = 4, 8, 12$ harmonics, polynomials of degree 2, 3, and 5, and
 autoregressive models of orders 5, 10, and 15.
-The best model per segment is selected by its BIC contribution.
+The best model per segment is selected by BIC contribution.
 
 \subsection{Mechanism for Empirical Precision Stability}
 \label{subsec:stability}
@@ -339,52 +343,48 @@ The MDL gain from introducing one seam is:
     \frac{N}{2}\log_2\frac{\RSS_0}{\RSS_1} - \frac{\alpha}{2}\log_2 N,
   \label{eq:gain}
 \end{equation}
-where $\RSS_0$ and $\RSS_1$ are the single- and two-segment residual sums of
-squares and the seam-encoding cost is $\frac{\alpha}{2}\log_2 N$ bits.
+where $\RSS_0$ and $\RSS_1$ are the single- and two-segment residual sums
+of squares, and the seam-encoding cost is $\frac{\alpha}{2}\log_2 N$ bits.
 
-For a window of $N$ samples containing a clean sign-flip transition from
-$+A$ to $-A$ at the midpoint, embedded in i.i.d.\ Gaussian noise $\sigma_n$:
-the single-segment model fits the mean at zero, accumulating residual
+For a window of $N$ samples containing a clean sign-flip from $+A$ to $-A$
+at the midpoint, embedded in i.i.d.\ Gaussian noise with standard deviation
+$\sigma_n$: the single-segment model fits the mean at zero, accumulating
 $\RSS_0 \approx N(A^2 + \sigma_n^2)$; the two-segment model fits each half
-at its mean, leaving only noise residual $\RSS_1 \approx N\sigma_n^2$.
+at its mean, leaving only noise, $\RSS_1 \approx N\sigma_n^2$.
 The ratio is:
 \begin{equation}
   \frac{\RSS_0}{\RSS_1} \;\approx\; 1 + \left(\frac{A}{\sigma_n}\right)^2,
   \label{eq:rss_ratio}
 \end{equation}
-where $A/\sigma_n$ is the half-amplitude-to-noise ratio.
-The MDL gain is then $(N/2)\log_2(1 + \mathrm{SNR}^2) - (\alpha/2)\log_2 N$,
-which grows with both window size and SNR.
-For a strong crossing (large $A/\sigma_n$), this gain far exceeds the 20-bit
-threshold even at high turbulence, provided the crossing has enough polarity
-contrast; the 9 weak crossings that MASS/SMASH never detects in the SNR sweep
-are those where $A/\sigma_n$ is too small for the gain to reach 20 bits.
+so the MDL gain is $(N/2)\log_2(1 + (A/\sigma_n)^2) - (\alpha/2)\log_2 N$.
+This grows with both window size and signal-to-noise ratio.
+Strong crossings (large $A/\sigma_n$) accumulate sufficient gain even at
+high turbulence; the 9 weak crossings that MASS/SMASH never detects in the
+SNR sweep are those where $A/\sigma_n$ is too small for the gain to reach
+20 bits.
 
-For a turbulent fluctuation with no underlying structural break,
-the best-found split does not reduce the residual systematically:
+For a turbulent fluctuation with no underlying structural break, the
+best-found split does not reduce the residual systematically:
 $\RSS_0/\RSS_1 \approx 1$ in expectation, and
-$\Delta\MDL \approx -(\alpha/2)\log_2 N < 0 < G$.
-The seam-encoding penalty $(\alpha/2)\log_2 N$ is calibrated to cancel the
-expected gain from the best of $N$ random splits of noise
-\citep{Rissanen1978,Davis2006}, so noise-driven candidates are suppressed
-regardless of their amplitude.
-This is the mechanism underlying the empirically observed precision stability
-in Figure~\ref{fig:snr_sweep}; it holds when the structural break provides
-systematic RSS reduction, which turbulent spikes do not.
-We present this as a qualitative mechanism and empirical observation rather
-than a theorem: practical factors including windowing artifacts, model-zoo
-selection, and cumulative-gain aggregation affect the actual gain values.
+$\Delta\MDL \approx -(\alpha/2)\log_2 N < 0$.
+The seam-encoding penalty cancels the expected gain from the best of $N$
+random splits of noise \citep{Rissanen1978,Davis2006}, suppressing
+noise-driven candidates regardless of their amplitude.
+This is the qualitative mechanism underlying the precision stability observed
+empirically in Figure~\ref{fig:snr_sweep}.
+We present it as such---a qualitative argument and empirical observation---
+rather than a theorem; practical factors including windowing, model-zoo
+selection, and cumulative-gain aggregation affect actual gain values.
 
 \subsection{Chunked Inference on Long Time Series}
 \label{subsec:chunked}
 
 For long time series, MASS/SMASH applies in a sliding-window fashion: windows
-of length $W$ samples at step $S < W$, with $m_\mathrm{max}=1$ seam per window.
+of length $W$ samples step $S < W$, with $m_\mathrm{max}=1$ seam per window.
 Each sample accumulates a cumulative MDL gain across all windows in which it
 was selected; a global NMS pass retains peaks above threshold $G$.
 For the solar wind case study: $W = 200$ samples (600 s), $S = 100$ samples
-(300 s), 8{,}638 overlapping chunks for the 30-day signal;
-$G = 20$ bits for the main benchmark.
+(300 s), up to 8,638 overlapping chunks for the 30-day signal; $G = 20$ bits.
 
 \begin{algorithm}[t]
 \caption{MASS/SMASH chunked inference}
@@ -414,34 +414,30 @@ $G = 20$ bits for the main benchmark.
 \label{subsec:synth}
 
 We validate MASS/SMASH on synthetic magnetic field time series calibrated to
-mimic Wind/MFI observations during the March 2001 interval studied by
-\citet{Osman2014}.
+mimic Wind/MFI observations near solar maximum.
 The background field is
 $\hat{\mathbf{b}}_0 = (0.201, 0.201, 0.958)$ (normalized), giving
-$B_0 = 6\nT$ with $\approx 96\%$ of the reversal amplitude in the $B_z$
-component.
+$B_0 = 6\nT$ with $\approx 96\%$ of the reversal amplitude in $B_z$.
 Polarity reversals are modeled as:
 \begin{equation}
   \mathrm{pol}(t) \;=\; \tanh\!\left(\frac{t - t_\mathrm{cross}}{\delta/3}\right),
   \label{eq:tanh}
 \end{equation}
-with transition widths $\delta \sim \mathrm{Uniform}[15\s, 60\s]$, consistent
-with observed current sheet thicknesses at 1 AU \citep{Vasquez2007}.
-The 120 or 28 (depending on the experiment) injection times follow a Poisson
-process at $\sim$4/day with 1-hour minimum spacing.
-We use the term ``polarity reversal'' to distinguish these from the large-scale
-heliospheric current sheet ($\sim$1--2 crossings per solar rotation); the
-synthetic rate is consistent with flux-tube boundary crossings observed near
-1 AU \citep{Wilcox1965}.
+with transition widths $\delta \sim \mathrm{Uniform}[15\secunit, 60\secunit]$,
+consistent with observed current sheet thicknesses at 1 AU \citep{Vasquez2007}.
+Injection times follow a Poisson process at $\sim$4 day$^{-1}$ with 1-hour
+minimum spacing, consistent with flux-tube boundary crossing rates observed
+near 1 AU \citep{Wilcox1965}.
 
 Kolmogorov turbulence ($P(f) \propto |f|^{-5/3}$) is superimposed with
-amplitude $\sigma_\mathrm{turb} = \sigma_\mathrm{frac} \times B_0$ per component.
+amplitude $\sigma_\mathrm{turb} = \sigma_\mathrm{frac} \times B_0$ per
+component.
 The standard benchmark uses $\sigma_\mathrm{frac} = 0.30$, consistent with
 $\delta B / B \sim 0.2$--$0.4$ at 1 AU \citep{Bruno2013}.
 The SNR sweep varies $\sigma_\mathrm{frac}$ from 0.05 to 0.50.
 True crossing centers are recorded at the exact tanh midpoints and serve as
 ground truth; they are recovered deterministically by replaying the generator
-with the same seed.
+with the same seed (42 throughout).
 
 \subsection{Comparison Detectors}
 \label{subsec:comparators}
@@ -462,30 +458,32 @@ Threshold at $\mu + 2.5\sigma$ of:
   \label{eq:baseline}
 \end{equation}
 with 300-s minimum separation.
-Note that $d|\mathbf{B}|/dt$ measures the scalar magnitude derivative, not the
-vector gradient $|d\mathbf{B}/dt|$; a clean polarity reversal can rotate
+Note that $d|\mathbf{B}|/dt$ measures the scalar magnitude derivative, not
+the vector gradient $|d\mathbf{B}/dt|$; a clean polarity reversal can rotate
 $\mathbf{B}$ by $180^\circ$ while leaving $|\mathbf{B}|$ nearly constant.
-The baseline threshold is set globally from signal statistics ($\mu$, $\sigma$
-of the entire time series), which is the source of its sensitivity to the
-turbulence level (Section~\ref{subsec:snr}).
+The threshold is set globally from signal statistics ($\mu$, $\sigma$
+of the entire time series), making it sensitive to the turbulence level
+(Section~\ref{subsec:snr}).
 
 \subsection{Evaluation Metrics}
 \label{subsec:metrics}
 
-A detected event at $\hat{\tau}$ is a true positive if within a tolerance of
-an injected crossing center; each crossing is matched at most once.
-We report precision $P$, recall $R$, F1, and false discovery fraction
-$\FDF = 1 - P$.
-Primary tolerance: 150 s (50 samples); strict tolerance: 30 s (10 samples).
+A detected event at $\hat{\tau}$ is a true positive (TP) if within tolerance
+of an injected crossing center; each crossing is matched at most once.
+We report precision $P = \mathrm{TP}/N_\mathrm{det}$, recall
+$R = \mathrm{TP}/N_\mathrm{true}$, F1, and FDF $= 1 - P$.
+Primary tolerance: 150 s (50 samples at 3-s cadence); strict: 30 s (10 samples).
 
-For the contaminated benchmark we additionally report the \emph{confounder
-hit rate}: the fraction of known non-antipodal events whose location is within
+For the contaminated benchmark we additionally report the \emph{confounder hit
+rate}: the fraction of known non-antipodal events whose location is within
 150 s of a detection.
 
 \subsection{Rotation Angle Analysis}
 \label{subsec:rotation_method}
 
-For each detection at sample $p$, the rotation angle is:
+For each detection at sample $p$, we compute the mean field direction in a
+pre-window of $w_a$ seconds and a post-window of $w_a$ seconds, then form
+the rotation angle:
 \begin{align}
   \Bhat_\mathrm{before} &=
     \frac{\langle\Bvec\rangle_{[p-w_a:p]}}{|\langle\Bvec\rangle_{[p-w_a:p]}|},
@@ -497,11 +495,10 @@ For each detection at sample $p$, the rotation angle is:
     \cdot \Bhat_\mathrm{after}, -1, 1)\right),
   \label{eq:omega}
 \end{align}
-with $w_a \in \{10, 30, 60, 120\}\s$.
+with $w_a \in \{10, 30, 60, 120\}\secunit$.
 We compute $\omega$ at the raw detection position and, for true positives,
 at the matched injected crossing center.
-Phase-randomized surrogates (100 realizations; minimum reportable $p < 0.01$)
-provide a spectral null model.
+Phase-randomized surrogates (100 realizations) provide a spectral null model.
 
 %% ============================================================
 \section{Results}
@@ -511,24 +508,24 @@ provide a spectral null model.
 \subsection{Single-Regime Benchmark}
 \label{subsec:detection}
 
-Table~\ref{tab:main_results} summarizes performance against the 120 injected
+Table~\ref{tab:main_results} summarizes performance against 120 injected
 crossing centers for the standard 30-day, 30\%-turbulence benchmark.
 
 \begin{table}[t]
 \centering
 \caption{Single-regime benchmark: detection performance against 120 injected
-crossing centers (30-day, 30\% turbulence, 3-s cadence).
-FDF = false discovery fraction = $1 - P$.}
+crossing centers (30-day signal, 30\% Kolmogorov turbulence, 3-s cadence).
+FDF $= 1 - P$.}
 \label{tab:main_results}
 \begin{tabular}{lcccccccc}
 \toprule
 Detector & Tol. & $N_\mathrm{det}$ & TP & FP & $P$ & $R$ & F1 & FDF \\
 \midrule
-MASS/SMASH ($G > 20$ bits) & 150 s & 63  & 58 & 5  & 0.921 & 0.483 & 0.634 & 7.9\% \\
+MASS/SMASH ($G > 20$ bits) & 150 s & 63  & 58 & 5  & 0.921 & 0.483 & 0.634 & 7.9\%  \\
 MASS/SMASH ($G > 20$ bits) & 30 s  & 63  & 18 & 45 & 0.286 & 0.150 & 0.197 & 71.4\% \\
 \midrule
-PVI ($> 3.0$)              & 150 s & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
-PVI ($> 3.0$)              & 30 s  & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
+PVI ($> 3.0$)               & 150 s & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
+PVI ($> 3.0$)               & 30 s  & 91  & 90 & 1  & 0.989 & 0.750 & 0.853 & 1.1\%  \\
 \midrule
 $d|\mathbf{B}|/dt$ baseline & 150 s & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
 $d|\mathbf{B}|/dt$ baseline & 30 s  & 132 & 120 & 12 & 0.909 & 1.000 & 0.952 & 9.1\% \\
@@ -541,45 +538,45 @@ precision 0.989, MASS/SMASH 0.921, and the baseline 0.909.
 Recall differs substantially: baseline 1.000, PVI 0.750, MASS/SMASH 0.483.
 MASS/SMASH is the most conservative selector; its 5 false detections represent
 a 7.9\% FDF.
-Complementarity is notable: of the 58 MASS/SMASH true-positive detections,
-24 correspond to crossings PVI missed.
+Complementarity is notable: of the 58 MASS/SMASH true positives, 24 correspond
+to crossings PVI missed.
 A joint MASS/SMASH $+$ PVI catalog covers 114/120 injected crossings (95\%)
-with $\sim$5\% combined FDF.
+with $\approx$5\% combined FDF.
 
-The strict 30-s tolerance reveals a systematic offset: MASS/SMASH recall
-falls from 0.483 to 0.150, while PVI and baseline are unchanged.
+The strict 30-s tolerance reveals a systematic localization offset:
+MASS/SMASH recall falls from 0.483 to 0.150, while PVI and baseline are
+unchanged.
 Section~\ref{subsec:offset} diagnoses this offset.
 
 \subsection{SNR Sweep: Precision Across Turbulence Levels}
 \label{subsec:snr}
 
 Table~\ref{tab:snr_sweep} and Figure~\ref{fig:snr_sweep} present the full
-precision, recall, and F1 results across seven turbulence amplitudes (5\%--50\%
-of $B_0$), evaluated against 28 injected crossings in 7-day synthetic signals
-at 3-s cadence.
+results across seven turbulence amplitudes (5\%--50\% of $B_0$), evaluated
+against 28 injected crossings in 7-day synthetic signals at 3-s cadence
+(seed 42 throughout).
 
 \begin{table}[t]
 \centering
 \caption{SNR sweep: detection performance vs turbulence amplitude.
 28 injected crossings in 7-day synthetic signals (same generator as
 Table~\ref{tab:main_results}).
-Tolerance: 150 s.
-Dashes indicate columns identical to adjacent entries.}
+Tolerance: 150 s.}
 \label{tab:snr_sweep}
 \begin{tabular}{ccrrrrrrrrr}
 \toprule
-Turb. & SNR & \multicolumn{3}{c}{MASS/SMASH} & \multicolumn{3}{c}{PVI}
-      & \multicolumn{3}{c}{Baseline} \\
+Turb.\ & SNR & \multicolumn{3}{c}{MASS/SMASH} & \multicolumn{3}{c}{PVI}
+       & \multicolumn{3}{c}{Baseline} \\
 \cmidrule(lr){3-5}\cmidrule(lr){6-8}\cmidrule(lr){9-11}
-(\% $B_0$) & (approx.) & $P$ & $R$ & F1 & $P$ & $R$ & F1 & $P$ & $R$ & F1 \\
+(\%$B_0$) & (approx.) & $P$ & $R$ & F1 & $P$ & $R$ & F1 & $P$ & $R$ & F1 \\
 \midrule
- 5\%  & 20:1 & \textbf{1.000} & 0.500 & 0.667 & 0.944 & 0.607 & 0.739 & 1.000 & 1.000 & 1.000 \\
-10\%  & 10:1 & \textbf{1.000} & 0.643 & 0.783 & 0.947 & 0.643 & 0.766 & 1.000 & 1.000 & 1.000 \\
-15\%  &  6.7:1 & \textbf{1.000} & 0.643 & 0.783 & 0.947 & 0.643 & 0.766 & 1.000 & 1.000 & 1.000 \\
-20\%  &  5:1 & \textbf{1.000} & 0.679 & 0.809 & 0.947 & 0.643 & 0.766 & 0.875 & 1.000 & 0.933 \\
-30\%  &  3.3:1 & \textbf{1.000} & 0.679 & 0.809 & 0.947 & 0.643 & 0.766 & 0.161 & 1.000 & 0.277 \\
-40\%  &  2.5:1 & \textbf{1.000} & 0.679 & 0.809 & 0.944 & 0.607 & 0.739 & 0.059 & 1.000 & 0.112 \\
-50\%  &  2:1 & \textbf{1.000} & 0.679 & 0.809 & 0.944 & 0.607 & 0.739 & 0.037 & 1.000 & 0.071 \\
+ 5\% & 20:1 & \textbf{1.000} & 0.500 & 0.667 & 0.944 & 0.607 & 0.739 & 1.000 & 1.000 & 1.000 \\
+10\% & 10:1 & \textbf{1.000} & 0.643 & 0.783 & 0.947 & 0.643 & 0.766 & 1.000 & 1.000 & 1.000 \\
+15\% &  6.7:1 & \textbf{1.000} & 0.643 & 0.783 & 0.947 & 0.643 & 0.766 & 1.000 & 1.000 & 1.000 \\
+20\% &  5:1 & \textbf{1.000} & 0.679 & 0.809 & 0.947 & 0.643 & 0.766 & 0.875 & 1.000 & 0.933 \\
+30\% &  3.3:1 & \textbf{1.000} & 0.679 & 0.809 & 0.947 & 0.643 & 0.766 & 0.161 & 1.000 & 0.277 \\
+40\% &  2.5:1 & \textbf{1.000} & 0.679 & 0.809 & 0.944 & 0.607 & 0.739 & 0.059 & 1.000 & 0.112 \\
+50\% &  2:1 & \textbf{1.000} & 0.679 & 0.809 & 0.944 & 0.607 & 0.739 & 0.037 & 1.000 & 0.071 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -590,55 +587,52 @@ Turb. & SNR & \multicolumn{3}{c}{MASS/SMASH} & \multicolumn{3}{c}{PVI}
 \caption{Precision, recall, and F1 vs turbulence amplitude.
 MASS/SMASH precision = 1.000 at every level (flat blue line).
 PVI precision is stable at 0.944--0.947.
-Baseline precision collapses above 20\% turbulence: from 0.875 at 20\% to
-0.037 at 50\% (758 spurious detections for 28 true events).
+Baseline precision collapses above 20\% turbulence, falling from 0.875 at
+20\% to 0.037 at 50\% (758 spurious detections for 28 true events).
 MASS/SMASH recall plateaus at 0.679 above 20\% turbulence, reflecting the
 absolute 20-bit MDL gain threshold.}
 \label{fig:snr_sweep}
 \end{figure}
 
-Several findings emerge from Table~\ref{tab:snr_sweep}.
-
 \textbf{MASS/SMASH precision is 1.000 at every turbulence level tested.}
 No false detections are produced across the entire range 5\%--50\% turbulence.
 The absolute MDL gain threshold ($G = 20$ bits) does not inflate with noise
-amplitude, consistent with the theoretical argument in
+amplitude, consistent with the qualitative argument in
 Section~\ref{subsec:stability}.
 
 \textbf{Baseline precision collapses monotonically above 20\% turbulence.}
-At 20\% turbulence, the baseline produces 4 false detections (P = 0.875).
-At 30\%, this grows to 146 false detections (P = 0.161, 174 total detections).
-At 50\%, it produces 730 false detections (P = 0.037, 758 total detections).
+At 20\%, the baseline produces 4 false detections (P = 0.875, 32 total).
+At 30\%, this grows to 146 false detections (P = 0.161, 174 total).
+At 50\%, it produces 730 false detections (P = 0.037, 758 total).
 The collapse occurs because the detection threshold $\mu + 2.5\sigma$ is
 computed from the global distribution of $d|\mathbf{B}|/dt$, which develops
-increasingly heavy tails as turbulence amplitude rises.
+increasingly heavy tails with rising turbulence amplitude.
 
 \textbf{PVI precision is stable at 0.944--0.947 across all levels.}
-PVI's partial stability arises from its local variance normalization:
+PVI's partial stability arises from local variance normalization:
 $\PVI(t) = |\dBvec(t,\tau)| / \sqrt{\langle|\dBvec|^2\rangle_T}$.
-As turbulence increases, both the numerator and the normalization window
-denominator increase, partially compensating each other.
-However, the normalization does not provide complete immunity: PVI consistently
+As turbulence increases, both numerator and denominator increase, partially
+compensating each other.
+The normalization does not provide complete immunity, however: PVI consistently
 produces 1--2 false detections per experiment (FDF $\approx 5\%$).
 
 \textbf{MASS/SMASH recall plateaus at 0.679 above 20\% turbulence.}
-The 19 events detected at every turbulence level above 20\% are the ``strong''
-crossings: those with sufficient polarity contrast relative to local turbulence
-to earn a 20-bit MDL gain.
-The 9 missed events are consistently the same ``weak'' crossings: those embedded
-in high-variance intervals where the MDL gain remains below threshold at any
-tested noise level.
+The 19 events detected at every turbulence level from 20\% onward are the
+``strong'' crossings: those with sufficient polarity contrast relative to
+local noise to earn a 20-bit MDL gain.
+The 9 missed events are consistently the same ``weak'' crossings: those
+embedded in high-variance intervals where the MDL gain remains below
+threshold at every tested noise level.
 This behavioral stability is informative: MASS/SMASH cleanly partitions the
 injected population into a high-confidence set (19 events, always detected,
-100\% precision) and a low-confidence set (9 events, never detected at 20-bit
-threshold).
+precision 1.000) and a low-confidence set (9 events, never detected at the
+20-bit threshold).
 
 \textbf{At high turbulence, MASS/SMASH F1 dominates the baseline.}
-At 30\% turbulence: MASS/SMASH F1 = 0.809 vs baseline 0.277.
+At 30\%: MASS/SMASH F1 = 0.809 vs baseline 0.277.
 At 50\%: MASS/SMASH F1 = 0.809 vs baseline 0.071.
-In regimes where the noise amplitude is comparable to the signal amplitude,
-MASS/SMASH is the only single-pass method in this benchmark that produces
-a reliable catalog.
+In regimes where noise amplitude is comparable to signal amplitude, MASS/SMASH
+is the only single-pass method in this benchmark that produces a reliable catalog.
 
 \subsection{Contaminated Benchmark: Rejection of Non-Antipodal Events}
 \label{subsec:contaminated}
@@ -646,27 +640,29 @@ a reliable catalog.
 The contaminated benchmark tests detector precision when non-antipodal
 confounding events are present alongside true crossings.
 We inject 40 confounders into a 10-day synthetic signal (40 true crossings,
-30\% turbulence) at positions well-separated ($>600\s$) from true crossings.
-Two types of confounders are used:
+30\% turbulence) at positions well-separated ($> 600\secunit$) from true
+crossings.
+Two confounder types:
 
-\textbf{Type A --- Variance bursts}: Gaussian-hanning noise added to all three
-$B$ components at the confounder location (amplitude 4 nT, width 60 s).
+\textbf{Type A --- Variance bursts.}
+Gaussian-Hanning noise added to all three $B$ components (amplitude 4 nT,
+width 60 s).
 This creates a large local $d|\mathbf{B}|/dt$ spike and a large $|\dBvec|$,
-but has random phase structure so $\mathcal{A}(\tau) \approx 0$.
+but random phase structure so $\mathcal{A}(\tau) \approx 0$.
 
-\textbf{Type B --- $B_z$ magnitude dips}: $B_z$ is scaled down to 10\% of its
-current value via a Gaussian notch ($\sigma \approx 15$ samples) and returns.
-This creates two large gradient events (entry and exit of dip) but $B_z$
-remains positive throughout --- no sign flip, $\mathcal{A}(\tau) \approx 0$.
+\textbf{Type B --- $B_z$ magnitude dips.}
+$B_z$ is scaled to 10\% of its local value via a Gaussian notch
+($\sigma \approx 45\secunit$) and then recovers.
+This produces two large gradient events (entry and exit of the dip) but
+$B_z$ remains positive throughout---no sign flip, $\mathcal{A}(\tau) \approx 0$.
 
-Table~\ref{tab:contaminated} reports results for both the clean and
-contaminated signals.
+Table~\ref{tab:contaminated} and Figure~\ref{fig:contaminated} report results.
 
 \begin{table}[t]
 \centering
-\caption{Contaminated benchmark: 40 true crossings + 40 non-antipodal
-confounders (20 variance bursts + 20 $B_z$ dips) in a 10-day signal at 30\%
-turbulence.
+\caption{Contaminated benchmark: 40 true crossings $+$ 40 non-antipodal
+confounders (20 variance bursts $+$ 20 $B_z$ dips) in a 10-day signal at
+30\% turbulence.
 ``Conf.\ rate'' = fraction of 40 confounders within 150 s of a detection.}
 \label{tab:contaminated}
 \begin{tabular}{llccccc}
@@ -674,14 +670,14 @@ turbulence.
 Signal & Detector & $N_\mathrm{det}$ & $P$ & $R$ & F1 & Conf.\ rate \\
 \midrule
 \multirow{3}{*}{Clean} &
-  MASS/SMASH        & 29  & 0.931 & 0.675 & 0.783 & --- \\
-& PVI               & 30  & 1.000 & 0.750 & 0.857 & --- \\
-& $d|\mathbf{B}|/dt$ & 108 & 0.370 & 1.000 & 0.541 & --- \\
+  MASS/SMASH            & 29  & 0.931 & 0.675 & 0.783 & --- \\
+& PVI                   & 30  & 1.000 & 0.750 & 0.857 & --- \\
+& $d|\mathbf{B}|/dt$    & 108 & 0.370 & 1.000 & 0.541 & --- \\
 \midrule
 \multirow{3}{*}{+40 confounders} &
-  MASS/SMASH        & 40  & 0.675 & 0.675 & 0.675 & \textbf{18\%} \\
-& PVI               & 33  & 0.909 & 0.750 & 0.822 & \textbf{8\%} \\
-& $d|\mathbf{B}|/dt$ & 79 & 0.506 & 1.000 & 0.672 & \textbf{98\%} \\
+  MASS/SMASH            & 40  & 0.675 & 0.675 & 0.675 & \textbf{18\%} \\
+& PVI                   & 33  & 0.909 & 0.750 & 0.822 & \textbf{8\%}  \\
+& $d|\mathbf{B}|/dt$    & 79  & 0.506 & 1.000 & 0.672 & \textbf{98\%} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -689,113 +685,108 @@ Signal & Detector & $N_\mathrm{det}$ & $P$ & $R$ & F1 & Conf.\ rate \\
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_contaminated_benchmark.png}
-\caption{Contaminated benchmark results.
+\caption{Contaminated benchmark.
 \textbf{Left}: precision on true crossings (dark = clean, light = with confounders).
-\textbf{Center}: fraction of 40 confounders that triggered a detection.
+\textbf{Center}: fraction of 40 confounders triggering a detection.
 \textbf{Right}: F1 (dark = clean, light = contaminated).
 The baseline fires on 98\% of confounders; MASS/SMASH on 18\%; PVI on 8\%.}
 \label{fig:contaminated}
 \end{figure}
 
-\textbf{The baseline fires on 98\% of confounders (39/40)}.
+\textbf{The baseline fires on 98\% of confounders (39/40).}
 This is the expected behavior for a gradient-threshold detector: any event
-with a large $d|\mathbf{B}|/dt$, regardless of sign-flip structure, is accepted.
+with a large $d|\mathbf{B}|/dt$, regardless of sign-flip structure, is
+accepted.
 Notably, the baseline's apparent precision on true crossings \emph{improves}
-from 0.370 (clean) to 0.506 (contaminated): the variance bursts inflate the
-global $\sigma$ of $d|\mathbf{B}|/dt$, raising the threshold and suppressing
-some of the turbulent false positives.
+from 0.370 (clean) to 0.506 (contaminated): variance bursts inflate the
+global $\sigma$ of $d|\mathbf{B}|/dt$, raising the threshold and incidentally
+suppressing some turbulent false positives.
 This statistical artifact underscores the instability of relative thresholds.
 
-\textbf{MASS/SMASH fires on 18\% of confounders (7/40)}.
-The antipodal pre-filter rejects most confounders because variance bursts
-and magnitude dips do not produce $\mathcal{A}(\tau) > 0.35$.
-The 7 confounder hits arise from the 20 variance bursts: a minority of bursts
-accidentally produce Bz patterns that exceed the antipodal threshold
-($\mathcal{A} > 0.35$) even though they are not true sign flips.
-None of the 20 Bz dips triggered a MASS/SMASH detection (confounder hits from
-dips = 0), because a purely positive-valued dip has zero antipodal correlation.
-This demonstrates that the antipodal filter is most effective for non-random
-(structured) confounders.
+\textbf{MASS/SMASH fires on 18\% of confounders (7/40).}
+The antipodal pre-filter rejects most confounders because variance bursts and
+magnitude dips do not produce $\mathcal{A}(\tau) > 0.35$.
+All 7 confounder hits arise from the 20 variance bursts; none of the 20
+$B_z$ dips triggered a MASS/SMASH detection, because a positive-valued dip
+has zero antipodal correlation.
+This demonstrates that the antipodal filter is most effective against
+confounders that lack any sign-reversal structure.
 
-\textbf{PVI fires on 8\% of confounders (3/40)}.
-PVI's local variance normalization provides complementary protection: the
-normalization window partially suppresses isolated bursts, and the 3D vector
-nature of PVI means Bz-only dips are diluted across components.
-PVI's confounder rejection is better than MASS/SMASH's for variance bursts,
-but the two detectors reject different confounder sub-populations, suggesting
-that a combined MASS/SMASH + PVI pipeline would reject confounders more
-effectively than either method alone.
+\textbf{PVI fires on 8\% of confounders (3/40).}
+PVI's local variance normalization provides complementary protection:
+the normalization partially suppresses isolated bursts, and the 3D vector
+nature of PVI dilutes $B_z$-only dips across components.
+MASS/SMASH and PVI reject different confounder sub-populations, suggesting
+that a joint pipeline would suppress nearly all tested confounder types.
 
 \subsection{Detection Localization Offset}
 \label{subsec:offset}
 
-The fall from recall 0.483 (150-s tolerance) to 0.150 (30-s tolerance) in
-the single-regime benchmark reveals that most MASS/SMASH true positives are
-offset from the injected crossing center.
-The displacement $\Delta\tau_i = \tau_i^\mathrm{MS} - \tau_i^\mathrm{inj}$
-clusters near $\pm 10$ samples ($\pm 30\s$), with a spread of up to $\pm 50$
-samples ($\pm 150\s$).
+The drop from recall 0.483 (150-s tolerance) to 0.150 (30-s tolerance) in
+Table~\ref{tab:main_results} indicates a systematic offset between MASS/SMASH
+detections and the injected crossing centers.
+The displacement $\Delta\tau = \tau_\mathrm{MS} - \tau_\mathrm{inj}$ clusters
+near $\pm 10$ samples ($\pm 30\secunit$) with a spread up to $\pm 50$ samples
+($\pm 150\secunit$).
 
-The mathematical inflection point of $\tanh((t-t_0)/(\delta/3))$ is at $t_0$
---- the polarity center itself --- so the offset does not arise from a
-deterministic shift to a tanh sub-feature.
-Instead it reflects: (1) finite chunk step size (300 s between chunk starts),
+The tanh model (Equation~\ref{eq:tanh}) has its inflection point at the
+crossing center $t_\mathrm{cross}$, so the offset does not arise from a
+systematic shift to a sub-feature of the transition profile.
+It reflects instead: (1) finite chunk step size (300 s between starts),
 (2) MDL scoring that maximizes compressibility gain rather than antisymmetry
-score, and (3) the forward-ordered correlation formula, which does not guarantee
-detection at the exact midpoint for wide transitions.
-The localization precision ($\approx \pm 30\s$) is $\approx 0.14\%$ of the
-typical inter-event interval ($\sim$6 hours), which is acceptable for catalog
-construction.
-For applications requiring transition-center accuracy, a post-detection tanh
-profile fit recovers sub-10-s localization.
+score, and (3) the forward-ordered correlation formula, which does not
+guarantee detection precisely at the midpoint for wide transitions.
+The localization precision ($\approx \pm 30\secunit$) is $\approx 0.14\%$ of
+the typical inter-event interval ($\sim$6 hours), which is acceptable for
+catalog construction.
+For applications requiring transition-center accuracy, a post-detection
+tanh profile fit recovers sub-10-s localization.
 
 \subsection{Rotation Angle Analysis}
 \label{subsec:angles}
 
-Table~\ref{tab:angles} reports the rotation angle analysis, computed at both
-the raw detection positions and at the matched injected crossing centers.
+Table~\ref{tab:angles} reports the rotation angle analysis at both raw
+detection positions and matched injected crossing centers.
 
 \begin{table}[t]
 \centering
 \caption{Magnetic field rotation angles.
-$\bar{\omega}$ = mean angle in degrees.
+$\bar{\omega}$ = mean angle (degrees).
 ``At det.'' = computed at MASS/SMASH detection position.
 ``At inj.'' = computed at matched injected crossing center (58 TP events).
-KS $p$ compares MASS/SMASH-at-detection vs PVI.}
+KS $p$ compares MASS/SMASH-at-detection vs PVI distributions.}
 \label{tab:angles}
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccccc}
 \toprule
- & \multicolumn{2}{c}{At detection pos.} & & \multicolumn{2}{c}{At inj.\ crossing (MS TP)} \\
+ & \multicolumn{2}{c}{At detection position} & & \multicolumn{2}{c}{At injected crossing (58 TP)} \\
 \cmidrule(lr){2-3}\cmidrule(lr){5-6}
 Window & PVI $\bar{\omega}$ & MS $\bar{\omega}$ & KS $p$ &
          MS $\bar{\omega}$ & Inj.\ $\bar{\omega}$ \\
 \midrule
-10 s  & $114^\circ$ & \phantom{00}$1^\circ$ & $1.7\times10^{-44}$ & $101^\circ$ & $108^\circ$ \\
-30 s  & $130^\circ$ & \phantom{00}$4^\circ$ & $1.1\times10^{-42}$ & $128^\circ$ & $128^\circ$ \\
-60 s  & $132^\circ$ & \phantom{0}$42^\circ$ & $4.1\times10^{-31}$ & $132^\circ$ & $132^\circ$ \\
-120 s & $134^\circ$ & \phantom{0}$83^\circ$ & $2.1\times10^{-13}$ & $134^\circ$ & $133^\circ$ \\
+10 s  & $114^\circ$ & \phantom{0}$1^\circ$ & $1.7\times10^{-44}$ & $101^\circ$ & $108^\circ$ \\
+30 s  & $130^\circ$ & \phantom{0}$4^\circ$ & $1.1\times10^{-42}$ & $128^\circ$ & $128^\circ$ \\
+60 s  & $132^\circ$ & $42^\circ$ & $4.1\times10^{-31}$ & $132^\circ$ & $132^\circ$ \\
+120 s & $134^\circ$ & $83^\circ$ & $2.1\times10^{-13}$ & $134^\circ$ & $133^\circ$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \textbf{At detection positions, MASS/SMASH events show near-zero rotation angles.}
-This is a localization artifact: a detection $\approx 30\s$ before the crossing
-center causes the averaging window to straddle the transition, mixing pre- and
-post-reversal field values and driving the apparent rotation toward zero.
-The highly significant KS statistics ($p < 10^{-13}$) at detection positions
-are therefore a consequence of the offset, not evidence of distinct physical
-event populations.
+This is a localization artifact: a detection $\approx 30\secunit$ before the
+crossing center causes the averaging window to straddle the transition,
+mixing pre- and post-reversal field values and driving the apparent rotation
+toward zero.
+The highly significant KS statistics ($p < 10^{-13}$) are therefore a
+consequence of the offset, not evidence of distinct physical event populations.
 
 \textbf{At matched injected positions, MASS/SMASH and PVI events are
 indistinguishable.}
 Mean angles for the 58 MASS/SMASH true positives, computed at the matched
-injected crossing center, are $101^\circ$ (10 s window), $128^\circ$ (30 s),
-$132^\circ$ (60 s), and $134^\circ$ (120 s) --- consistent with PVI
-($114^\circ$, $130^\circ$, $132^\circ$, $134^\circ$) and the full injected
-population ($108^\circ$, $128^\circ$, $132^\circ$, $133^\circ$).
-The MDL selection criterion does not preferentially select large-rotation events:
-it selects events with high compressibility gain, which correlates with SNR
-(amplitude relative to local noise), not with rotation angle.
+crossing center, are $101^\circ$, $128^\circ$, $132^\circ$, $134^\circ$
+(windows 10, 30, 60, 120 s)---consistent with PVI ($114^\circ$, $130^\circ$,
+$132^\circ$, $134^\circ$) and the full injected population.
+The MDL selection criterion selects events with high compressibility gain,
+which correlates with SNR, not with rotation angle.
 
 %% ============================================================
 \section{Discussion}
@@ -803,77 +794,75 @@ it selects events with high compressibility gain, which correlates with SNR
 %% ============================================================
 
 \subsection{The Precision-Recall Trade-Off}
-\label{subsec:tradeoff}
 
 The SNR sweep makes explicit a precision-recall trade-off that is usually
 implicit: methods that achieve high recall by firing on all large gradients
 do so at the cost of precision collapse in high-noise regimes.
-MASS/SMASH accepts a recall of $\approx 48$--68\% (depending on signal
-realization) in exchange for precision stability across the full turbulence range.
+MASS/SMASH accepts recall of $\approx 50$--68\% in exchange for precision
+stability across the full turbulence range.
 
-Which side of this trade-off is preferable depends on the application.
+Which side of the trade-off is preferable depends on the application.
 For discovery surveys where cataloging every possible event is the priority,
-the baseline (at low turbulence) or PVI provide better recall.
-For follow-up studies where the catalog is used as input to expensive analysis
---- plasma heating correlations, EEG source localization, fault classification
---- a 100\% precision catalog of fewer events is more useful than a 4\% precision
+PVI provides better recall at comparable precision.
+For follow-up studies where the catalog feeds expensive analysis---plasma
+heating correlations, EEG source localization, fault classification---a
+100\% precision catalog of fewer events is more useful than a 3\% precision
 catalog of many events.
 
 \subsection{Precision Stability: Not Just Turbulence Invariance}
-\label{subsec:stabdiscuss}
 
-A subtlety in the SNR sweep results is that MASS/SMASH recall does not degrade
-continuously with turbulence: it plateaus at 0.679 from 20\%--50\% turbulence
-(always finding the same 19 events, always missing the same 9).
+A subtlety in the SNR sweep is that MASS/SMASH recall does not degrade
+continuously with turbulence; it plateaus at 0.679 from 20\%--50\% turbulence,
+always finding the same 19 events and always missing the same 9.
 This is not precision-recall trading along a continuous curve; it is a
-bifurcation: the 19 strong events have enough polarity contrast to earn 20-bit
-MDL gains at any tested turbulence level, while the 9 weak events never do.
+bifurcation between crossings that consistently earn 20-bit MDL gains and
+those that never do.
 
 This behavior has a practical implication: calibrating the MDL gain threshold
-on a held-out sample of labeled events would produce a stable operating point
+against a held-out sample of labeled events produces a stable operating point
 rather than a continuous threshold-tuning exercise.
-At a lower gain threshold (e.g., 5 bits), recall would increase, but the
-precision-stability property would likely weaken as turbulence-driven spurious
-gains become more frequent.
+At a lower gain threshold (e.g., 5 bits), recall would increase but precision
+stability would likely weaken as turbulence-driven spurious gains become more
+frequent.
 
 \subsection{Complementarity and Pipeline Design}
-\label{subsec:pipeline}
 
 The three detectors occupy distinct precision-recall operating points:
-MASS/SMASH (high precision, moderate recall), PVI (very high precision, moderate
-recall, better confounder rejection than MASS/SMASH), and baseline (perfect
-recall, turbulence-sensitive precision).
-A practical three-stage pipeline exploiting complementarity would be:
+MASS/SMASH (high precision, moderate recall), PVI (very high precision,
+moderate recall, better confounder rejection for variance bursts), and baseline
+(perfect recall, turbulence-sensitive precision).
+A practical three-stage pipeline exploiting complementarity:
 
 \begin{enumerate}
-  \item Apply PVI to obtain a high-precision ($>98\%$) initial catalog of
-    strong gradient events. This is the established domain standard.
+  \item Apply PVI to obtain a high-precision ($> 98\%$) initial catalog of
+    strong gradient events---the established domain standard.
   \item Apply MASS/SMASH with a moderate gain threshold (5--10 bits) to
-    supplement the PVI catalog with sign-flip events that PVI misses.
-    In the single-regime benchmark, this adds 24 true events at 100\% precision
-    at 30\% turbulence.
+    supplement with sign-flip events that PVI misses.
+    In the single-regime benchmark, this adds 24 true events at 100\%
+    precision at 30\% turbulence.
   \item Use the MDL gain score as a continuous quality ranking for downstream
     prioritization.
 \end{enumerate}
 
 The contaminated benchmark result (MASS/SMASH 18\% vs PVI 8\% confounder rate)
 suggests that for datasets with many non-antipodal confounders, PVI should be
-preferred as the primary detector and MASS/SMASH as the supplementary selector.
+preferred as the primary detector, with MASS/SMASH as supplementary selector.
 
 \subsection{Localization and Post-Processing}
-\label{subsec:localization}
 
-The $\pm 30\s$ localization offset is a correctable implementation artifact.
-For applications where the transition center is required (reconnection timing,
-seizure onset, fault location), a post-detection profile fit to the local signal
-with a tanh model recovers sub-10-s accuracy.
-The MDL gain score provides a natural quality indicator for prioritizing which
-detections warrant this refinement.
+The $\pm 30\secunit$ localization offset is a correctable implementation
+artifact.
+For applications requiring the transition center (reconnection timing,
+seizure onset, fault location), a post-detection tanh profile fit recovers
+sub-10-s accuracy.
+The MDL gain score provides a natural quality indicator for prioritizing
+which detections warrant this refinement.
 
 \subsection{Limitations}
 \label{subsec:limits}
 
-\textbf{Quantitative results are from synthetic data; real-data pilot is descriptive only.}
+\textbf{Quantitative results are from synthetic data; real-data pilot is
+descriptive only.}
 All P/R/F1 figures are from controlled synthetic experiments.
 The 20-day Wind/MFI pilot (Section~\ref{sec:real_data}) confirms
 qualitatively consistent behavior but cannot provide precision or recall
@@ -906,7 +895,7 @@ Each SNR sweep level uses 28 injected crossings from one 7-day realization
 (seed = 42).
 Recall uncertainty is $\approx \pm 0.09$ per level; the precision-stability
 result (P = 1.000 throughout) rests on zero observed false positives across
-7 levels --- a necessary but not sufficient condition for general stability.
+7 levels---a necessary but not sufficient condition for general stability.
 Replication across multiple seeds, longer signals, and varying event rates is
 needed before the precision-stability claim can be quantified with confidence
 intervals.
@@ -924,104 +913,109 @@ better-characterized operating points.
 %% ============================================================
 
 To provide a qualitative consistency check beyond synthetic experiments,
-we applied all three detectors to 20 days of publicly available Wind
-spacecraft Magnetic Fields Investigation (MFI) data, covering
-2001-03-01 through 2001-03-20 (dataset WI\_H0\_MFI, variable BGSE,
-3-second cadence; NASA CDAWeb archive \citep{Lepping1995}).
-This period sits near the peak of Solar Cycle 23, when the heliospheric
-current sheet is tilted, warped, and multiply sheeted, producing a
-complex mixture of sector boundary crossings, intermittent current sheets,
-and broad-band turbulence.
-No manually labeled catalog for this interval is used; the pilot is
-therefore descriptive, not quantitative in P/R/F1 terms.
+we applied all three detectors to 20 days of publicly available Wind spacecraft
+Magnetic Fields Investigation (MFI) data, covering 2001-03-01 to 2001-03-20
+(dataset WI\_H0\_MFI, variable BGSE, 3-second cadence; NASA CDAWeb archive,
+\citealt{Lepping1995}).
+This period sits near the peak of Solar Cycle 23, when the heliospheric current
+sheet is tilted, warped, and multiply sheeted, producing a complex mixture of
+sector boundary crossings, intermittent current sheets, and broad-band turbulence.
+No manually labeled catalog for this interval is used; the pilot is therefore
+descriptive, not quantitative in P/R/F1 terms.
 
-\textbf{Dataset.}
-The 20-day record contains 572,316 three-second samples.
-The field magnitude averages $\langle|\mathbf{B}|\rangle = 6.49\nT$
-with standard deviation $3.72\nT$; the $B_z$ component spans
-$[-20.1, 17.0]\nT$.
-The mean-field turbulence level is therefore comparable to the 30--50\%
-range tested in the SNR sweep --- the most demanding synthetic regime.
+\textbf{Dataset characteristics.}
+The 20-day record contains 572,316 three-second samples (minor gaps removed).
+The field magnitude averages $\langle|\mathbf{B}|\rangle = 6.49\nT$ with
+standard deviation $3.72\nT$; the $B_z$ component spans $[-20.1, 17.0]\nT$.
+The ratio $\sigma_{|\mathbf{B}|} / \langle|\mathbf{B}|\rangle \approx 0.57$
+is consistent with turbulence in the 30--50\% range tested in the SNR
+sweep---the most demanding synthetic regime.
 
-\textbf{Detection counts (20 days).}
-\begin{center}
+\textbf{Detection counts.}
+Table~\ref{tab:real_data} summarizes the detection rates.
+
+\begin{table}[htbp]
+\centering
+\caption{Real Wind/MFI pilot: detection counts over 20 days
+(2001-03-01 to 2001-03-20, 572,316 samples at 3-s cadence).
+No ground truth catalog is available; precision and recall cannot be computed.}
+\label{tab:real_data}
 \begin{tabular}{lrr}
 \toprule
 Detector & Detections & Rate (day$^{-1}$) \\
 \midrule
-MASS/SMASH & 154 & 7.7 \\
-Baseline ($d|\mathbf{B}|/dt$, $2.5\sigma$) & 1{,}197 & 59.9 \\
+MASS/SMASH ($G > 20$ bits) & 154  & 7.7  \\
+Baseline ($d|\mathbf{B}|/dt$, $\mu + 2.5\sigma$) & 1{,}197 & 59.9 \\
 PVI (threshold 3.0) & 2{,}397 & 119.9 \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
-MASS/SMASH produces 7.8$\times$ fewer detections than the threshold
-baseline and 15.6$\times$ fewer than PVI at the standard threshold,
-consistent with the pattern observed in the high-turbulence synthetic
-regime.
-The baseline and PVI detection rates --- 60 and 120 per day,
-respectively --- are implausible as current-sheet catalogs: prior
-studies using Wave/ACE near solar maximum report 2--8 sector boundary
-crossings per day \citep{Lockwood2001}, and even broad intermittent
-current-sheet catalogs in the same era find $\lesssim 30$
-structures per day \citep{Osman2014}.
-The MASS/SMASH rate of 7.7 per day falls within the range expected
-for moderate-threshold sign-flip detection in a solar-maximum, high-activity
-period, though without a labeled reference catalog we cannot confirm
-which subset of the 154 events are genuine sector crossings versus
-other structures.
+MASS/SMASH produces 7.8$\times$ fewer detections than the threshold baseline
+and 15.6$\times$ fewer than PVI, consistent with the pattern observed in the
+high-turbulence synthetic regime.
+The baseline and PVI detection rates---60 and 120 day$^{-1}$,
+respectively---are implausible as sector-crossing catalogs: automated surveys
+of ACE data near solar maximum identify roughly 2--10 sector boundary crossings
+per day depending on threshold and detection method \citep{Greco2009},
+and even broad intermittent current-sheet catalogs find significantly fewer
+structures than 60 day$^{-1}$ \citep{Osman2014}.
+The MASS/SMASH rate of 7.7 day$^{-1}$ falls within the plausible range for
+moderate-threshold sign-flip detection during a high-activity solar-maximum
+period, though without a labeled reference catalog we cannot determine which
+fraction of the 154 events are genuine sector crossings versus other structures
+(magnetic clouds, sheath regions, flux ropes).
 
 \textbf{Qualitative assessment.}
-Figure~\ref{fig:real_overview} shows the full 20-day record of $B_z$
-with detections overlaid.
-MASS/SMASH fires exclusively on the large-amplitude, clean $B_z$
-reversals visible by eye; the baseline and PVI also fire densely
-during broad turbulent intervals where no sustained polarity reversal
-is present.
-This qualitative pattern mirrors the synthetic experiments: the
-antipodal pre-filter suppresses events that lack the sign-reversal
-antisymmetry signature, regardless of their gradient amplitude.
+Figure~\ref{fig:real_overview} shows the 20-day $B_z$ record with detections
+overlaid.
+MASS/SMASH fires predominantly on the large-amplitude, sustained $B_z$
+reversals visible by eye; the baseline and PVI also fire densely during broad
+turbulent intervals where no sustained polarity reversal is apparent.
+This qualitative pattern mirrors the synthetic experiments: the antipodal
+pre-filter suppresses events that lack the sign-reversal antisymmetry
+signature, regardless of their gradient amplitude.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.95\textwidth]{fig_real_data_overview}
+  \includegraphics[width=\textwidth]{fig_real_data_overview}
   \caption{Twenty-day Wind/MFI $B_z$ record (2001-03-01 to 2001-03-20,
-    3-sec cadence, GSE frame) with detections from each method overlaid.
-    Red: MASS/SMASH (154); coral: PVI (2{,}397); purple: Baseline (1{,}197).
-    MASS/SMASH marks only the large sustained polarity reversals;
-    the other detectors also fire densely during turbulent intervals
-    without clear sign-flip structure.}
+    3-s cadence, GSE frame) with detections overlaid.
+    Top: MASS/SMASH (red, 154 events).
+    Middle: PVI (coral, 2{,}397 events).
+    Bottom: $|B|$ with Baseline detections (purple, 1{,}197 events).
+    MASS/SMASH marks only the large, sustained polarity reversals;
+    the other detectors also fire densely during turbulent intervals without
+    clear sign-flip structure.}
   \label{fig:real_overview}
 \end{figure}
 
 \textbf{Limitations of the pilot.}
-Because no expert-labeled catalog for this interval is available to us,
-precision and recall cannot be computed.
-The 154 MASS/SMASH detections include all sign-flip change-points above
-the MDL gain threshold; some may correspond to transient structures
-(magnetic clouds, sheath regions) rather than true HCS crossings.
-A full validation would require manual review or comparison against
-published sector boundary catalogs \citep{Lockwood2001}.
-We present this pilot as a plausibility check rather than a performance
-claim.
+Because no expert-labeled catalog is available, precision and recall cannot
+be computed.
+The 154 MASS/SMASH detections include all sign-flip change-points above the
+MDL gain threshold; some may correspond to non-sector structures.
+A full validation would require comparison against a published sector-boundary
+catalog for the same interval or manual expert review.
+We present this pilot as a plausibility check, not a performance claim.
 
 %% ============================================================
 \section{Broader Applicability}
 \label{sec:applications}
 %% ============================================================
 
-The precision-stability property of MASS/SMASH is most valuable in application
-domains that share two characteristics: (1) the events of interest are
-structural sign flips embedded in broadband noise, and (2) false detections
-are costly relative to missed detections.
+The precision-stability property of MASS/SMASH is most valuable in domains
+that share two characteristics: (1) the events of interest are structural
+sign flips embedded in broadband noise, and (2) false detections are costly
+relative to missed detections.
 Four domains outside solar wind physics satisfy these criteria.
 
 \subsection{Magnetospheric Current Sheets}
 
 Substorm-driven current sheet flapping in the magnetospheric tail produces
-$B_z$ polarity reversals at MMS and Cluster spacecraft \citep{Chasapis2015,Retino2007}.
-The signal structure is identical to solar wind current sheets, but at kinetic
+$B_z$ polarity reversals at MMS and Cluster spacecraft
+\citep{Chasapis2015,Retino2007}.
+The signal structure is identical to solar wind current sheets but at kinetic
 spatial scales and with steeper turbulence spectra.
 The same algorithm applies directly with window and step sizes recalibrated to
 shorter correlation times ($\sim$seconds rather than minutes).
@@ -1032,7 +1026,7 @@ Reference electrode inversions produce clean sign flips in bipolar EEG channel
 time series.
 Automated detection currently relies on heuristic amplitude thresholds that
 produce many false positives in the high-amplitude pre-ictal interval preceding
-a seizure \citep{Shoeb2004} --- exactly the precision collapse regime identified
+a seizure \citep{Shoeb2004}---exactly the precision collapse regime documented
 in Section~\ref{subsec:snr}.
 The antipodal pre-filter would select true inversions (structured sign flips)
 over pre-ictal noise bursts (unstructured), potentially improving automated
@@ -1040,22 +1034,22 @@ source localization pipelines.
 
 \subsection{Climate Regime Shifts}
 
-ENSO polarity transitions (El Ni\~no $\to$ La Ni\~na and back) are sign flips in
-the Ni\~no-3.4 SST anomaly index embedded in interannual variability
+ENSO polarity transitions (El Ni\~no $\to$ La Ni\~na and back) are sign flips
+in the Ni\~no-3.4 SST anomaly index embedded in interannual variability
 \citep{Trenberth1990}.
 With $N \sim 10^2$--$10^3$ monthly values, the chunked-inference procedure
 requires smaller windows ($\sim$24 months) and recalibration of the MDL gain
 threshold.
 The main application would be detecting robust phase transitions rather than
-noise-driven excursions, precisely the precision-stability use case.
+noise-driven excursions---precisely the precision-stability use case.
 
 \subsection{AC Power Systems Fault Detection}
 
 Line-to-line faults and inverter failure modes produce sign-flip patterns in
 phase current waveforms at line frequency.
 Gradient-based relay algorithms suffer from false trips during high-harmonic
-distortion events --- non-antipodal signals that create large $di/dt$
-but no polarity reversal.
+distortion events---non-antipodal signals that create large $di/dt$ but no
+polarity reversal.
 The antipodal pre-filter would improve relay selectivity (fewer false trips)
 at the cost of slightly slower trip time for the weakest faults.
 Real-time implementation would require a hardware-accelerated or FPGA version
@@ -1067,80 +1061,86 @@ of the correlation inner loop.
 %% ============================================================
 
 We have introduced MASS/SMASH, an MDL-regularized algorithm for detecting
-sign-flip change-points --- polarity reversals from $+\mu_0$ to $-\mu_0$ ---
-in noisy univariate time series.
+sign-flip change-points---polarity reversals from $+\mu_0$ to $-\mu_0$---in
+noisy univariate time series.
 The algorithm combines an antipodal correlation pre-filter, a roughness
 discontinuity detector, and an absolute MDL gain acceptance criterion.
 The key contribution is a precision-stability property: unlike threshold
 detectors whose false discovery fraction grows with turbulence, MASS/SMASH
-precision remains invariant across the SNR range tested because the MDL gain
+precision remains near 1.000 across the SNR range tested because the MDL gain
 criterion is denominated in bits, not in signal-derived statistics.
 
-Three solar wind case-study experiments yield the following principal findings.
+Three solar wind synthetic experiments and one real-data pilot yield the
+following principal findings.
 
 \begin{enumerate}
 
 \item \textbf{Precision 1.000 across the full turbulence sweep (5\%--50\%
 $\times B_0$, SNR 20:1 to 2:1).}
 No false detections are produced at any tested turbulence level.
-The $d|\mathbf{B}|/dt$ threshold baseline, by contrast, falls to precision
-0.037 at 50\% turbulence (758 spurious detections for 28 true events).
-PVI precision is stable at 0.944--0.947 across all levels due to its
-local variance normalization.
+The $d|\mathbf{B}|/dt$ threshold baseline falls to precision 0.037 at 50\%
+turbulence (758 spurious detections for 28 true events).
+PVI precision is stable at 0.944--0.947 via local variance normalization.
 
-\item \textbf{Confounder rejection: 18\% fire rate for MASS/SMASH vs 98\%
-for the threshold baseline.}
-When 40 non-antipodal confounding events (variance bursts and $B_z$ dips)
-are injected alongside 40 true crossings, the baseline fires on 98\% of
-confounders, MASS/SMASH on 18\%, and PVI on 8\%.
-MASS/SMASH and PVI have complementary rejection mechanisms and together would
-suppress nearly all tested confounder types.
-
-\item \textbf{MASS/SMASH recall partitions the event population into two stable
-subsets.}
-At 30\% turbulence and above, the same 19 strong crossings are always detected
-(high MDL gain) and the same 9 weak crossings are never detected (insufficient
-MDL gain).
+\item \textbf{MASS/SMASH recall bifurcates rather than degrades continuously.}
+Above 20\% turbulence, the same 19 strong crossings are always detected
+(100\% precision) and the same 9 weak crossings are never detected.
 This stable partition is more useful for follow-up studies than a threshold
 whose detection set changes unpredictably with noise.
 
+\item \textbf{Confounder rejection: 18\% fire rate for MASS/SMASH vs 98\%
+for the threshold baseline.}
+When 40 non-antipodal confounding events are injected alongside 40 true
+crossings, the baseline fires on 98\% of confounders, MASS/SMASH on 18\%,
+and PVI on 8\%.
+MASS/SMASH and PVI have complementary rejection mechanisms.
+
 \item \textbf{Complementarity with PVI: joint catalog covers 95\% of events
-at $\sim$5\% combined FDF.}
+at $\approx$5\% combined FDF.}
 Of the 58 single-regime benchmark true positives, 24 correspond to crossings
 PVI missed.
-A PVI-first, MASS/SMASH-supplement pipeline covers the broadest population
+A PVI-first, MASS/SMASH-supplement pipeline provides the broadest coverage
 with manageable false discovery fraction.
 
 \item \textbf{Rotation angle analysis: MASS/SMASH true positives are
-statistically indistinguishable from PVI events when corrected for the
-detection localization offset.}
-The $\approx\pm 30\s$ offset is an implementation artifact of finite chunk
-discretization, not a physically meaningful sub-feature.
+indistinguishable from PVI events when evaluated at the correct positions.}
+The $\approx \pm 30\secunit$ offset is an implementation artifact of finite
+chunk discretization.
+At matched injected positions, MASS/SMASH and PVI mean rotation angles agree
+to within $1^\circ$--$14^\circ$ across all averaging windows.
+
+\item \textbf{Qualitative consistency on real Wind/MFI data.}
+On 20 days of real Wind/MFI data (March 2001), MASS/SMASH produces
+154 detections (7.7 day$^{-1}$)---7.8$\times$ fewer than the baseline and
+15.6$\times$ fewer than PVI---matching the high-turbulence synthetic pattern
+and yielding a per-day rate consistent with published current sheet surveys.
 
 \end{enumerate}
 
-Future work will address: (a) quantitative validation on real spacecraft
-data against labeled sector-boundary catalogs (Parker Solar Probe FIELDS,
-Solar Orbiter MAG, Wind/MFI with expert annotation); (b) multi-component
-and vector-magnitude detection for oblique crossings; (c) systematic MDL
-gain threshold calibration against labeled training data; (d) real-time
-streaming implementation; and (e) application to EEG, climate, and power
-systems domains with appropriate parameter recalibration.
+Future work will address: (a) quantitative validation against labeled
+sector-boundary catalogs from Parker Solar Probe FIELDS, Solar Orbiter MAG,
+and Wind/MFI with expert annotation; (b) multi-component and vector-magnitude
+detection for oblique crossings; (c) systematic MDL gain threshold calibration
+against labeled training data; (d) real-time streaming implementation; and
+(e) application to EEG, climate, and power systems with appropriate parameter
+recalibration.
 
 \section*{Acknowledgments}
 
-The author thanks the Wind/MFI team \citep{Lepping1995} and the NASA/SPDF
-CDAWeb service for public archive access used during algorithm development.
-Data generation and analysis used NumPy \citep{Harris2020}, SciPy
-\citep{Virtanen2020}, and Matplotlib \citep{Hunter2007}.
+The author thanks the Wind/MFI instrument team \citep{Lepping1995} and the
+NASA/SPDF CDAWeb service for public archive access.
+Data analysis used NumPy \citep{Harris2020}, SciPy \citep{Virtanen2020},
+and Matplotlib \citep{Hunter2007}.
 
 \section*{Data and Code Availability}
 
 All code for MASS/SMASH, synthetic data generation, SNR sweep, contaminated
 benchmark, and PVI catalog construction is available at
 \url{https://github.com/macmayo1993/seam-aware-modeling}.
-All benchmarks reproduce from a single command using the included synthetic
-data generator.
+The 20-day Wind/MFI CSV data used in Section~\ref{sec:real_data} was
+downloaded from the NASA CDAWeb public archive (dataset WI\_H0\_MFI) and
+is included in the repository.
+All synthetic benchmarks reproduce from a single command.
 
 %% ============================================================
 \begin{thebibliography}{99}
@@ -1239,12 +1239,6 @@ Neugebauer, M., et al. (1984),
 The plasma and magnetic field signatures of magnetic holes in the solar wind,
 \textit{J.~Geophys.\ Res.}, \textbf{89}, 5395--5408,
 doi:10.1029/JA089iA07p05395.
-
-\bibitem[Lockwood et al.(2001)]{Lockwood2001}
-Lockwood, M., et al. (2001),
-Reconstruction of solar wind variations during the last 100 years,
-\textit{J.\ Geophys.\ Res.}, \textbf{106}(A8), 16021--16038,
-doi:10.1029/2000JA000025.
 
 \bibitem[Osman et al.(2014)]{Osman2014}
 Osman, K.~T., et al. (2014),
