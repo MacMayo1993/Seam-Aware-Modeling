@@ -159,12 +159,127 @@ def _synthetic_solar_wind(n_days=30, cadence_s=3, seed=42):
     return times, Bx, By, Bz, B_mag
 
 
-def fetch_wind_mfi(trange=None, datatype='h0', force_synthetic=False):
+def _load_cdf(cdf_path):
+    """
+    Load Wind/MFI BGSE from a locally downloaded CDF file.
+
+    Supports both cdflib (pip install cdflib) and spacepy.pycdf.
+    The CDF should contain variable 'BGSE' (or 'B3GSE') with shape (N, 3)
+    and an epoch variable 'Epoch'.
+
+    Download instructions:
+      1. Go to https://cdaweb.gsfc.nasa.gov/cgi-bin/eval2.cgi
+      2. Dataset: WI_H0_MFI
+      3. Time range: 2001-03-01 to 2001-03-31
+      4. Variables: BGSE (3-sec magnetic field in GSE coordinates)
+      5. Output format: CDF
+      6. Save the file and pass its path as cdf_path here.
+    """
+    # Try cdflib first (pure Python, no compiled deps)
+    try:
+        import cdflib
+        cdf = cdflib.CDF(cdf_path)
+        info = cdf.cdf_info()
+        var_names = [v.lower() for v in info.zVariables + info.rVariables
+                     if hasattr(info, 'zVariables') or hasattr(info, 'rVariables')]
+        # cdflib API differs by version — fallback to explicit attribute names
+        try:
+            all_vars = info.zVariables + info.rVariables
+        except AttributeError:
+            all_vars = list(cdf.cdf_info()['zVariables']) + list(cdf.cdf_info()['rVariables'])
+
+        # Find B vector variable
+        b_var = None
+        for candidate in ['BGSE', 'B3GSE', 'BF1', 'B']:
+            if candidate in all_vars:
+                b_var = candidate
+                break
+        if b_var is None:
+            raise RuntimeError(f"No B vector variable found. Available: {all_vars}")
+
+        # Find epoch variable
+        epoch_var = None
+        for candidate in ['Epoch', 'EPOCH', 'epoch', 'Time']:
+            if candidate in all_vars:
+                epoch_var = candidate
+                break
+        if epoch_var is None:
+            raise RuntimeError(f"No Epoch variable found. Available: {all_vars}")
+
+        epochs = cdf.varget(epoch_var)
+        B_data = cdf.varget(b_var)
+
+        # Convert CDF epoch (milliseconds since 0000-01-01 or nanoseconds) to Unix seconds
+        try:
+            times = cdflib.cdfepoch.to_datetime(epochs, to_np=True)
+            # Convert numpy datetime64 -> float seconds
+            times = times.astype('datetime64[s]').astype(float)
+        except Exception:
+            # Fallback: assume CDF_EPOCH (ms since 0 AD) -> Unix
+            times = (epochs - 62167219200000.0) / 1000.0
+
+        Bx, By, Bz = B_data[:, 0], B_data[:, 1], B_data[:, 2]
+        B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
+        print(f"Loaded {len(times)} samples from {cdf_path} via cdflib")
+        return times, Bx, By, Bz, B_mag
+
+    except ImportError:
+        pass  # cdflib not installed, try spacepy
+
+    # Try spacepy
+    try:
+        from spacepy import pycdf
+        cdf = pycdf.CDF(cdf_path)
+        b_var = None
+        for candidate in ['BGSE', 'B3GSE', 'BF1', 'B']:
+            if candidate in cdf:
+                b_var = candidate
+                break
+        if b_var is None:
+            raise RuntimeError(f"No B variable found. Keys: {list(cdf.keys())}")
+
+        epoch_var = None
+        for candidate in ['Epoch', 'EPOCH', 'epoch', 'Time']:
+            if candidate in cdf:
+                epoch_var = candidate
+                break
+
+        import datetime
+        epochs = cdf[epoch_var][...]
+        if hasattr(epochs[0], 'timestamp'):
+            times = np.array([e.timestamp() for e in epochs])
+        else:
+            times = np.array(epochs, dtype=float)
+
+        B_data = cdf[b_var][...]
+        Bx, By, Bz = B_data[:, 0], B_data[:, 1], B_data[:, 2]
+        B_mag = np.sqrt(Bx**2 + By**2 + Bz**2)
+        print(f"Loaded {len(times)} samples from {cdf_path} via spacepy")
+        return times, Bx, By, Bz, B_mag
+
+    except ImportError:
+        raise RuntimeError(
+            "Neither cdflib nor spacepy is installed. "
+            "Install one: pip install cdflib   or   pip install spacepy"
+        )
+
+
+def fetch_wind_mfi(trange=None, datatype='h0', force_synthetic=False, cdf_path=None):
     """
     Return (times, Bx, By, Bz, B_mag) for Wind MFI March 2001.
 
-    Tries PySPEDAS first; falls back to synthetic data if download fails.
+    Priority order:
+      1. If cdf_path is given, load from that local CDF file.
+      2. Try PySPEDAS download.
+      3. Fall back to synthetic data.
+
+    To download the CDF manually:
+      https://cdaweb.gsfc.nasa.gov/cgi-bin/eval2.cgi
+      Dataset: WI_H0_MFI, Variable: BGSE, 2001-03-01 to 2001-03-31, format: CDF
     """
+    if cdf_path is not None:
+        return _load_cdf(cdf_path)
+
     if trange is None:
         trange = ['2001-03-01', '2001-03-31']
 
@@ -178,8 +293,15 @@ def fetch_wind_mfi(trange=None, datatype='h0', force_synthetic=False):
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cdf', default=None,
+                        help='Path to a locally downloaded Wind/MFI CDF file. '
+                             'If omitted, tries PySPEDAS, then falls back to synthetic.')
+    args = parser.parse_args()
+
     os.makedirs('outputs', exist_ok=True)
-    times, Bx, By, Bz, B_mag = fetch_wind_mfi()
+    times, Bx, By, Bz, B_mag = fetch_wind_mfi(cdf_path=args.cdf)
     np.save('outputs/wind_mfi_times.npy', times)
     np.save('outputs/wind_mfi_B.npy', np.stack([Bx, By, Bz, B_mag], axis=1))
     print(f"Saved {len(times)} samples over "

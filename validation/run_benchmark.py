@@ -159,6 +159,26 @@ def evaluate_detector(detected_peaks, catalog_peaks, tolerance_samples=10):
 
 
 if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Run MASS/SMASH benchmark on Wind MFI data')
+    parser.add_argument('--cdf', default=None,
+                        help='Path to a locally downloaded Wind/MFI CDF file. '
+                             'If omitted, tries PySPEDAS then falls back to synthetic data.')
+    args = parser.parse_args()
+
+    os.makedirs('outputs', exist_ok=True)
+
+    # Load or generate data
+    if args.cdf is not None or not (os.path.exists('outputs/wind_mfi_B.npy') and
+                                     os.path.exists('outputs/wind_mfi_times.npy')):
+        sys.path.insert(0, os.path.dirname(__file__))
+        from fetch_data import fetch_wind_mfi
+        print(f"{'Loading CDF: ' + args.cdf if args.cdf else 'Fetching Wind MFI data ...'}")
+        times_raw, Bx_raw, By_raw, Bz_raw, Bmag_raw = fetch_wind_mfi(cdf_path=args.cdf)
+        np.save('outputs/wind_mfi_times.npy', times_raw)
+        np.save('outputs/wind_mfi_B.npy', np.stack([Bx_raw, By_raw, Bz_raw, Bmag_raw], axis=1))
+        print(f"Cached {len(times_raw)} samples to outputs/")
+
     B = np.load('outputs/wind_mfi_B.npy')
     times = np.load('outputs/wind_mfi_times.npy')
     catalog_peaks = np.load('outputs/catalog_peaks.npy')
