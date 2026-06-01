@@ -742,6 +742,26 @@ At 50\%: MASS/SMASH F1 = 0.809 vs baseline 0.071.
 In regimes where noise amplitude is comparable to signal amplitude, MASS/SMASH
 is the only single-pass method in this benchmark that produces a reliable catalog.
 
+\textbf{PELT with standard BIC penalty produces no usable catalog.}
+We evaluate PELT \citep{Killick2012} with an $L^2$ (Gaussian mean-change)
+cost function and BIC penalty $\beta = \log(N)\,\hat{\sigma}^2$, where
+$\hat{\sigma}$ is the median-absolute-deviation noise estimate.
+PELT produces 1{,}660--1{,}665 detections per experiment (for 28 true events),
+yielding precision $P \approx 0.017$ and recall $R = 1.000$
+at \emph{every turbulence level} (5\%--50\%).
+The number of breakpoints is essentially constant across turbulence
+(1{,}665 at 5\%, 1{,}660 at 50\%): PELT has no turbulence-dependent
+precision behavior whatsoever.
+This occurs because a Kolmogorov power-law turbulence spectrum at 3-s cadence
+produces thousands of short-duration local mean offsets that overwhelm the BIC
+penalty irrespective of overall amplitude.
+Even at 1{,}000$\times$ the BIC penalty, precision improves only to
+$P = 0.084$ (332 detections for 28 true events).
+The absolute MDL gain threshold ($G > 20$ bits, denominated in compression
+bits rather than signal-derived statistics) is immune to this
+penalty-overwhelm mechanism, which is why MASS/SMASH maintains $P = 1.000$
+while PELT precision collapses to $P = 0.017$ at the same turbulence levels.
+
 \subsection{Contaminated Benchmark: Rejection of Non-Antipodal Events}
 \label{subsec:contaminated}
 
@@ -1395,6 +1415,15 @@ The $\approx \pm 30\secunit$ offset is an implementation artifact of finite
 chunk discretization.
 At matched injected positions, MASS/SMASH and PVI mean rotation angles agree
 to within $1^\circ$--$14^\circ$ across all averaging windows.
+
+\item \textbf{PELT with BIC penalty collapses to $P = 0.017$ at all
+turbulence levels.}
+PELT \citep{Killick2012} with a Gaussian mean-change cost and BIC penalty
+produces 1{,}660--1{,}665 detections for 28 true events, independent of
+turbulence amplitude (5\%--50\%).
+Even at 1{,}000$\times$ BIC, precision improves only to 0.084.
+Signal-derived penalties are overwhelmed by Kolmogorov turbulence, confirming
+that the absolute 20-bit MDL gate is necessary for precision stability.
 
 \item \textbf{Component ablation: MDL gate = precision stabilizer;
 roughness detector = primary recall driver; antipodal pre-filter =
