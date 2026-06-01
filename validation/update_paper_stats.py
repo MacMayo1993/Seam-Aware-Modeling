@@ -210,6 +210,23 @@ def run():
         r' 20\%--50\% turbulence,'
     )
 
+    # 4b. Discussion: "always finding the same 19 events and always missing the same 9"
+    paper_text = paper_text.replace(
+        'always finding the same 19 events and always missing the same 9.',
+        f'consistently finding the same strong crossings and missing the same weak ones'
+        ' (stable partition across 5 seeds).'
+    )
+
+    # 4c. Discussion: "recall of ≈50--68%" → actual mean min-max from sweep
+    ms_r_all = [r['ms_r_mean'] for r in rows]
+    ms_r_min_pct = round(min(ms_r_all) * 100)
+    ms_r_max_pct = round(max(ms_r_all) * 100)
+    paper_text = paper_text.replace(
+        r'MASS/SMASH accepts recall of $\approx 50$--68\% in exchange for precision',
+        f'MASS/SMASH accepts mean recall of {ms_r_min_pct}\\%--{ms_r_max_pct}\\%'
+        r' (across 5 seeds) in exchange for precision'
+    )
+
     # 5. Prose: specific-count phrases become seed-averaged
     paper_text = paper_text.replace(
         r'The 19 events detected at every turbulence level from 20\% onward are the',
