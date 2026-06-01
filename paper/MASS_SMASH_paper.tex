@@ -78,6 +78,10 @@ shows MASS/SMASH precision at 1.000 at every level tested, while a
 $d|\mathbf{B}|/dt$ threshold baseline falls to precision 0.037 at 50\%
 turbulence (758 spurious detections for 28 true events); PVI is stable at
 0.944--0.947 via local variance normalization.
+PELT \citep{Killick2012} with the BIC penalty produces $>$1{,}600 detections
+for 28 true events at \emph{all} turbulence levels ($P \approx 0.017$),
+demonstrating that signal-derived penalties are overwhelmed by Kolmogorov noise
+irrespective of amplitude.
 A contaminated benchmark with 40 non-antipodal confounding events shows the
 baseline fires on 98\% of confounders, MASS/SMASH on 18\%, and PVI on 8\%;
 the two structure-selective methods exhibit complementary rejection mechanisms.
@@ -236,6 +240,10 @@ None of these methods directly addresses the precision collapse problem
 identified in Section~\ref{sec:intro}: they use thresholds derived from
 signal statistics (likelihood ratios, posterior probabilities, penalization
 coefficients) that are susceptible to being overwhelmed by heavy-tailed noise.
+We confirm this empirically in Section~\ref{subsec:snr}: PELT with the BIC
+penalty produces $>$1{,}600 false detections for 28 true events across the
+full turbulence range 5\%--50\%, with essentially no dependence on turbulence
+amplitude.
 MDL-based segmentation \citep{Rissanen1978,Davis2006} comes closest to an
 absolute-threshold approach: the $\log_2 N$-bit location penalty is
 independent of signal amplitude.
