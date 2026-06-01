@@ -260,13 +260,35 @@ def run():
         f'P = 1.000, R = {ms_r_lo_str}--{ms_r_hi_str} (mean across seeds)'
     )
 
-    # 8. Future work: item (c) about multi-seed is now complete — reword it
+    # 8. Baseline false-detection counts at 20%, 30%, 50% turbulence
+    r_20 = next(r for r in rows if abs(r['turb'] - 0.20) < 0.01)
+    bl_p_20 = r_20['bl_p_mean']
+    n_true = 28
+    # Mean FP from mean precision: FP = TP*(1-P)/P, TP ≈ n_true * BL_R ≈ n_true
+    bl_fp_20 = round(n_true * (1 - bl_p_20) / max(bl_p_20, 0.001))
+    bl_fp_30 = round(n_true * (1 - r_30['bl_p_mean']) / max(r_30['bl_p_mean'], 0.001))
+    bl_fp_50 = round(n_true * (1 - r_50['bl_p_mean']) / max(r_50['bl_p_mean'], 0.001))
+
     paper_text = paper_text.replace(
-        r'(c) multi-seed and multi-geometry replication'
-        r'\nto convert the single-seed SNR sweep into calibrated confidence intervals;',
-        r'(c) broader multi-geometry replication across non-radial and'
-        r'\noblique field orientations (the present multi-seed sweep uses'
-        r'\npurely radial synthetic signals);'
+        'At 20\\%, the baseline produces 4 false detections (P = 0.875, 32 total).\n'
+        'At 30\\%, this grows to 146 false detections (P = 0.161, 174 total).\n'
+        'At 50\\%, it produces 730 false detections (P = 0.037, 758 total).',
+        f'At 20\\%, the baseline produces on average {bl_fp_20} false detections'
+        f' (mean P = {bl_p_20:.3f}).\n'
+        f'At 30\\%, this grows to {bl_fp_30} false detections'
+        f' (mean P = {r_30["bl_p_mean"]:.3f}).\n'
+        f'At 50\\%, it produces {bl_fp_50} false detections'
+        f' (mean P = {r_50["bl_p_mean"]:.3f}).'
+    )
+
+    # 9. Future work: item (c) about multi-seed is now complete — reword it
+    # Note: the text wraps across two lines in the paper
+    paper_text = paper_text.replace(
+        '(c) multi-seed and multi-geometry replication\n'
+        'to convert the single-seed SNR sweep into calibrated confidence intervals;',
+        '(c) broader multi-geometry replication across non-radial and\n'
+        'oblique field orientations (the present multi-seed sweep uses\n'
+        'purely radial synthetic signals);'
     )
 
     PAPER.write_text(paper_text)
