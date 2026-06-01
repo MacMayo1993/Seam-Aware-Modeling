@@ -16,6 +16,8 @@
 \usepackage{algpseudocode}
 \usepackage{multirow}
 
+\graphicspath{{./}{../validation/outputs/}}
+
 \geometry{margin=1in}
 \doublespacing
 
@@ -47,53 +49,38 @@ with Application to Solar Wind Current Sheets}}
 \maketitle
 
 \begin{abstract}
-Detecting polarity-reversal events --- transitions from a sustained positive
-state to an approximately equal-magnitude negative state --- is a fundamental
-problem in physics, biomedical engineering, and power systems.
-A practical difficulty is that standard threshold detectors exhibit
-\emph{precision collapse} at high noise levels: as broadband turbulence
-increases, threshold-based methods accumulate exponentially many false
-detections while still finding all true events, rendering the resulting
-catalog unreliable.
+Standard threshold detectors for polarity-reversal events suffer from
+\emph{precision collapse}: as broadband noise increases, false detections
+accumulate faster than the threshold adapts, rendering catalogs unreliable
+at high turbulence.
+We introduce MASS/SMASH, a conservative change-point detector that addresses
+this by combining an \emph{antipodal correlation pre-filter} --- which scores
+candidate positions for sign-reversal antisymmetry rather than raw gradient
+magnitude --- with a Minimum Description Length (MDL) model-selection step
+whose acceptance threshold is denominated in bits of compression gain rather
+than multiples of a signal-derived statistic.
 
-We introduce MASS/SMASH (Multi-seAm Seam-Sensitive Modeling / Symmetric
-Minimum-description-length Antipodal Seam Hunting), which combines an
-\emph{antipodal correlation detector} that scores candidate positions for
-sign-reversal antisymmetry, a roughness discontinuity detector, and a
-Minimum Description Length (MDL) model-selection step that accepts a seam
-only when the two-segment compression gain exceeds the $\approx \log_2 N$-bit
-cost of recording the seam location.
-The absolute nature of the MDL threshold (in bits, not in signal standard
-deviations) is a key design property: unlike threshold detectors whose
-thresholds scale with signal noise, the MDL criterion is not inflated by
-increasing turbulence, providing precision stability across SNR regimes.
+We validate MASS/SMASH as a complementary selector for solar wind magnetic
+current sheet detection across three synthetic benchmarks.
+In a single-regime benchmark (30 days, 120 injected crossings, 30\%
+Kolmogorov turbulence), MASS/SMASH achieves precision 0.921 / recall 0.483,
+contributing 24 true events missed by the standard PVI detector while sharing
+a 95\% joint catalog at $\sim$5\% combined false discovery fraction.
+An SNR sweep across turbulence amplitudes 5\%--50\% of the background field
+shows MASS/SMASH precision at 1.000 at every level tested, while a
+$d|\mathbf{B}|/dt$ threshold baseline falls to precision 0.037 at 50\%
+turbulence (758 spurious detections for 28 true events); PVI holds at
+0.944--0.947 via its local variance normalization.
+A contaminated benchmark with 40 non-antipodal confounding events shows the
+baseline fires on 98\% of confounders, MASS/SMASH on 18\%, and PVI on 8\%,
+with MASS/SMASH and PVI exhibiting complementary confounder-rejection
+mechanisms.
 
-We validate MASS/SMASH on solar wind magnetic current sheet detection across
-two complementary synthetic benchmarks.
-(1) \textbf{Single-regime benchmark}: 30 days, 3-s cadence, 120 injected
-polarity reversals, 30\% Kolmogorov turbulence.
-MASS/SMASH achieves precision 0.921 / recall 0.483 (F1 = 0.634); PVI achieves
-precision 0.989 / recall 0.750 (F1 = 0.853); a $d|\mathbf{B}|/dt$ threshold
-baseline achieves precision 0.909 / recall 1.000 (F1 = 0.952).
-(2) \textbf{SNR sweep}: 7-day synthetic signals at turbulence amplitudes
-5\%--50\% of the background field ($B_0$).
-MASS/SMASH precision is \textbf{1.000 at every turbulence level tested},
-including 50\% turbulence (SNR $\approx$ 2:1).
-Over the same range, threshold-baseline precision falls from 1.000 at 5\%
-turbulence to 0.037 at 50\% turbulence (758 spurious detections for 28 true
-events), while PVI precision holds at 0.944--0.947.
-(3) \textbf{Contaminated benchmark}: 40 non-antipodal confounding events
-(turbulent variance bursts and magnitude dips) injected alongside 40 true
-crossings.
-The threshold baseline fires on 98\% of confounders;
-MASS/SMASH fires on 18\%; PVI fires on 8\%.
-
-We further characterize a $\pm 30\s$ detection localization offset arising
-from finite chunked-inference discretization, and show that when rotation
-angles are computed at matched ground-truth positions, MASS/SMASH
-true-positive events are statistically indistinguishable from PVI events.
-We discuss extensions to magnetospheric physics, EEG, climate, and power
-systems fault detection.
+All quantitative results are from synthetic data; application to real
+spacecraft observations is the primary direction for future work.
+We discuss the precision-recall trade-off, a $\pm 30\s$ detection localization
+artifact, and extensions to magnetospheric physics, EEG, climate, and power
+systems.
 \end{abstract}
 
 \textbf{Keywords:} change-point detection; sign-flip; antipodal correlation;
@@ -142,11 +129,16 @@ For applications where the downstream analysis is expensive
 What is needed is a method whose precision is stable (or gracefully degrading)
 as noise increases, even at the cost of lower recall.
 
-\subsection{MASS/SMASH: Precision Through Structural Filtering}
+\subsection{MASS/SMASH: A Conservative Complementary Selector}
 
 We introduce MASS/SMASH (Multi-seAm Seam-Sensitive Modeling / Symmetric
-Minimum-description-length Antipodal Seam Hunting), which achieves
-precision stability through two design choices.
+Minimum-description-length Antipodal Seam Hunting).
+Its design goal is not to maximize recall but to provide a conservative,
+structurally selective complement to gradient-based detectors like PVI:
+a method that contributes non-redundant true detections while maintaining
+low false discovery fraction across a wide range of noise conditions.
+
+Two design choices support this goal.
 
 \textbf{Structural pre-filtering via antipodal correlation.}
 Before evaluating any MDL criterion, MASS/SMASH scores each candidate position
@@ -154,25 +146,24 @@ $\tau$ for antisymmetry between the pre- and post-window signals:
 $\mathcal{A}(\tau) = \mathrm{corr}(y[\tau-w:\tau],\,-\,y[\tau:\tau+w])$.
 Only positions with $\mathcal{A}(\tau) > 0.35$ are advanced to the MDL stage.
 A turbulent spike with random phase structure scores near zero on
-$\mathcal{A}$, regardless of its amplitude; a genuine sign-flip scores near 1.0.
-This pre-filter eliminates the overwhelming majority of turbulence-induced
-candidate positions before any expensive model fitting.
+$\mathcal{A}$ regardless of its amplitude; a genuine sign-flip scores near 1.0.
+This pre-filter rejects the structural class of events that gradient detectors
+accept: events with large gradient magnitude but without antipodal coherence.
 
-\textbf{Absolute MDL gain threshold.}
-The MDL acceptance criterion requires that the description-length reduction
-from a two-segment model exceed $G = 20$ bits.
-Crucially, this threshold is \emph{absolute} --- measured in bits of compression
-gain, not in multiples of a signal-derived statistic.
-As turbulence increases, the single-segment model fits the data worse, but the
-two-segment model fits it similarly worse; the gain of the split does not
-inflate with noise.
-This contrasts with a $k\sigma$ threshold, where $\sigma$ grows with turbulence
-and the threshold grows too, but the false-positive rate grows faster still
-because the tail of the gradient distribution is heavier than Gaussian.
-
-Together, these two properties produce the precision-stability curve shown in
-Figure~\ref{fig:snr_sweep}: MASS/SMASH precision remains 1.000 from SNR 20:1
-to SNR 2:1, while the threshold baseline collapses.
+\textbf{MDL gain threshold denominated in bits.}
+The MDL acceptance criterion requires a compression gain of $G = 20$ bits.
+This threshold is not derived from signal statistics --- it is a fixed
+information-theoretic cost, calibrated so that the gain from specifying a seam
+location must exceed the cost of encoding it.
+As turbulence increases, both the single- and two-segment model residuals grow,
+but the systematic RSS reduction from a true structural break grows too;
+for noise-only fluctuations, no systematic reduction exists regardless of
+amplitude (Section~\ref{subsec:stability}).
+The empirical consequence, validated in Figure~\ref{fig:snr_sweep}, is that
+MASS/SMASH precision remains near 1.000 from SNR 20:1 down to SNR 2:1 on this
+benchmark --- but this is an \emph{empirical} finding at fixed threshold, not a
+general theorem; different signal geometries or lower thresholds will produce
+different behavior.
 
 \subsection{Solar Wind as a Validation Domain}
 
@@ -335,31 +326,50 @@ $K = 4, 8, 12$ harmonics, polynomials of degree 2, 3, and 5, and
 autoregressive models of orders 5, 10, and 15.
 The best model per segment is selected by its BIC contribution.
 
-\subsection{Precision Stability: Why the MDL Threshold Is Noise-Resistant}
+\subsection{Mechanism for Empirical Precision Stability}
 \label{subsec:stability}
 
-The key precision-stability property follows from the additive structure of
-equation~\eqref{eq:mdl}.
-When turbulence amplitude $\sigma_n$ increases, both the single-segment RSS and
-the two-segment RSS increase by $\mathcal{O}(\sigma_n^2)$.
-The MDL gain from a split is:
+The MDL gain from introducing one seam is:
 \begin{equation}
   \Delta\MDL \;=\; \MDL_0 - \MDL_1 \;\approx\;
     \frac{N}{2}\log_2\frac{\RSS_0}{\RSS_1} - \frac{\alpha}{2}\log_2 N,
   \label{eq:gain}
 \end{equation}
-where $\RSS_0$ is the single-segment residual and $\RSS_1$ the two-segment
-residual.
-For a true sign-flip event with amplitude $\Delta\mu$ embedded in noise
-$\sigma_n$, $\RSS_0/\RSS_1 \approx 1 + (\Delta\mu/\sigma_n)^2 \cdot N/2$,
-so $\Delta\MDL$ grows logarithmically with SNR.
-For a turbulent fluctuation with no structural break, $\RSS_0 \approx \RSS_1$
-regardless of $\sigma_n$, and $\Delta\MDL \approx 0$.
-Thus the MDL gain discriminates structural breaks from noise-driven gradients,
-with a fixed acceptance threshold of $G = 20$ bits that does not depend on
-$\sigma_n$.
-This is the mechanism underlying the precision-stability curves in
-Figure~\ref{fig:snr_sweep}.
+where $\RSS_0$ and $\RSS_1$ are the single- and two-segment residual sums of
+squares and the seam-encoding cost is $\frac{\alpha}{2}\log_2 N$ bits.
+
+For a window of $N$ samples containing a clean sign-flip transition from
+$+A$ to $-A$ at the midpoint, embedded in i.i.d.\ Gaussian noise $\sigma_n$:
+the single-segment model fits the mean at zero, accumulating residual
+$\RSS_0 \approx N(A^2 + \sigma_n^2)$; the two-segment model fits each half
+at its mean, leaving only noise residual $\RSS_1 \approx N\sigma_n^2$.
+The ratio is:
+\begin{equation}
+  \frac{\RSS_0}{\RSS_1} \;\approx\; 1 + \left(\frac{A}{\sigma_n}\right)^2,
+  \label{eq:rss_ratio}
+\end{equation}
+where $A/\sigma_n$ is the half-amplitude-to-noise ratio.
+The MDL gain is then $(N/2)\log_2(1 + \mathrm{SNR}^2) - (\alpha/2)\log_2 N$,
+which grows with both window size and SNR.
+For a strong crossing (large $A/\sigma_n$), this gain far exceeds the 20-bit
+threshold even at high turbulence, provided the crossing has enough polarity
+contrast; the 9 weak crossings that MASS/SMASH never detects in the SNR sweep
+are those where $A/\sigma_n$ is too small for the gain to reach 20 bits.
+
+For a turbulent fluctuation with no underlying structural break,
+the best-found split does not reduce the residual systematically:
+$\RSS_0/\RSS_1 \approx 1$ in expectation, and
+$\Delta\MDL \approx -(\alpha/2)\log_2 N < 0 < G$.
+The seam-encoding penalty $(\alpha/2)\log_2 N$ is calibrated to cancel the
+expected gain from the best of $N$ random splits of noise
+\citep{Rissanen1978,Davis2006}, so noise-driven candidates are suppressed
+regardless of their amplitude.
+This is the mechanism underlying the empirically observed precision stability
+in Figure~\ref{fig:snr_sweep}; it holds when the structural break provides
+systematic RSS reduction, which turbulent spikes do not.
+We present this as a qualitative mechanism and empirical observation rather
+than a theorem: practical factors including windowing artifacts, model-zoo
+selection, and cumulative-gain aggregation affect the actual gain values.
 
 \subsection{Chunked Inference on Long Time Series}
 \label{subsec:chunked}
@@ -451,9 +461,9 @@ with 300-s minimum separation.
 Note that $d|\mathbf{B}|/dt$ measures the scalar magnitude derivative, not the
 vector gradient $|d\mathbf{B}/dt|$; a clean polarity reversal can rotate
 $\mathbf{B}$ by $180^\circ$ while leaving $|\mathbf{B}|$ nearly constant.
-The baseline threshold is set globally from signal statistics (μ, σ of the
-entire time series), which is the source of its sensitivity to the turbulence
-level (Section~\ref{subsec:snr}).
+The baseline threshold is set globally from signal statistics ($\mu$, $\sigma$
+of the entire time series), which is the source of its sensitivity to the
+turbulence level (Section~\ref{subsec:snr}).
 
 \subsection{Evaluation Metrics}
 \label{subsec:metrics}
@@ -572,7 +582,7 @@ Turb. & SNR & \multicolumn{3}{c}{MASS/SMASH} & \multicolumn{3}{c}{PVI}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{../validation/outputs/fig_snr_sweep.png}
+\includegraphics[width=\linewidth]{fig_snr_sweep.png}
 \caption{Precision, recall, and F1 vs turbulence amplitude.
 MASS/SMASH precision = 1.000 at every level (flat blue line).
 PVI precision is stable at 0.944--0.947.
@@ -674,7 +684,7 @@ Signal & Detector & $N_\mathrm{det}$ & $P$ & $R$ & F1 & Conf.\ rate \\
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{../validation/outputs/fig_contaminated_benchmark.png}
+\includegraphics[width=\linewidth]{fig_contaminated_benchmark.png}
 \caption{Contaminated benchmark results.
 \textbf{Left}: precision on true crossings (dark = clean, light = with confounders).
 \textbf{Center}: fraction of 40 confounders that triggered a detection.
@@ -756,10 +766,10 @@ KS $p$ compares MASS/SMASH-at-detection vs PVI.}
 Window & PVI $\bar{\omega}$ & MS $\bar{\omega}$ & KS $p$ &
          MS $\bar{\omega}$ & Inj.\ $\bar{\omega}$ \\
 \midrule
-10 s  & 114° & \phantom{00}1° & $1.7\times10^{-44}$ & 101° & 108° \\
-30 s  & 130° & \phantom{00}4° & $1.1\times10^{-42}$ & 128° & 128° \\
-60 s  & 132° & \phantom{0}42° & $4.1\times10^{-31}$ & 132° & 132° \\
-120 s & 134° & \phantom{0}83° & $2.1\times10^{-13}$ & 134° & 133° \\
+10 s  & $114^\circ$ & \phantom{00}$1^\circ$ & $1.7\times10^{-44}$ & $101^\circ$ & $108^\circ$ \\
+30 s  & $130^\circ$ & \phantom{00}$4^\circ$ & $1.1\times10^{-42}$ & $128^\circ$ & $128^\circ$ \\
+60 s  & $132^\circ$ & \phantom{0}$42^\circ$ & $4.1\times10^{-31}$ & $132^\circ$ & $132^\circ$ \\
+120 s & $134^\circ$ & \phantom{0}$83^\circ$ & $2.1\times10^{-13}$ & $134^\circ$ & $133^\circ$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -875,17 +885,24 @@ crossings; full 3-component or vector-magnitude MDL detection would improve
 recall for those cases.
 
 \textbf{Comparator strength.}
-A vector-gradient baseline $|d\mathbf{B}/dt|$ would be a stronger comparator
-than the scalar $d|\mathbf{B}|/dt$ used here.
-The baseline results in Table~\ref{tab:snr_sweep} characterize
-the scalar derivative, which can miss clean polarity reversals.
+The scalar derivative $d|\mathbf{B}|/dt$ is a deliberately simple baseline.
+A vector-gradient baseline $|d\mathbf{B}/dt|$ would be a stronger comparator,
+particularly for clean polarity reversals where $|\mathbf{B}|$ changes little
+while the field direction rotates by $\approx 180^\circ$.
+The precision-collapse results in Table~\ref{tab:snr_sweep} reflect the scalar
+derivative; a vector-gradient baseline would have a lower false alarm rate and
+represent a more demanding test of MASS/SMASH's precision advantage.
 
-\textbf{SNR sweep sample size.}
-Each SNR level uses 28 injected crossings in a 7-day signal.
-Statistical uncertainty in recall estimates is $\approx \pm 0.09$
-($\sqrt{0.5 \times 0.5 / 28}$); the precision-stability result (P = 1.000
-throughout) rests on observing zero false positives across all levels and
-requires validation on longer signals and multiple random seeds.
+\textbf{Single seed; limited SNR-sweep sample size.}
+Each SNR sweep level uses 28 injected crossings from one 7-day realization
+(seed = 42).
+Recall uncertainty is $\approx \pm 0.09$ per level; the precision-stability
+result (P = 1.000 throughout) rests on zero observed false positives across
+7 levels --- a necessary but not sufficient condition for general stability.
+Replication across multiple seeds, longer signals, and varying event rates is
+needed before the precision-stability claim can be quantified with confidence
+intervals.
+We present this as a benchmark finding, not a certified algorithm property.
 
 \textbf{Parameter calibration.}
 The MDL gain threshold (20 bits), seam penalty ($\alpha = 2.0$), antipodal
