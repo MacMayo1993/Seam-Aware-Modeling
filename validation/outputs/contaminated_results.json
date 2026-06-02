@@ -1,0 +1,76 @@
+{
+  "n_true_crossings": 40,
+  "n_confounders_A": 20,
+  "n_confounders_B": 20,
+  "n_confounders_total": 40,
+  "burst_amplitude_nT": 4.0,
+  "bz_dip_depth_pct": 90.0,
+  "results": {
+    "clean_MASS/SMASH": {
+      "tp": 27,
+      "fp": 2,
+      "fn": 13,
+      "n_det": 29,
+      "precision": 0.9310344827586207,
+      "recall": 0.675,
+      "f1": 0.7826086956521738,
+      "conf_hits": 0,
+      "conf_rate": 0.0
+    },
+    "clean_PVI": {
+      "tp": 30,
+      "fp": 0,
+      "fn": 10,
+      "n_det": 30,
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1": 0.8571428571428571,
+      "conf_hits": 0,
+      "conf_rate": 0.0
+    },
+    "clean_Baseline": {
+      "tp": 40,
+      "fp": 68,
+      "fn": 0,
+      "n_det": 108,
+      "precision": 0.37037037037037035,
+      "recall": 1.0,
+      "f1": 0.5405405405405406,
+      "conf_hits": 0,
+      "conf_rate": 0.0
+    },
+    "contaminated_MASS/SMASH": {
+      "tp": 27,
+      "fp": 13,
+      "fn": 13,
+      "n_det": 40,
+      "precision": 0.675,
+      "recall": 0.675,
+      "f1": 0.675,
+      "conf_hits": 7,
+      "conf_rate": 0.175
+    },
+    "contaminated_PVI": {
+      "tp": 30,
+      "fp": 3,
+      "fn": 10,
+      "n_det": 33,
+      "precision": 0.9090909090909091,
+      "recall": 0.75,
+      "f1": 0.821917808219178,
+      "conf_hits": 3,
+      "conf_rate": 0.075
+    },
+    "contaminated_Baseline": {
+      "tp": 40,
+      "fp": 39,
+      "fn": 0,
+      "n_det": 79,
+      "precision": 0.5063291139240507,
+      "recall": 1.0,
+      "f1": 0.6722689075630253,
+      "conf_hits": 39,
+      "conf_rate": 0.975
+    }
+  }
+}

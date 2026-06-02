@@ -1,0 +1,52 @@
+{
+  "window_10s": {
+    "n_pvi": 91,
+    "n_ms": 89,
+    "ks_stat": 1.0,
+    "ks_p": 2.2219231495879605e-53,
+    "pvi_pi_fraction": 0.03296703296703297,
+    "ms_pi_fraction": 0.0,
+    "pi_excess_ratio": 0.0,
+    "chi2_p": 0.25216430169021753,
+    "surrogate_p": 1.0,
+    "signal": false
+  },
+  "window_30s": {
+    "n_pvi": 91,
+    "n_ms": 89,
+    "ks_stat": 0.989010989010989,
+    "ks_p": 1.999730834629166e-51,
+    "pvi_pi_fraction": 0.06593406593406594,
+    "ms_pi_fraction": 0.0,
+    "pi_excess_ratio": 0.0,
+    "chi2_p": 0.04050304252574119,
+    "surrogate_p": 1.0,
+    "signal": false
+  },
+  "window_60s": {
+    "n_pvi": 91,
+    "n_ms": 89,
+    "ks_stat": 0.9106062476848994,
+    "ks_p": 4.954322014617397e-40,
+    "pvi_pi_fraction": 0.06593406593406594,
+    "ms_pi_fraction": 0.0,
+    "pi_excess_ratio": 0.0,
+    "chi2_p": 0.04050304252574119,
+    "surrogate_p": 1.0,
+    "signal": false
+  },
+  "window_120s": {
+    "n_pvi": 91,
+    "n_ms": 89,
+    "ks_stat": 0.653907889862946,
+    "ks_p": 1.3871915075708806e-18,
+    "pvi_pi_fraction": 0.07692307692307693,
+    "ms_pi_fraction": 0.011235955056179775,
+    "pi_excess_ratio": 0.14606741572843818,
+    "chi2_p": 0.07567183424806022,
+    "surrogate_p": 0.0,
+    "signal": false
+  },
+  "verdict": "AMBIGUOUS",
+  "signal_windows_s": []
+}
