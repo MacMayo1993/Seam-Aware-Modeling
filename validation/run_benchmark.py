@@ -4,8 +4,7 @@ import sys
 import os
 import json
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
-from mass_smash import MASSSMASHConfig, detect_seam_candidates, run_mass_smash
+from seamaware.pipeline import MASSSMASHConfig, detect_seam_candidates, run_mass_smash
 
 from baseline import baseline_detector
 

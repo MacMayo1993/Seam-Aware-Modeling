@@ -21,7 +21,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from snr_sweep import generate, evaluate, TURB_FRACS, CADENCE_S, TOLERANCE_S
