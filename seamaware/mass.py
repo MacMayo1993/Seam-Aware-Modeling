@@ -95,6 +95,7 @@ class MASSFramework:
         atoms: Optional[List[str]] = None,
         likelihood: str = "gaussian",
         min_confidence: float = 0.3,
+        min_gain_bits: float = 20.0,
     ):
         self.baseline_type = baseline
         self.baseline_params = baseline_params or {"K": 3}
@@ -102,6 +103,7 @@ class MASSFramework:
         self.atoms = atoms or ["sign_flip"]
         self.likelihood = LikelihoodType(likelihood)
         self.min_confidence = min_confidence
+        self.min_gain_bits = min_gain_bits
 
         # Validate atoms
         for atom_name in self.atoms:
@@ -228,12 +230,14 @@ class MASSFramework:
         improvement = mdl_improvement(baseline_mdl, best_mdl)
         k_star = 0.721
         snr = self._estimate_snr(signal, baseline_pred)
+        gain_bits = improvement["absolute_reduction"]
+        seam_detected = best_atom is not None and gain_bits >= self.min_gain_bits
 
         return MASSResult(
             baseline_mdl=baseline_mdl,
             seam_mdl=best_mdl,
-            seam_detected=best_atom is not None,
-            seam_position=best_position if best_atom else None,
+            seam_detected=seam_detected,
+            seam_position=best_position if seam_detected else None,
             seam_confidence=detection.confidence,
             detection_method=detection.method,
             atom_used=best_atom,
