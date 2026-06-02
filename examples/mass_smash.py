@@ -1439,6 +1439,18 @@ def run_batch_evaluation(
 # =============================================================================
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="MASS/SMASH v2 demo and batch evaluation")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--noise", type=float, default=0.1,
+                        help="Noise std (default 0.1; higher values reduce recall)")
+    parser.add_argument("--batch", action="store_true",
+                        help="Run 50-trial batch evaluation after the demo")
+    parser.add_argument("--no-plot", action="store_true",
+                        help="Skip saving the demo plot")
+    args = parser.parse_args()
+
     print()
     print("=" * 70)
     print("MASS/SMASH v2: Multi-Seam Modeling with Model Zoo")
@@ -1446,25 +1458,33 @@ if __name__ == "__main__":
     print()
     print("Pipeline:")
     print("  1. Seam proposal: antipodal + roughness detectors with NMS")
-    print("  2. Configuration search: bounded subset enumeration (NOT beam search)")
-    print("  3. Model zoo: Fourier / Poly / AR / MLP competition per segment")
+    print("  2. Configuration search: bounded subset enumeration")
+    print("  3. Model zoo: Fourier / Poly / AR competition per segment")
     print("  4. MDL selection: global objective with explicit seam penalty")
     print()
 
-    # Demo with 2 seams
+    # Demo with 2 seams.
+    # MLP is excluded: a global MLP can fit noisy sign-flip signals without
+    # seams, causing the no-seam solution to win at high noise levels.
     print("=" * 70)
-    print("DEMO: Signal with 2 seams")
+    print("DEMO: Signal with 2 sign-flip seams")
     print("=" * 70)
 
     y, true_seams = generate_signal_with_seams(
         T=300,
-        noise_std=0.3,
+        noise_std=args.noise,
         seam_positions=[0.33, 0.67],
         seam_types=["sign_flip", "sign_flip"],
-        seed=42,
+        seed=args.seed,
     )
+    print(f"True seam positions: {true_seams}  (noise_std={args.noise})")
 
-    config = MASSSMASHConfig(max_seams=3, alpha=2.0, verbose=True)
+    config = MASSSMASHConfig(
+        max_seams=3,
+        alpha=2.0,
+        verbose=True,
+        include_mlp=False,  # MLP excluded from demo (see comment above)
+    )
 
     best, all_solutions = run_mass_smash(y, config, true_seams)
 
@@ -1476,13 +1496,20 @@ if __name__ == "__main__":
             f"MDL={sol.total_mdl:.2f}, MSE={sol.total_mse:.6f}"
         )
 
-    # Plot
-    candidates = detect_seam_candidates(y, config)
-    plot_solution(y, best, candidates, true_seams, save_path="mass_smash_demo.png")
+    detected = list(best.seams)
+    print(f"\nResult: detected={detected}, true={true_seams}")
+    if detected:
+        errors = [min(abs(t - d) for d in detected) for t in true_seams]
+        print(f"Localization errors: {errors} samples")
+    else:
+        print("No seams detected (signal may require lower noise or different config).")
 
-    # Optional batch test
-    response = input("\nRun batch evaluation (50 runs)? [Y/n]: ")
-    if response.lower() != "n":
+    if not args.no_plot:
+        candidates = detect_seam_candidates(y, config)
+        plot_solution(y, best, candidates, true_seams, save_path="mass_smash_demo.png")
+        print("Demo plot saved to mass_smash_demo.png")
+
+    if args.batch:
         print()
         print("=" * 70)
         print("BATCH EVALUATION: 50 signals, 1 seam each")
@@ -1491,9 +1518,9 @@ if __name__ == "__main__":
         results = run_batch_evaluation(
             n_runs=50,
             T=300,
-            noise_std=0.3,
+            noise_std=args.noise,
             n_true_seams=1,
-            config=MASSSMASHConfig(alpha=2.0),
+            config=MASSSMASHConfig(alpha=2.0, include_mlp=False),
         )
 
         print()
