@@ -17,6 +17,7 @@ import pytest
 
 try:
     from scipy.optimize import curve_fit
+
     HAS_SCIPY_OPTIMIZE = True
 except ImportError:
     HAS_SCIPY_OPTIMIZE = False
@@ -81,14 +82,12 @@ class TestSignFlipRegime:
         flipped = atom.apply(signal, seam)
 
         # Fit sinusoid to original (discontinuous)
-        popt_orig, _ = curve_fit(_sin_model, t, signal,
-                                  p0=[1, 1, 0, 0], maxfev=5000)
+        popt_orig, _ = curve_fit(_sin_model, t, signal, p0=[1, 1, 0, 0], maxfev=5000)
         pred_orig = _sin_model(t, *popt_orig)
         var_orig = np.var(signal - pred_orig)
 
         # Fit sinusoid to flipped (now continuous)
-        popt_flip, _ = curve_fit(_sin_model, t, flipped,
-                                  p0=[1, 1, 0, 0], maxfev=5000)
+        popt_flip, _ = curve_fit(_sin_model, t, flipped, p0=[1, 1, 0, 0], maxfev=5000)
         pred_flip = _sin_model(t, *popt_flip)
         var_flip = np.var(flipped - pred_flip)
 
@@ -112,8 +111,9 @@ class TestSignFlipRegime:
         once = atom.apply(signal, seam)
         twice = atom.apply(once, seam)
 
-        np.testing.assert_allclose(twice, signal,
-            err_msg="Sign flip should be an involution")
+        np.testing.assert_allclose(
+            twice, signal, err_msg="Sign flip should be an involution"
+        )
 
 
 # =============================================================================
@@ -149,9 +149,9 @@ class TestVarianceShiftRegime:
         )
 
         # Should be close to 1.0 after scaling
-        assert 0.5 < var_ratio_after < 2.0, (
-            f"Variance ratio should be near 1.0, got {var_ratio_after:.2f}"
-        )
+        assert (
+            0.5 < var_ratio_after < 2.0
+        ), f"Variance ratio should be near 1.0, got {var_ratio_after:.2f}"
 
         print(f"\n  Variance ratio: {var_ratio_before:.1f}x → {var_ratio_after:.2f}x")
 
@@ -181,9 +181,7 @@ class TestVarianceShiftRegime:
 
         improvement = mdl_improvement(mdl_baseline, mdl_seam)
 
-        assert improvement["effective"], (
-            f"Variance scaling should reduce MDL"
-        )
+        assert improvement["effective"], f"Variance scaling should reduce MDL"
 
         print(f"\n  MDL reduction: {improvement['relative_reduction']*100:.1f}%")
 
@@ -214,14 +212,14 @@ class TestMeanShiftRegime:
         mean_diff_before = abs(np.mean(signal[seam:]) - np.mean(signal[:seam]))
         mean_diff_after = abs(np.mean(detrended[seam:]) - np.mean(detrended[:seam]))
 
-        assert mean_diff_after < mean_diff_before, (
-            f"Detrending should reduce mean difference"
-        )
+        assert (
+            mean_diff_after < mean_diff_before
+        ), f"Detrending should reduce mean difference"
 
         # Should be much closer after detrending
-        assert mean_diff_after < 1.0, (
-            f"Mean difference should be small after detrending, got {mean_diff_after:.2f}"
-        )
+        assert (
+            mean_diff_after < 1.0
+        ), f"Mean difference should be small after detrending, got {mean_diff_after:.2f}"
 
         print(f"\n  Level shift: {mean_diff_before:.1f} → {mean_diff_after:.2f}")
 
@@ -250,9 +248,7 @@ class TestMeanShiftRegime:
 
         improvement = mdl_improvement(mdl_baseline, mdl_seam)
 
-        assert improvement["effective"], (
-            f"Level shift removal should reduce MDL"
-        )
+        assert improvement["effective"], f"Level shift removal should reduce MDL"
 
         print(f"\n  MDL reduction: {improvement['relative_reduction']*100:.1f}%")
 
@@ -280,8 +276,12 @@ class TestCompositeRegime:
         transformed = atom.apply(signal, seam)
         recovered = atom.inverse(transformed, seam)
 
-        np.testing.assert_allclose(recovered, signal, rtol=1e-10,
-            err_msg="Composite transformation should be invertible")
+        np.testing.assert_allclose(
+            recovered,
+            signal,
+            rtol=1e-10,
+            err_msg="Composite transformation should be invertible",
+        )
 
     def test_composite_homogenizes_variance(self):
         """Composite with VarianceScaleAtom should homogenize variance."""
@@ -290,7 +290,7 @@ class TestCompositeRegime:
         seam = 100
 
         # Signal with both sign flip and variance change
-        signal = np.sin(np.linspace(0, 4*np.pi, n))
+        signal = np.sin(np.linspace(0, 4 * np.pi, n))
         signal[seam:] *= -1
         signal[:seam] += 0.3 * np.random.randn(seam)
         signal[seam:] += 1.0 * np.random.randn(n - seam)
@@ -302,9 +302,9 @@ class TestCompositeRegime:
         var_ratio_before = np.var(signal[seam:]) / np.var(signal[:seam])
         var_ratio_after = np.var(transformed[seam:]) / np.var(transformed[:seam])
 
-        assert var_ratio_after < var_ratio_before, (
-            f"Composite should reduce variance ratio"
-        )
+        assert (
+            var_ratio_after < var_ratio_before
+        ), f"Composite should reduce variance ratio"
 
 
 # =============================================================================
@@ -330,13 +330,11 @@ class TestNoSeamBaseline:
         flipped = atom.apply(signal, seam)
 
         # Fit sinusoid to original
-        popt_orig, _ = curve_fit(_sin_model, t, signal,
-                                  p0=[1, 1, 0, 0], maxfev=5000)
+        popt_orig, _ = curve_fit(_sin_model, t, signal, p0=[1, 1, 0, 0], maxfev=5000)
         var_orig = np.var(signal - _sin_model(t, *popt_orig))
 
         # Fit sinusoid to flipped (which now has discontinuity)
-        popt_flip, _ = curve_fit(_sin_model, t, flipped,
-                                  p0=[1, 1, 0, 0], maxfev=5000)
+        popt_flip, _ = curve_fit(_sin_model, t, flipped, p0=[1, 1, 0, 0], maxfev=5000)
         var_flip = np.var(flipped - _sin_model(t, *popt_flip))
 
         # Spurious flip should make fit WORSE
@@ -380,7 +378,7 @@ class TestRegimeSummary:
 
         results["Sign Flip (Parity)"] = (
             (var_orig - var_flip) / var_orig * 100,
-            var_flip < var_orig
+            var_flip < var_orig,
         )
 
         # 2. Variance shift
@@ -395,7 +393,7 @@ class TestRegimeSummary:
 
         results["Variance Shift"] = (
             (var_ratio_before - var_ratio_after) / var_ratio_before * 100,
-            var_ratio_after < var_ratio_before
+            var_ratio_after < var_ratio_before,
         )
 
         # 3. Level shift
@@ -411,7 +409,7 @@ class TestRegimeSummary:
 
         results["Level Shift"] = (
             (mean_diff_before - mean_diff_after) / mean_diff_before * 100,
-            mean_diff_after < mean_diff_before
+            mean_diff_after < mean_diff_before,
         )
 
         # Print summary
