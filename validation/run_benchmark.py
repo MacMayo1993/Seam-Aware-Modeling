@@ -9,7 +9,9 @@ from seamaware.pipeline import MASSSMASHConfig, detect_seam_candidates, run_mass
 from baseline import baseline_detector
 
 
-def run_mass_smash_on_signal(signal, times, window_size_s=600, step_size_s=300):
+def run_mass_smash_on_signal(
+    signal, times, window_size_s=600, step_size_s=300, B_vector=None
+):
     """
     Run MASS/SMASH seam detector on a long continuous signal by chunking.
 
@@ -17,10 +19,14 @@ def run_mass_smash_on_signal(signal, times, window_size_s=600, step_size_s=300):
     that genuinely reduce description length are reported.
 
     Args:
-        signal: 1D signal array (use Bz or |B|)
+        signal: 1D signal array used for MDL scoring (typically Bz)
         times: timestamps in seconds
         window_size_s: chunk size in seconds
         step_size_s: step between chunks
+        B_vector: optional (T, 3) array of full magnetic field vector.
+            When provided, candidate generation uses the vector-native
+            antipodal scanner (vector_mode=True) which scores all three
+            components jointly.  MDL scoring still uses the 1D `signal`.
 
     Returns:
         detected_peaks: global sample indices of detected seams
@@ -29,6 +35,8 @@ def run_mass_smash_on_signal(signal, times, window_size_s=600, step_size_s=300):
     dt = np.median(np.diff(times))
     window_samples = int(window_size_s / dt)
     step_samples = int(step_size_s / dt)
+
+    use_vector = B_vector is not None and B_vector.ndim == 2 and B_vector.shape[1] >= 3
 
     config = MASSSMASHConfig(
         top_k_candidates=3,
@@ -39,6 +47,7 @@ def run_mass_smash_on_signal(signal, times, window_size_s=600, step_size_s=300):
         alpha=2.0,        # standard MDL penalty
         verbose=False,
         include_mlp=False,  # skip MLP for speed
+        vector_mode=use_vector,
     )
 
     # hit_count[i] = number of overlapping windows where MDL favoured a seam near i
@@ -52,8 +61,9 @@ def run_mass_smash_on_signal(signal, times, window_size_s=600, step_size_s=300):
     for chunk_i, start in enumerate(range(0, N - window_samples, step_samples)):
         end = start + window_samples
         chunk = signal[start:end]
+        chunk_B = B_vector[start:end] if use_vector else None
 
-        best, all_sols = run_mass_smash(chunk, config)
+        best, all_sols = run_mass_smash(chunk, config, B_vector=chunk_B)
 
         # Only count detection if MDL selected ≥1 seam (beat the no-seam baseline)
         if best.n_seams > 0:
@@ -185,8 +195,8 @@ if __name__ == '__main__':
     Bz = B[:, 2]
     B_mag = B[:, 3]
 
-    print("Running MASS/SMASH on Bz ...")
-    ms_peaks, ms_scores = run_mass_smash_on_signal(Bz, times)
+    print("Running MASS/SMASH on Bz (vector-native candidate generation) ...")
+    ms_peaks, ms_scores = run_mass_smash_on_signal(Bz, times, B_vector=B[:, :3])
 
     print("Running baseline detector ...")
     bl_peaks, dBdt = baseline_detector(B_mag, times)

@@ -1357,6 +1357,7 @@ def run_mass_smash(
     y: np.ndarray,
     config: Optional[MASSSMASHConfig] = None,
     true_seams: Optional[List[int]] = None,
+    B_vector: Optional[np.ndarray] = None,
 ) -> Tuple[Solution, List[Solution]]:
     """
     Run the full MASS/SMASH pipeline.
@@ -1365,6 +1366,9 @@ def run_mass_smash(
         y: Input signal
         config: Pipeline configuration
         true_seams: Known seam locations (for evaluation only)
+        B_vector: Optional (T, 3) array for vector-native candidate generation.
+            When provided and config.vector_mode=True, candidates are detected
+            using all three components jointly.
 
     Returns:
         best: Best solution by MDL
@@ -1377,7 +1381,7 @@ def run_mass_smash(
     if config.verbose:
         print("Step 1: Detecting seam candidates...")
 
-    candidates = detect_seam_candidates(y, config)
+    candidates = detect_seam_candidates(B_vector if (B_vector is not None and config.vector_mode) else y, config)
     candidate_indices = [idx for idx, _, _ in candidates]
 
     if config.verbose:

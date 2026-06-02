@@ -1044,25 +1044,32 @@ background orientations, and co-rotating interaction regions not modeled here.
 Quantitative validation against published sector-boundary catalogs is required
 before performance claims extend to real observations.
 
-\textbf{Single-component detection.}
-MASS/SMASH processes only $B_z$.
-The benchmark geometry ($\approx 96\%$ reversal amplitude in $B_z$) is
-favorable for single-component detection.
-A benchmark with randomized field orientations would test oblique crossings;
-full 3-component MDL detection would improve recall for those cases.
+\textbf{Single-component candidate generation.}
+The MDL scoring stage operates on whatever signal is provided; the candidate
+generation stage now supports either scalar ($B_z$) or full 3-component
+input via a vector-native antipodal scorer that computes the combined
+AC/DC antipodal score directly on $\mathbf{B} \in \mathbb{R}^{T \times 3}$.
+All synthetic benchmarks in this paper use the scalar ($B_z$) path because
+the injected geometry produces $\approx 96\%$ of the reversal amplitude in
+$B_z$; for oblique crossings the vector path is expected to improve recall.
+Systematic evaluation of the vector path on data with randomized background
+field orientations is deferred to future work.
 
 \textbf{Comparator strength.}
-The scalar derivative $d|\mathbf{B}|/dt$ is a deliberately simple baseline.
-A vector-gradient baseline $|d\mathbf{B}/dt|$ would be stronger, particularly
-for polarity reversals where $|\mathbf{B}|$ changes little.
-The precision-collapse results reflect the scalar derivative; a vector-gradient
-baseline would represent a more demanding test of MASS/SMASH's precision
-advantage.
-PELT (Gaussian mean-change, BIC penalty) is evaluated in
-Section~\ref{subsec:snr} and found to produce more than 1{,}600 detections
-regardless of turbulence level; a direction-aware or sign-flip-specific
-cost function would be a stronger comparator but would partially replicate
-the MASS/SMASH approach.
+The scalar derivative $d|\mathbf{B}|/dt$ is a deliberately simple baseline
+included to illustrate precision collapse.
+Stronger vector-aware comparators have since been implemented:
+$|d\mathbf{B}/dt|$ (vector gradient), $\arccos(\hat{\mathbf{B}}_1 \cdot
+\hat{\mathbf{B}}_2)$ (angular rotation threshold), PVI at multiple lags,
+and PELT with a signal-variance-scaled penalty.
+Preliminary comparison on the synthetic benchmark shows that vector-gradient
+and multi-lag PVI are more competitive baselines; the precision-collapse
+finding for scalar $d|\mathbf{B}|/dt$ should not be read as applying equally
+to these stronger alternatives.
+PELT (Gaussian mean-change, BIC penalty) still produces more than 1{,}600
+detections regardless of turbulence level
+(Section~\ref{subsec:snr}); a sign-flip-specific cost function would be a
+stronger comparator but would partially replicate the MASS/SMASH design.
 
 \textbf{Limited SNR-sweep sample size and geometry.}
 Table~\ref{tab:snr_sweep} reports mean $\pm$ std across 5 independent seeds
