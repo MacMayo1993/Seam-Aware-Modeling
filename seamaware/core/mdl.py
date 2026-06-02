@@ -171,7 +171,7 @@ def compute_mdl(
     likelihood : LikelihoodType
         Likelihood model for residuals
     param_precision_bits : float
-        Bits per parameter (default 32 for float32)
+        Deprecated. No longer used; parameter cost is (k/2)·log₂(n) only.
 
     Returns
     -------
@@ -203,11 +203,9 @@ def compute_mdl(
     n = len(data)
     residuals = data - predictions
 
-    # Model cost: bits to encode parameters
-    # Using refined MDL: k/2 * log2(n) + k * param_precision
-    # The log2(n) term accounts for parameter precision scaling with sample size
+    # Model cost: (k/2)·log₂(n) bits — standard two-part MDL parameter penalty.
+    # This matches the formula used in mdl_bits() in examples/mass_smash.py.
     model_bits = (num_params / 2) * np.log2(n) if n > 1 else 0
-    model_bits += num_params * param_precision_bits
 
     # Data cost: negative log-likelihood in bits
     nll_func = _LIKELIHOOD_FUNCTIONS[likelihood]

@@ -29,7 +29,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fetch_data import fetch_wind_mfi
@@ -38,7 +37,7 @@ from baseline import baseline_detector
 
 
 def run_ms_chunked(signal, times, gain_threshold=20.0, verbose=True):
-    from mass_smash import MASSSMASHConfig, run_mass_smash
+    from seamaware.pipeline import MASSSMASHConfig, run_mass_smash
     dt = float(np.median(np.diff(times)))
     window_samples = int(600 / dt)
     step_samples   = int(300 / dt)

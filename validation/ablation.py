@@ -19,10 +19,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from mass_smash import (
+from seamaware.pipeline import (
     MASSSMASHConfig, run_mass_smash,
     antipodal_symmetry_scanner, roughness_detector,
 )

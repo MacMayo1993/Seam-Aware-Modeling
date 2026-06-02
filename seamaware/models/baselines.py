@@ -5,7 +5,6 @@ These models assume data lives in orientable spaces (ℝⁿ or ℂⁿ)
 and provide MDL benchmarks for evaluating seam-aware improvements.
 """
 
-import warnings
 from typing import Optional
 
 import numpy as np
@@ -149,6 +148,10 @@ class FourierBaseline:
         """
         Fit Fourier series using FFT.
 
+        Stores sinusoidal components (DC offset, frequencies, cosine and sine
+        amplitudes) so that predict() can evaluate the fitted Fourier series at
+        any requested length without truncating FFT coefficients.
+
         Args:
             data: Input signal
         """
@@ -166,15 +169,35 @@ class FourierBaseline:
 
         self.coeffs = fft_truncated
 
+        # Extract sinusoidal components for length-agnostic prediction:
+        #   dc_offset  : mean level (real part of FFT[0] / n)
+        #   freqs      : normalised angular frequencies [rad/sample] for harmonics 1..K
+        #   cos_amps   : cosine amplitudes
+        #   sin_amps   : sine amplitudes
+        self._dc_offset = np.real(fft_result[0]) / n
+        self._freqs = np.array([2 * np.pi * k / n for k in range(1, self.K + 1)])
+        self._cos_amps = np.array(
+            [2 * np.real(fft_result[k]) / n for k in range(1, self.K + 1)]
+        )
+        self._sin_amps = np.array(
+            [-2 * np.imag(fft_result[k]) / n for k in range(1, self.K + 1)]
+        )
+
     def predict(self, length: Optional[int] = None) -> np.ndarray:
         """
-        Generate predictions.
+        Generate predictions by evaluating the fitted Fourier series.
+
+        When ``length`` matches the training length the result is identical to
+        an inverse-FFT of the truncated spectrum.  When ``length`` differs, the
+        stored sinusoidal components are evaluated on a new integer time axis
+        ``t = 0, 1, …, length-1``, preserving the fitted frequencies and
+        amplitudes exactly — no FFT coefficient truncation is performed.
 
         Args:
             length: Prediction length (default: use fitted length)
 
         Returns:
-            Fourier predictions
+            Fourier series predictions
 
         Raises:
             RuntimeError: If fit() hasn't been called
@@ -185,16 +208,13 @@ class FourierBaseline:
         if length is None:
             length = self.n if self.n is not None else 100
 
-        # Inverse FFT
-        if length == self.n:
-            return np.real(np.fft.ifft(self.coeffs))
-        else:
-            # For different length, reconstruct from coefficients
-            # This is approximate and may not be exact
-            warnings.warn(
-                "Predicting at different length than fitted, results approximate"
-            )
-            return np.real(np.fft.ifft(self.coeffs[:length]))
+        # Reconstruct from the stored sinusoidal components so that a different
+        # length does not cause FFT-coefficient truncation errors.
+        t = np.arange(length, dtype=float)
+        result = np.full(length, self._dc_offset)
+        for freq, ca, sa in zip(self._freqs, self._cos_amps, self._sin_amps):
+            result += ca * np.cos(freq * t) + sa * np.sin(freq * t)
+        return result
 
     def fit_predict(self, data: np.ndarray) -> np.ndarray:
         """

@@ -4,8 +4,7 @@ import sys
 import os
 import json
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
-from mass_smash import MASSSMASHConfig, detect_seam_candidates, run_mass_smash
+from seamaware.pipeline import MASSSMASHConfig, detect_seam_candidates, run_mass_smash
 
 from baseline import baseline_detector
 
@@ -83,7 +82,7 @@ def run_mass_smash_on_signal(signal, times, window_size_s=600, step_size_s=300):
 
 
 def _filter_detections(hit_count, mdl_gain, dt,
-                       min_hits=1, gain_threshold=5.0, min_sep_s=300):
+                       min_hits=1, gain_threshold=20.0, min_sep_s=300):
     """Apply hit count + gain filters then global NMS."""
     # Accept positions seen in >= min_hits windows AND with cumulative gain > threshold
     mask = (hit_count >= min_hits) & (mdl_gain > gain_threshold)

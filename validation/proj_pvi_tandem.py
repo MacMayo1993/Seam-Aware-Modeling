@@ -19,10 +19,9 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'examples'))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from mass_smash import MASSSMASHConfig, run_mass_smash
+from seamaware.pipeline import MASSSMASHConfig, run_mass_smash
 from catalog import compute_pvi, compute_projective_pvi, get_pvi_events
 from snr_sweep import (generate, evaluate, _turb,
                        TURB_FRACS, CADENCE_S, TOLERANCE_S, N_DAYS, B0, SEED)

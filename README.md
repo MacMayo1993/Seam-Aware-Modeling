@@ -1,4 +1,4 @@
-# SeamAware: Non-Orientable Modeling for Time Series Analysis
+# SeamAware: MDL-Gated Antipodal Seam Detection for Time Series
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
@@ -8,12 +8,14 @@
 
 ## What is SeamAware?
 
-**SeamAware** detects and exploits **orientation discontinuities** (seams) in time series data—structural features that standard methods treat as noise. By recognizing that certain signals naturally inhabit **non-orientable quotient spaces** (normalized signals on Sⁿ⁻¹/ℤ₂ ≅ ℝPⁿ⁻¹), we achieve:
+**SeamAware** detects **sign-flip seams** — abrupt transitions from a persistent regime near +μ to an equal-magnitude negative regime near −μ — in time series data. Standard detectors fail at these events because their observation maps are not faithful to the event geometry: magnitude statistics suppress polarity, Euclidean increments conflate reversals with rotations and bursts, and global thresholds compare a local topological event against a shifting turbulence distribution.
 
-- **10-63% MDL reduction** over standard baselines (equivalent to 1.1×–2.7× compression ratio improvement)
-- **MDL-justified compression gains** via seam-gated transformations
-- **Robust regime-switching detection** without hidden states
-- **Emergence of k* ≈ 0.721** as universal information-theoretic threshold
+SeamAware addresses this **observability mismatch** by testing a local symmetry hypothesis: a candidate seam is accepted only when the signal is more compactly encoded — in bits — as two sign-reversed regimes than as one continuous turbulent regime.
+
+- **10-63% MDL reduction** over standard baselines (1.1×–2.7× compression ratio improvement)
+- **Precision-stable detection**: precision rises or holds as turbulence increases, unlike global-threshold baselines
+- **MDL-gated acceptance**: no signal-derived threshold; the gate is a fixed code-length criterion
+- **Explicit group-action structure**: ℤ₂ flip atoms applied only where they earn their bit cost
 
 ---
 
@@ -51,23 +53,28 @@ jupyter notebook examples/quick_start.ipynb
 
 ---
 
-### The Core Insight
+### The Core Insight: Detection as a Representation Problem
 
-Standard methods assume data lives in **orientable spaces** (ℝⁿ). SeamAware recognizes that normalized signals naturally inhabit **non-orientable quotient spaces**:
+Sign-flip detection fails when the detector's observation map does not preserve the event topology. Consider what common statistics erase:
+
+| Statistic | What it observes | What it loses |
+|-----------|-----------------|---------------|
+| \|B(t)\| | magnitude | polarity — a clean reversal can be invisible if \|B\| stays constant |
+| \|ΔB(t)\| / PVI | increment size | whether the increment is a reversal, rotation, or turbulent burst |
+| B̂ in ℝP² | projective direction | pure antipodal flips give d_RP²=0 (invisible in projective space) |
+| Global threshold | global distribution | the local event topology vs. a changing turbulence background |
+
+SeamAware repairs this mismatch by preserving the **oriented** signal and testing a local ℤ₂ hypothesis: at each candidate position τ, is the signal better described by two sign-reversed regimes than by one turbulent regime?
 
 ```
-Signal → Normalize to sphere Sⁿ⁻¹ → Apply ℤ₂ identification (u ~ -u) → Real projective space ℝPⁿ⁻¹
+Candidate τ → Antipodal pre-filter (combined correlation + polarity score)
+            → MDL gate: accept iff gain ≥ 20 bits
+            → Seam accepted with explicit ℤ₂ flip atom
 ```
 
-At the seam location τ, we apply a **flip atom**—a transformation that exploits latent symmetry. Primary atoms are true ℤ₂ involutions: **sign inversion** (x → −x) and **time reversal** (t → −t). Auxiliary atoms like variance scaling and polynomial detrending are preprocessing steps that expose hidden orientation structure.
+At the seam location τ, we apply a **flip atom** — a ℤ₂ involution. Primary atoms: **sign inversion** (x → −x) and **time reversal** (t → −t). These are true involutions; auxiliary transforms (variance scaling, detrending) are preprocessing steps.
 
-**This constant (k* = 1/(2·ln 2) ≈ 0.721) emerges from MDL theory under Gaussian assumptions—see [docs/theory.md](docs/theory.md) for the derivation.**
-
-#### 🎓 Geometry Intuition
-
-![Geometry Intuition](assets/geometry_intuition.png)
-
-**Why non-orientable modeling saves bits:** Standard methods treat signals as living on the orientable circle S¹ where points u and -u are distinct (panel A, red). This forces them to encode the full discontinuity when a sign flip occurs (~200 bits in residuals). SeamAware recognizes that normalized signals naturally live in **projective space ℝP¹** where antipodal points are identified (u ~ -u) — like a Möbius strip (panel B, green). In this geometry, a sign flip is topologically trivial and costs just **1 bit** for orientation. Standard methods ignore this inherent symmetry and pay ~140 extra bits per seam!
+**Note on k*:** The analytic threshold k* = 1/(2·ln 2) ≈ 0.721 is derived under a simplified Gaussian model (Δp = 0, iid noise, known seam location). The operational gate of G = 20 bits is the practical criterion; k* is a reference, not a universal constant. See [docs/theory.md](docs/theory.md) for details and the gap between the analytic value and empirical estimates.
 
 ### Key Definitions
 
@@ -76,7 +83,7 @@ To ensure reproducibility and remove ambiguity:
 | **Concept** | **Definition** | **Notes** |
 |-------------|----------------|-----------|
 | **SNR** | σ_signal / σ_noise (amplitude ratio) | NOT power ratio; NOT in dB |
-| **Crossover k*** | SNR where Pr[ΔMDL < 0] = 0.5 | Theoretical: 0.721; Empirical: 0.782 ± 0.15 |
+| **Crossover k*** | SNR where Pr[ΔMDL < 0] = 0.5 | Analytic (simplified model): 0.721; empirical under full pipeline: ~1.0–1.2 |
 | **MDL encoding** | L_data + L_params + L_seams | See breakdown below |
 | **Seam cost** | m·log₂(T) + m bits | Location: log₂(T); Orientation: 1 bit |
 | **Noise model** | Additive Gaussian: x = s + ε, ε ~ N(0, σ²) | i.i.d. across time |
@@ -96,7 +103,7 @@ The "1 bit per seam" mentioned elsewhere refers to the **orientation cost only**
 
 **Quantitative breakdown:** The compression gain comes from **dramatically lower data encoding cost** (gray bars), not parameter tricks. Standard Fourier uses the same 320 bits for parameters as SeamAware. The 32-bit seam encoding cost (orange) is negligible compared to the **~140 bit savings** from better residual fit. This is pure information-theoretic gain—SeamAware captures the signal's true geometry.
 
-**Why experimental k* ≈ 0.782 vs theoretical 0.721?** Finite-sample effects, detection uncertainty, and model selection overhead raise the practical threshold by ~8%. See [docs/theory.md § Reconciling k*](docs/theory.md#reconciling-theoretical-vs-experimental-k) for details.
+**Why does the empirical crossover differ from k* = 0.721?** Model-zoo parameter overhead (nonzero Δp), localization error, and finite-sample effects all raise the effective threshold. The empirical crossover under the full pipeline is ~1.0–1.2. See [docs/theory.md § Reconciling k*](docs/theory.md#reconciling-theoretical-vs-experimental-k) for details.
 
 ### Quick Example
 
@@ -188,20 +195,20 @@ This installs the package in editable mode along with all dependencies (numpy, s
 **Run the complete demo + regenerate all figures in one command:**
 
 ```bash
-# After installation (see above)
-python -m seamaware.cli.demo --full-validation
+python reproduce.py          # full run (~5-10 min)
+python reproduce.py --quick  # fast smoke-test (~1 min)
 ```
 
-This command:
-1. Generates synthetic signal with hidden seam (reproducible seed)
-2. Compares Fourier baseline vs SeamAware detection
-3. Outputs MDL scores and detection accuracy
-4. Runs Monte Carlo validation of k* threshold (30 trials)
-5. Saves all three figures from README to `assets/` directory
+This script:
+1. Runs the basic MASS/SMASH demo (`examples/mass_smash.py`)
+2. Runs the strong-baselines comparison table (`validation/strong_baselines.py`)
+3. Runs the ablation study (`validation/ablation.py`) if present
+4. Runs the SNR sweep (`validation/snr_sweep.py`) if present
+5. Prints a pass/fail/skip summary with per-step runtimes
 
 **Expected output**: Seam detected within 2% of truth, ~16% MDL reduction, k* crossover validation.
 
-**Runtime**: ~60 seconds on a modern laptop (no GPU required).
+**Runtime**: ~5-10 minutes for the full run; ~1 minute with `--quick`.
 
 ### Getting Started
 
@@ -247,19 +254,19 @@ See the "Quick Example" section above or explore the [examples/](examples/) dire
 
 The theory behind SeamAware connects:
 
-1. **Non-orientable manifolds**: ℝPⁿ⁻¹ (real projective space) as the quotient Sⁿ⁻¹/ℤ₂ via antipodal identification u ~ -u
-2. **Information geometry**: k* = 1/(2·ln 2) emerges from minimum description length
-3. **Group representation theory**: ℤ₂ eigenspace decomposition via projection operators 𝐏₊/𝐏₋
-4. **Seam-gated neural networks**: Architectures that switch basis at detected seams
+1. **Antipodal quotient geometry**: The antipodal identification u ~ −u maps Sⁿ⁻¹ → ℝPⁿ⁻¹, introducing a ℤ₂ sign ambiguity. This is used diagnostically: when a detector statistic induces this identification (e.g., B ↦ |B| or B̂ ↦ [B̂] ∈ ℝP²), it loses polarity information about the target event.
+2. **MDL-gated group-action changepoints**: The acceptance criterion charges the seam's code length explicitly; only events where the antipodal two-regime description saves ≥ 20 bits are accepted.
+3. **Involutive flip atoms**: ℤ₂ transformations (sign flip, time reversal) that satisfy F² = I, ensuring reversibility.
+4. **Combined antipodal score**: Blends centered Pearson correlation (AC structure) with a mean-polarity score (DC flat-plateau sign flips) to handle both oscillating and step-function reversals.
 
-See [docs/theory.md](docs/theory.md) for rigorous derivations including explicit state vector definitions and the full MDL coding model.
+See [docs/theory.md](docs/theory.md) for derivations including the full MDL gain expression with the Δp parameter-cost term.
 
 ### Who Should Use This?
 
-- **Signal processing researchers** working with regime-switching data
-- **Compression engineers** seeking provable gains beyond Huffman/arithmetic coding
-- **Time series analysts** in finance, energy, biomedical applications
-- **Topologists interested in applied non-orientable geometry**
+- **Signal processing researchers** working with polarity-reversal or regime-switching data
+- **Heliophysics / space physics** researchers cataloging current sheets, sector boundaries, or switchbacks
+- **Time series analysts** in climate (ENSO polarity), biomedical (EEG reference inversions), or power systems
+- **Changepoint detection practitioners** who need conservative, precision-stable detectors alongside high-recall methods
 
 ### Features
 
@@ -272,19 +279,19 @@ See [docs/theory.md](docs/theory.md) for rigorous derivations including explicit
 
 ### Experimental Validation
 
-**All tests pass. k* = 0.721 validated.**
+**92 tests pass.**
 
-See [docs/experimental_validation.md](docs/experimental_validation.md) for comprehensive:
-- Monte Carlo analysis with 30-100 trials per SNR
-- Statistical convergence of k* (error < 20% fast, < 15% rigorous)
-- Numerical stability tests across 6 orders of magnitude
-- Coverage analysis (41% overall, core modules 80-89%)
+See [docs/experimental_validation.md](docs/experimental_validation.md) for:
+- Synthetic SNR sweep: precision stable / rising as turbulence increases
+- Ablation: antipodal-only 1316 FP → MDL-gated 0 FP (28 true events, SNR 20)
+- Numerical stability: flip atom involutions verified to ‖F²(x) - x‖ < 10⁻¹⁵
+- Real Wind/MFI pilot: 154 MASS/SMASH detections vs 2397 for PVI (20-day window)
 
 **Key results:**
-- ✅ k* crossover at SNR = 0.782 ± 0.15 (18.7% error, 30 trials)
+- ✅ Precision rises from 0.853 (5% turbulence) to 0.937 (50% turbulence) across 5 seeds
 - ✅ Flip atom involutions verified to ‖F²(x) - x‖ < 10⁻¹⁵
-- ✅ MDL discrimination: Cohen's d = 3.8 (very large effect)
-- ✅ 25/25 tests passing (100% pass rate)
+- ✅ MDL gate reduces false positives by 98.9% vs antipodal-only baseline
+- ✅ 92/92 tests passing
 
 ### Project Status
 
@@ -328,7 +335,7 @@ If you use SeamAware in your research, please cite:
 
 ```bibtex
 @software{mayo2025seamaware,
-  title={SeamAware: Non-Orientable Modeling for Time Series Analysis},
+  title={SeamAware: MDL-Gated Antipodal Seam Detection for Time Series},
   author={Mayo, Mac},
   year={2025},
   url={https://github.com/MacMayo1993/Seam-Aware-Modeling},

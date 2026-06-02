@@ -50,7 +50,10 @@ class MASSResult:
 
     # Metadata
     snr_estimate: float
-    above_k_star: bool
+    snr_power: float
+    """snr_power is the power SNR σ²_signal/σ²_noise. Compare to k*=1/(2·ln2)≈0.721
+    to assess whether the seam is information-theoretically justified under the
+    simplified Gaussian model."""
 
     @property
     def effective(self) -> bool:
@@ -95,6 +98,7 @@ class MASSFramework:
         atoms: Optional[List[str]] = None,
         likelihood: str = "gaussian",
         min_confidence: float = 0.3,
+        min_gain_bits: float = 20.0,
     ):
         self.baseline_type = baseline
         self.baseline_params = baseline_params or {"K": 3}
@@ -102,6 +106,7 @@ class MASSFramework:
         self.atoms = atoms or ["sign_flip"]
         self.likelihood = LikelihoodType(likelihood)
         self.min_confidence = min_confidence
+        self.min_gain_bits = min_gain_bits
 
         # Validate atoms
         for atom_name in self.atoms:
@@ -120,7 +125,7 @@ class MASSFramework:
         noise_power = np.var(signal - prediction)
         if noise_power < 1e-15:
             return float("inf")
-        return np.sqrt(signal_power / noise_power)
+        return signal_power / noise_power
 
     def fit(self, signal: np.ndarray) -> MASSResult:
         """
@@ -167,7 +172,7 @@ class MASSFramework:
                 mdl_reduction_percent=0.0,
                 compression_ratio=1.0,
                 snr_estimate=self._estimate_snr(signal, baseline_pred),
-                above_k_star=False,
+                snr_power=self._estimate_snr(signal, baseline_pred),
             )
 
         # Try each atom at each candidate position and keep best
@@ -220,20 +225,25 @@ class MASSFramework:
                         best_pred = pred
                         best_position = candidate_pos
 
-                except Exception:
-                    # Atom failed (e.g., boundary issues) - skip
+                except Exception as e:
+                    import logging
+
+                    logging.getLogger(__name__).debug(
+                        "Atom %s at position %d failed: %s", atom_name, candidate_pos, e
+                    )
                     continue
 
         # Compute improvement metrics
         improvement = mdl_improvement(baseline_mdl, best_mdl)
-        k_star = 0.721
         snr = self._estimate_snr(signal, baseline_pred)
+        gain_bits = improvement["absolute_reduction"]
+        seam_detected = best_atom is not None and gain_bits >= self.min_gain_bits
 
         return MASSResult(
             baseline_mdl=baseline_mdl,
             seam_mdl=best_mdl,
-            seam_detected=best_atom is not None,
-            seam_position=best_position if best_atom else None,
+            seam_detected=seam_detected,
+            seam_position=best_position if seam_detected else None,
             seam_confidence=detection.confidence,
             detection_method=detection.method,
             atom_used=best_atom,
@@ -244,7 +254,7 @@ class MASSFramework:
             mdl_reduction_percent=improvement["relative_reduction"] * 100,
             compression_ratio=improvement["compression_ratio"],
             snr_estimate=snr,
-            above_k_star=snr > k_star,
+            snr_power=snr,
         )
 
     def fit_predict(self, signal: np.ndarray) -> MASSResult:
