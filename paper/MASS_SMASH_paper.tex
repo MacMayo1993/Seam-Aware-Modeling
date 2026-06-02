@@ -107,6 +107,24 @@ information theory
 
 \subsection{The Precision-Stability Problem in Sign-Flip Detection}
 
+We argue that failures in sign-flip detection arise partly from an
+\emph{observability mismatch}: standard detector statistics observe the
+signal through maps that are not faithful to the event geometry.
+Scalar magnitude $|\mathbf{B}|$ suppresses polarity and can render a clean
+polarity reversal nearly invisible when field magnitude remains approximately
+constant.
+Euclidean increment statistics $|\Delta\mathbf{B}|$ conflate reversals,
+rotations, and turbulent bursts---all produce large increments.
+Projective-direction statistics explicitly identify $\hat{\mathbf{B}}$ with
+$-\hat{\mathbf{B}}$, so a pure antipodal reversal has projective distance zero
+and is invisible in that observation space.
+Global or semi-global thresholds compare a local topological event against a
+shifting turbulence distribution.
+MASS/SMASH addresses this mismatch by preserving the oriented signal and
+testing a local $\mathbb{Z}_2$ hypothesis: a candidate seam is accepted only
+when the data are more compactly encoded---in bits---as two sign-reversed
+regimes than as one turbulent regime.
+
 Many physical and engineered systems produce time series that undergo
 \emph{sign-flip change-points}: abrupt transitions from a steady state near
 $+\mu_0$ to an equal-magnitude negative state near $-\mu_0$, embedded in
@@ -154,27 +172,38 @@ range.
 
 Two design choices underpin this goal.
 
-\textbf{Structural pre-filtering via antipodal correlation.}
-Each candidate position $\tau$ is scored for antisymmetry between the pre-
-and post-window signals:
-$\mathcal{A}(\tau) = \mathrm{corr}(y[\tau-w:\tau],\,-\,y[\tau:\tau+w])$.
+\textbf{Structural pre-filtering via combined antipodal score.}
+Each candidate position $\tau$ is scored by a two-component antipodal score:
+\begin{align*}
+  \mathcal{C}_{\mathrm{corr}}(\tau) &= \mathrm{corr}(y_L - \bar{y}_L,\;{-}(y_R - \bar{y}_R))
+    &&\text{(AC: centered Pearson detects oscillatory antipodal structure)}\\
+  \mathcal{C}_{\mathrm{pol}}(\tau)  &= 1 - \tfrac{|\bar{y}_L + \bar{y}_R|}{|\bar{y}_L| + |\bar{y}_R| + \varepsilon}
+    &&\text{(DC: mean-polarity score detects flat-plateau sign flips)}\\
+  \mathcal{A}(\tau) &= \tfrac{1}{2}\mathcal{C}_{\mathrm{corr}}(\tau) + \tfrac{1}{2}\mathcal{C}_{\mathrm{pol}}(\tau)
+\end{align*}
+where $y_L = y[\tau-w:\tau]$, $y_R = y[\tau:\tau+w]$.
 Only positions with $\mathcal{A}(\tau) > 0.35$ advance to the MDL stage.
-A turbulent spike with random phase structure scores near zero on $\mathcal{A}$
-regardless of amplitude; a genuine sign-flip scores near 1.0.
+Centered Pearson alone fails for flat-plateau sign flips (std $\to$ 0 erases
+the score); the mean-polarity term fills this gap.
+A turbulent spike with zero mean scores near zero on $\mathcal{C}_{\mathrm{pol}}$
+regardless of amplitude; a genuine sign-flip with persistent opposite-sign
+means scores near 1.0.
 This pre-filter rejects structural confounders that gradient detectors accept.
 
 \textbf{MDL gain threshold denominated in bits.}
 The acceptance criterion requires a compression gain of $G = 20$ bits---a
 fixed information-theoretic cost, not a multiple of any signal-derived
 statistic.
-As turbulence increases, both single- and two-segment model residuals grow, but
-the systematic residual reduction from a true structural break grows
-proportionally; for noise-only fluctuations no such systematic reduction
-exists regardless of amplitude (Section~\ref{subsec:stability}).
-The empirical consequence is that MASS/SMASH precision remains high and even
-\emph{increases} from SNR 20:1 down to SNR 2:1 on this benchmark, as the
-absolute threshold becomes increasingly selective relative to the growing
-noise floor that saturates the baseline.
+As turbulence increases with signal amplitude $A$ fixed, both single- and
+two-segment residuals grow, and the MDL gain for a genuine sign-flip event
+decreases with falling SNR $r = A/\sigma_n$ (the gain scales as
+$\tfrac{N}{2}\log_2(1+r^2)$ minus penalties).
+The observed \emph{rise} in MASS/SMASH precision with turbulence is therefore
+a \emph{selection effect}: weaker, borderline events drop below the 20-bit
+gate as noise rises, leaving only the strongest, cleanest crossings.
+For noise-only fluctuations, no systematic residual reduction exists across
+the boundary regardless of amplitude, so false-positive rate is controlled
+by the code-length cost rather than signal scale (Section~\ref{subsec:stability}).
 
 \subsection{Solar Wind as a Validation Domain}
 
