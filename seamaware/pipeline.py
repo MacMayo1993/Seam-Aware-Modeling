@@ -342,11 +342,11 @@ def antipodal_symmetry_scanner(
             all_windows = sliding_window_view(y, half)
 
             valid_indices = np.arange(half, T - half)
-            windows_a = all_windows[valid_indices - half]   # y[τ-half:τ]
-            windows_b = all_windows[valid_indices]          # y[τ:τ+half]
+            windows_a = all_windows[valid_indices - half]  # y[τ-half:τ]
+            windows_b = all_windows[valid_indices]  # y[τ:τ+half]
 
-            means_a = np.mean(windows_a, axis=1)            # μ_L
-            means_b = np.mean(windows_b, axis=1)            # μ_R
+            means_a = np.mean(windows_a, axis=1)  # μ_L
+            means_b = np.mean(windows_b, axis=1)  # μ_R
             stds_a = np.std(windows_a, axis=1)
             stds_b = np.std(windows_b, axis=1)
 
@@ -367,8 +367,10 @@ def antipodal_symmetry_scanner(
             # Where AC structure is present use equal blend; where windows are
             # flat (AC unavailable) rely entirely on the polarity score.
             ac_weight = ac_valid.astype(float)
-            combined = ac_weight * (0.5 * corr_score + 0.5 * polarity_score) + \
-                       (1.0 - ac_weight) * polarity_score
+            combined = (
+                ac_weight * (0.5 * corr_score + 0.5 * polarity_score)
+                + (1.0 - ac_weight) * polarity_score
+            )
 
             scores[valid_indices] = np.clip(combined, 0.0, 1.0)
 
@@ -488,16 +490,16 @@ def antipodal_symmetry_scanner_vector(
 
         valid = np.arange(half, T - half)
         W_L = wins[valid - half]  # (N_valid, half, D)
-        W_R = wins[valid]         # (N_valid, half, D)
+        W_R = wins[valid]  # (N_valid, half, D)
 
         # --- DC: polarity score ---
-        mu_L = W_L.mean(axis=1)   # (N_valid, D)
-        mu_R = W_R.mean(axis=1)   # (N_valid, D)
+        mu_L = W_L.mean(axis=1)  # (N_valid, D)
+        mu_R = W_R.mean(axis=1)  # (N_valid, D)
         norm_sum = np.linalg.norm(mu_L, axis=1) + np.linalg.norm(mu_R, axis=1)
         polarity_score = 1.0 - np.linalg.norm(mu_L + mu_R, axis=1) / (norm_sum + EPS)
 
         # --- AC: corr score ---
-        std_L = W_L.std(axis=1)   # (N_valid, D)
+        std_L = W_L.std(axis=1)  # (N_valid, D)
         std_R = W_R.std(axis=1)
         std_L = np.where(std_L < EPS, EPS, std_L)
         std_R = np.where(std_R < EPS, EPS, std_R)
@@ -519,8 +521,8 @@ def antipodal_symmetry_scanner_vector(
     except (ValueError, MemoryError, IndexError):
         # Fallback loop — handles edge cases gracefully
         for i in range(half, T - half):
-            BL = B[i - half : i, :]   # (half, D)
-            BR = B[i : i + half, :]   # (half, D)
+            BL = B[i - half : i, :]  # (half, D)
+            BR = B[i : i + half, :]  # (half, D)
 
             mu_L = BL.mean(axis=0)
             mu_R = BR.mean(axis=0)
@@ -535,7 +537,7 @@ def antipodal_symmetry_scanner_vector(
             std_L = np.where(std_L < EPS, EPS, std_L)
             std_R = np.where(std_R < EPS, EPS, std_R)
 
-            ZL = (BL - mu_L) / std_L   # (half, D)
+            ZL = (BL - mu_L) / std_L  # (half, D)
             ZR = (BR - mu_R) / std_R
 
             zl_flat = ZL.ravel()
@@ -550,7 +552,11 @@ def antipodal_symmetry_scanner_vector(
     # Local maxima above threshold
     raw_candidates = []
     for i in range(1, T - 1):
-        if scores[i] > threshold and scores[i] > scores[i - 1] and scores[i] > scores[i + 1]:
+        if (
+            scores[i] > threshold
+            and scores[i] > scores[i - 1]
+            and scores[i] > scores[i + 1]
+        ):
             raw_candidates.append((i, float(scores[i])))
 
     # Symmetric-pair refinement: for oscillatory sign-flip seams the score
@@ -623,8 +629,8 @@ def roughness_detector(
 
     try:
         all_windows = sliding_window_view(y, w)
-        diffs = np.diff(all_windows, axis=1)   # shape (T-w, w-1)
-        roughness = np.std(diffs, axis=1)       # roughness[i] = R for y[i:i+w]
+        diffs = np.diff(all_windows, axis=1)  # shape (T-w, w-1)
+        roughness = np.std(diffs, axis=1)  # roughness[i] = R for y[i:i+w]
     except (ValueError, MemoryError):
         roughness = np.zeros(T - w)
         for i in range(T - w):
@@ -639,8 +645,8 @@ def roughness_detector(
         return []
 
     tau_range = np.arange(valid_start, valid_end)
-    R_L = roughness[tau_range - w]   # roughness of left window
-    R_R = roughness[tau_range]       # roughness of right window
+    R_L = roughness[tau_range - w]  # roughness of left window
+    R_R = roughness[tau_range]  # roughness of right window
 
     contrast = np.abs(R_R - R_L)
     global_std = np.std(contrast)
@@ -1272,7 +1278,13 @@ def _evaluate_configuration(
         for tau in reversed(seams):
             yhat = apply_reflect_invert(yhat, tau)
 
-    # Score
+    # Score against the original signal using the back-transformed yhat.
+    # segment_fits were obtained by fitting on y_transformed, but because all
+    # supported atoms (sign_flip, reflect_invert) are isometric involutions
+    # (‖y_t - ŷ_t‖ = ‖y - ŷ‖ segment-wise), the per-segment RSS and BIC
+    # values are identical to those that would be obtained fitting directly on
+    # the original signal segments.  The global MDL is therefore consistent
+    # with the segment-level fit quality.
     rss, mse, bic, mdl, params = score_solution(
         y, yhat, segment_fits, len(seams), config.alpha
     )

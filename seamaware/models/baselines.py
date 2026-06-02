@@ -176,8 +176,12 @@ class FourierBaseline:
         #   sin_amps   : sine amplitudes
         self._dc_offset = np.real(fft_result[0]) / n
         self._freqs = np.array([2 * np.pi * k / n for k in range(1, self.K + 1)])
-        self._cos_amps = np.array([2 * np.real(fft_result[k]) / n for k in range(1, self.K + 1)])
-        self._sin_amps = np.array([-2 * np.imag(fft_result[k]) / n for k in range(1, self.K + 1)])
+        self._cos_amps = np.array(
+            [2 * np.real(fft_result[k]) / n for k in range(1, self.K + 1)]
+        )
+        self._sin_amps = np.array(
+            [-2 * np.imag(fft_result[k]) / n for k in range(1, self.K + 1)]
+        )
 
     def predict(self, length: Optional[int] = None) -> np.ndarray:
         """

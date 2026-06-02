@@ -227,7 +227,10 @@ class MASSFramework:
 
                 except Exception as e:
                     import logging
-                    logging.getLogger(__name__).debug("Atom %s at position %d failed: %s", atom_name, candidate_pos, e)
+
+                    logging.getLogger(__name__).debug(
+                        "Atom %s at position %d failed: %s", atom_name, candidate_pos, e
+                    )
                     continue
 
         # Compute improvement metrics

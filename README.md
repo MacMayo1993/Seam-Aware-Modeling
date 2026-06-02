@@ -195,20 +195,20 @@ This installs the package in editable mode along with all dependencies (numpy, s
 **Run the complete demo + regenerate all figures in one command:**
 
 ```bash
-# After installation (see above)
-python -m seamaware.cli.demo --full-validation
+python reproduce.py          # full run (~5-10 min)
+python reproduce.py --quick  # fast smoke-test (~1 min)
 ```
 
-This command:
-1. Generates synthetic signal with hidden seam (reproducible seed)
-2. Compares Fourier baseline vs SeamAware detection
-3. Outputs MDL scores and detection accuracy
-4. Runs Monte Carlo validation of k* threshold (30 trials)
-5. Saves all three figures from README to `assets/` directory
+This script:
+1. Runs the basic MASS/SMASH demo (`examples/mass_smash.py`)
+2. Runs the strong-baselines comparison table (`validation/strong_baselines.py`)
+3. Runs the ablation study (`validation/ablation.py`) if present
+4. Runs the SNR sweep (`validation/snr_sweep.py`) if present
+5. Prints a pass/fail/skip summary with per-step runtimes
 
 **Expected output**: Seam detected within 2% of truth, ~16% MDL reduction, k* crossover validation.
 
-**Runtime**: ~60 seconds on a modern laptop (no GPU required).
+**Runtime**: ~5-10 minutes for the full run; ~1 minute with `--quick`.
 
 ### Getting Started
 

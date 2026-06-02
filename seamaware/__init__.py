@@ -46,7 +46,7 @@ from .core.validation import (
 )
 from .mass import MASSFramework, MASSResult
 from .models.baselines import FourierBaseline
-from .pipeline import MASSSMASHConfig, run_mass_smash, detect_seam_candidates, Solution
+from .pipeline import MASSSMASHConfig, Solution, detect_seam_candidates, run_mass_smash
 
 # Convenient constants
 K_STAR = compute_k_star()  # ≈ 0.7213
