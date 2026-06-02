@@ -298,18 +298,28 @@ def antipodal_symmetry_scanner(
     min_separation: int = 30,
 ) -> List[Tuple[int, float]]:
     """
-    Detect seams via antipodal (chiral) correlation.
+    Detect seams via a combined antipodal score.
 
-    At each candidate position τ, compute:
-        score(τ) = corr(y[τ-w:τ], -y[τ:τ+w])
+    At each candidate position τ the score blends two complementary terms:
 
-    High correlation indicates a sign-flip symmetry break.
+      corr_score(τ)   = corr(y[τ-w:τ] - μ_L,  -(y[τ:τ+w] - μ_R))
+                        Pearson correlation after mean-removal; detects AC
+                        (oscillatory) antipodal structure.
+
+      polarity_score(τ) = 1 - |μ_L + μ_R| / (|μ_L| + |μ_R| + ε)
+                          1 when the segment means cancel (μ_L ≈ -μ_R),
+                          0 when they are equal or same-sign.
+                          Detects DC (flat-plateau) sign flips that Pearson
+                          misses because mean-removal zeroes out flat signals.
+
+      combined(τ) = 0.5 · corr_score + 0.5 · polarity_score
+                    (falls back to polarity_score alone when std → 0)
 
     Args:
         y: Input signal
         window_size: Window for correlation (split in half)
-        threshold: Minimum correlation to consider
-        normalize: Z-score windows before correlation
+        threshold: Minimum combined score to consider
+        normalize: Z-score windows before computing corr_score (recommended)
         top_k: Maximum candidates to return
         min_separation: Minimum distance between candidates (NMS)
 
@@ -324,75 +334,63 @@ def antipodal_symmetry_scanner(
 
     scores = np.zeros(T)
 
-    # OPTIMIZATION: Vectorized correlation computation using sliding windows
-    # This reduces O(n × window) to O(n log n) using FFT-based correlation
     from numpy.lib.stride_tricks import sliding_window_view
 
     if T >= 2 * half + 1:
-        # Create sliding windows for efficient computation
         try:
-            # Get all windows at once using stride tricks (memory-efficient views)
             all_windows = sliding_window_view(y, half)
 
-            # For position i, we want windows_a = y[i-half:i] and windows_b = y[i:i+half]
-            # all_windows[j] = y[j:j+half]
-            # So windows_a for position i is all_windows[i-half]
-            # And windows_b for position i is all_windows[i]
-
-            # Valid range: half <= i < T - half
             valid_indices = np.arange(half, T - half)
+            windows_a = all_windows[valid_indices - half]   # y[τ-half:τ]
+            windows_b = all_windows[valid_indices]          # y[τ:τ+half]
 
-            # Extract windows for all valid positions
-            windows_a = all_windows[valid_indices - half]  # y[i-half:i] for each i
-            windows_b = all_windows[valid_indices]  # y[i:i+half] for each i
-
-            # Compute stds for all windows at once
+            means_a = np.mean(windows_a, axis=1)            # μ_L
+            means_b = np.mean(windows_b, axis=1)            # μ_R
             stds_a = np.std(windows_a, axis=1)
             stds_b = np.std(windows_b, axis=1)
 
-            # Mask valid windows (std > EPS)
-            valid_mask = (stds_a > EPS) & (stds_b > EPS)
+            # --- polarity_score: DC sign-flip detector ---
+            # 1 when μ_L ≈ -μ_R, 0 when equal or same-sign magnitude
+            polarity_score = 1.0 - np.abs(means_a + means_b) / (
+                np.abs(means_a) + np.abs(means_b) + EPS
+            )
 
-            # Compute correlations only for valid windows
-            if normalize:
-                # Z-score normalize
-                means_a = np.mean(windows_a, axis=1, keepdims=True)
-                means_b = np.mean(windows_b, axis=1, keepdims=True)
-                normed_a = (windows_a - means_a) / (stds_a[:, None] + EPS)
-                normed_b = (windows_b - means_b) / (stds_b[:, None] + EPS)
-            else:
-                normed_a = windows_a
-                normed_b = windows_b
+            # --- corr_score: AC antipodal-structure detector ---
+            ac_valid = (stds_a > EPS) & (stds_b > EPS)
+            normed_a = (windows_a - means_a[:, None]) / (stds_a[:, None] + EPS)
+            normed_b = (windows_b - means_b[:, None]) / (stds_b[:, None] + EPS)
+            corr_score = -np.mean(normed_a * normed_b, axis=1)  # corr(a, -b)
+            corr_score = np.where(ac_valid, corr_score, 0.0)
 
-            # Vectorized correlation: corr(a, -b) = -dot(a, b) / sqrt(sum(a²)sum(b²))
-            # For normalized data, this simplifies to -mean(a * b)
-            if normalize:
-                correlations = -np.mean(normed_a * normed_b, axis=1)
-            else:
-                dot_products = np.sum(normed_a * (-normed_b), axis=1)
-                norms_a = np.sqrt(np.sum(normed_a**2, axis=1))
-                norms_b = np.sqrt(np.sum(normed_b**2, axis=1))
-                correlations = dot_products / (norms_a * norms_b + EPS)
+            # --- combined score ---
+            # Where AC structure is present use equal blend; where windows are
+            # flat (AC unavailable) rely entirely on the polarity score.
+            ac_weight = ac_valid.astype(float)
+            combined = ac_weight * (0.5 * corr_score + 0.5 * polarity_score) + \
+                       (1.0 - ac_weight) * polarity_score
 
-            # Assign scores using advanced indexing
-            scores[valid_indices] = np.where(valid_mask, correlations, 0.0)
+            scores[valid_indices] = np.clip(combined, 0.0, 1.0)
 
         except (ValueError, MemoryError, IndexError):
-            # Fallback to loop-based implementation if stride tricks fail
+            # Fallback loop
             for i in range(half, T - half):
                 a = y[i - half : i]
                 b = y[i : i + half]
+                mu_a, mu_b = np.mean(a), np.mean(b)
+                std_a, std_b = np.std(a), np.std(b)
 
-                if np.std(a) < EPS or np.std(b) < EPS:
-                    continue
+                pol = 1.0 - abs(mu_a + mu_b) / (abs(mu_a) + abs(mu_b) + EPS)
 
-                if normalize:
-                    a = zscore(a)
-                    b = zscore(b)
-
-                c = np.corrcoef(a, -b)[0, 1]
-                if np.isfinite(c):
-                    scores[i] = c
+                if std_a > EPS and std_b > EPS:
+                    if normalize:
+                        a_z, b_z = zscore(a), zscore(b)
+                    else:
+                        a_z, b_z = a, b
+                    c = np.corrcoef(a_z, -b_z)[0, 1]
+                    corr = float(c) if np.isfinite(c) else 0.0
+                    scores[i] = max(0.0, 0.5 * corr + 0.5 * pol)
+                else:
+                    scores[i] = max(0.0, pol)
 
     # Find local maxima above threshold
     candidates = []
@@ -419,15 +417,22 @@ def roughness_detector(
     min_separation: int = 30,
 ) -> List[Tuple[int, float]]:
     """
-    Detect seams via roughness discontinuity.
+    Detect seams via left/right roughness contrast.
 
-    Roughness = std(diff(window)). Large changes indicate regime shifts.
-    We look for both absolute changes and relative spikes.
+    For each candidate τ compute:
+        R_L(τ) = std(diff(y[τ-w : τ]))
+        R_R(τ) = std(diff(y[τ   : τ+w]))
+        D(τ)   = |R_R(τ) - R_L(τ)| / (σ̂_global + ε)
+
+    This is a true bilateral contrast: D(τ) is large only where roughness
+    genuinely changes across τ, not just because of local noise.  The previous
+    implementation compared adjacent single-sample-shifted windows, which are
+    nearly identical and do not constitute a left/right contrast.
 
     Args:
         y: Input signal
-        window_size: Window for roughness computation
-        threshold: Minimum normalized roughness change to consider
+        window_size: Half-window size w (each side uses w samples)
+        threshold: Minimum normalised contrast to consider
         top_k: Maximum candidates to return
         min_separation: NMS minimum distance
 
@@ -435,49 +440,48 @@ def roughness_detector(
         List of (index, score) sorted by score descending
     """
     T = len(y)
+    w = window_size  # half-window: each side uses w samples
 
-    if T < window_size + 3:
+    if T < 2 * w + 3:
         return []
 
-    # OPTIMIZATION: Vectorized rolling roughness using stride tricks
     from numpy.lib.stride_tricks import sliding_window_view
 
     try:
-        # Get all windows at once
-        windows = sliding_window_view(y, window_size)
-        # Compute diff for each window and then std
-        diffs = np.diff(windows, axis=1)
-        roughness = np.std(diffs, axis=1)
+        all_windows = sliding_window_view(y, w)
+        diffs = np.diff(all_windows, axis=1)   # shape (T-w, w-1)
+        roughness = np.std(diffs, axis=1)       # roughness[i] = R for y[i:i+w]
     except (ValueError, MemoryError):
-        # Fallback to loop if stride tricks fail
-        roughness = np.zeros(T - window_size)
-        for i in range(T - window_size):
-            w = y[i : i + window_size]
-            roughness[i] = np.std(np.diff(w))
+        roughness = np.zeros(T - w)
+        for i in range(T - w):
+            roughness[i] = np.std(np.diff(y[i : i + w]))
 
-    if len(roughness) < 3:
+    # For position τ (valid range: w ≤ τ ≤ T-w):
+    #   R_L(τ) = roughness[τ-w]   (window y[τ-w:τ])
+    #   R_R(τ) = roughness[τ]     (window y[τ:τ+w])
+    valid_start = w
+    valid_end = T - w
+    if valid_end <= valid_start:
         return []
 
-    # Find discontinuities in roughness (normalized by local variance)
-    change = np.abs(np.diff(roughness))
+    tau_range = np.arange(valid_start, valid_end)
+    R_L = roughness[tau_range - w]   # roughness of left window
+    R_R = roughness[tau_range]       # roughness of right window
 
-    # Normalize to make threshold meaningful across different signal scales
-    change_std = np.std(change)
-    if change_std > EPS:
-        change_normalized = change / change_std
-    else:
-        change_normalized = change
+    contrast = np.abs(R_R - R_L)
+    global_std = np.std(contrast)
+    contrast_normalized = contrast / (global_std + EPS)
 
-    # Find local maxima
     candidates = []
-    for i in range(1, len(change_normalized) - 1):
+    for k in range(1, len(contrast_normalized) - 1):
+        val = contrast_normalized[k]
         if (
-            change_normalized[i] > threshold
-            and change_normalized[i] > change_normalized[i - 1]
-            and change_normalized[i] > change_normalized[i + 1]
+            val > threshold
+            and val > contrast_normalized[k - 1]
+            and val > contrast_normalized[k + 1]
         ):
-            seam_idx = i + window_size // 2
-            candidates.append((seam_idx, float(change_normalized[i])))
+            seam_idx = int(tau_range[k])
+            candidates.append((seam_idx, float(val)))
 
     candidates.sort(key=lambda x: x[1], reverse=True)
     filtered = _nms(candidates, min_separation, top_k)

@@ -117,23 +117,21 @@ MDL = (T/2)·log₂(2πe·σ̂²) + (K/2)·log₂(T) + m·[log₂(T) + 1]
 
 ### Reconciling Theoretical vs. Experimental k*
 
-**Theoretical prediction**: k* = 1/(2·ln 2) ≈ 0.7213
+**Analytic candidate**: k* = 1/(2·ln 2) ≈ 0.7213 (under simplified model, see Section 3.4)
 
-**Experimental result**: k*_empirical ≈ 0.782 ± 0.15 (from Monte Carlo validation)
+**Empirical status**: Monte Carlo validation under the full pipeline (model zoo, roughness candidates, beam search) yields crossover estimates in the range ~1.0–1.2, with high run-to-run variance across 50–100 trials. This is substantially higher than the analytic value.
 
-**Why the difference?**
+**Why the gap is expected:**
 
-The 8.4% offset between theory and experiment arises from:
+1. **Nonzero Δp**: The model zoo selects different model classes per segment, adding parameters (Δp > 0). This raises the effective threshold by (Δp/2)·log₂(N)/N per sample.
 
-1. **Finite-sample bias**: The theoretical derivation assumes T → ∞. For finite T = 200-500 (typical in experiments), the MDL parameter penalty (K/2)·log₂(T) is systematically larger than the asymptotic approximation predicts.
+2. **Localization error**: Roughness candidates have ±5–15 sample error. RSS₁ is evaluated at the estimated, not true, seam position, inflating residuals.
 
-2. **Detection uncertainty**: Theory assumes seam position is **known exactly**. In practice, the roughness detector has localization error τ̂ - τ* ~ ±5-10 samples. This error introduces additional residual variance, effectively raising the SNR threshold.
+3. **Model-zoo selection overhead**: Choosing the best of 7 models per segment incurs an implicit complexity cost not included in the simplified formula.
 
-3. **Model selection overhead**: Experiments use a **model zoo** (Fourier, polynomial, AR) and select the best fit per segment via BIC. This multi-model comparison incurs an implicit complexity penalty not captured in the single-model theory.
+4. **MDL objective mismatch**: The k* derivation uses a specific simplified MDL; the production code uses `mdl_bits()` with pooled RSS, which differs in constant terms.
 
-**Interpretation**: The experimental threshold k* ≈ 0.78 is the **effective** SNR required for seam detection **in practice** with finite data and imperfect localization. The theoretical k* ≈ 0.72 is the **asymptotic lower bound** achievable with perfect detection and infinite samples.
-
-**Error bounds**: The 18.7% relative error (0.782 vs 0.721) is within acceptable range for information-theoretic constants estimated from 30-trial Monte Carlo. Increasing to 100+ trials would tighten the confidence interval to ~±0.05, likely centering closer to 0.75.
+**Conclusion**: k* ≈ 0.721 is best understood as an analytic lower bound under idealized conditions, not as a universal empirical threshold. The effective operational threshold under the full pipeline is higher and data-dependent. Further Monte Carlo experiments with the canonical `mdl_bits()` objective (using matched hyperparameters) are needed before claiming a precise empirical value.
 
 ## Scope and Assumptions
 
@@ -148,7 +146,7 @@ The constant k* = 1/(2·ln 2) ≈ 0.721 emerges from these assumptions. For non-
 
 ## Abstract
 
-We establish the theoretical framework for **seam-aware time series analysis** based on the recognition that normalized signals naturally inhabit **non-orientable quotient spaces** of the form Sⁿ⁻¹/ℤ₂ ≅ ℝPⁿ⁻¹ (real projective space). We prove that the constant k* = 1/(2·ln 2) ≈ 0.721 emerges as an **information-theoretic phase boundary** separating regimes where orientation tracking is justified by MDL reduction.
+We establish the theoretical framework for **seam-aware time series analysis**. Normalized signal windows live on Sⁿ⁻¹; the antipodal identification u ~ −u quotients this to ℝPⁿ⁻¹ and introduces a global sign ambiguity — a ℤ₂ double cover — that is the geometric source of sign-flip seams. We derive the MDL gain expression for a sign-flip seam (including the Δp parameter-cost term often omitted in simplified presentations) and discuss the analytic candidate threshold k* = 1/(2·ln 2) ≈ 0.721 under idealized assumptions, clarifying the gap between this analytic value and empirical estimates from the full pipeline.
 
 **Note on notation**: While the general theory can be extended to complex signals (leading to ℂᴺ/ℤ₂), our implementation and experiments work exclusively with **real-valued time series**. The quotient space is therefore Sⁿ⁻¹/ℤ₂ ≅ ℝPⁿ⁻¹, where Sⁿ⁻¹ is the unit sphere in ℝⁿ.
 
@@ -181,42 +179,42 @@ Sⁿ⁻¹/ℤ₂ is homeomorphic to **real projective space** ℝPⁿ⁻¹.
 
 *Proof:* The projection π : Sⁿ⁻¹ → ℝPⁿ⁻¹ given by u ↦ [u₀ : u₁ : ... : uₙ₋₁] (homogeneous coordinates) descends to the quotient since π(u) = π(-u). The map is continuous, surjective, and open by the quotient topology. ∎
 
-**Corollary:** ℝPⁿ⁻¹ is **non-orientable** for all n ≥ 2.
+**Corollary (ℤ₂ double cover):** The projection π : Sⁿ⁻¹ → ℝPⁿ⁻¹ is a two-sheeted covering map. Traversing a closed loop in ℝPⁿ⁻¹ may lift to an open path between antipodal points in Sⁿ⁻¹, introducing a global sign ambiguity.
+
+**Note on orientability:** ℝP^m is **non-orientable when m is even** (e.g., ℝP² is the real projective plane) and **orientable when m is odd** (e.g., ℝP¹ ≅ S¹ and ℝP³ are orientable). The relevant modeling consequence is not orientability per se but the ℤ₂ sign ambiguity introduced by the quotient, which is present for all m ≥ 1.
 
 ---
 
-## 2. Eigenspace Decomposition
+## 2. ℤ₂ Action on Adjacent Window Pairs
 
-### 2.1 Projection Operators
+### 2.1 The Relevant Operator
 
-The ℤ₂ action decomposes ℝⁿ into **symmetric** (+1 eigenspace) and **antisymmetric** (-1 eigenspace) subspaces:
+For the global antipodal map S = −I on ℝⁿ, the projections 𝐏₊ = ½(I + S) = 0 and 𝐏₋ = ½(I − S) = I. The +1 eigenspace is {0} and the −1 eigenspace is all of ℝⁿ, making the decomposition trivially uninformative for nonzero vectors.
+
+A nontrivial decomposition requires a different operator. Define the **window-pair swap operator** acting on adjacent left/right windows (x_L, x_R) ∈ ℝʷ × ℝʷ:
 
 ```
-𝐏₊ = ½(I + S)    →    𝐏₊x = ½(x + Sx) = ½(x - x) = 0  if x ∈ V₋
-𝐏₋ = ½(I - S)    →    𝐏₋x = ½(x - Sx) = ½(x + x) = x  if x ∈ V₋
+S̃(x_L, x_R) = (−x_R, −x_L)
 ```
 
-**Properties:**
-1. 𝐏₊ + 𝐏₋ = I (completeness)
-2. 𝐏₊𝐏₋ = 0 (orthogonality)
-3. 𝐏₊² = 𝐏₊, 𝐏₋² = 𝐏₋ (idempotence)
+This is the antipodal map in the product space but applied with a swap, so S̃² = I (involution). The +1 eigenspace of S̃ is {(a, −a) : a ∈ ℝʷ} (antipodal pairs) and the −1 eigenspace is {(a, a) : a ∈ ℝʷ} (symmetric/aligned pairs).
 
 ### 2.2 Energy Decomposition
 
-For any signal x ∈ ℝⁿ:
+For an adjacent window pair (x_L, x_R):
 
 ```
-x = 𝐏₊x + 𝐏₋x
-‖x‖² = ‖𝐏₊x‖² + ‖𝐏₋x‖²
+𝐏₊(x_L, x_R) = ½(x_L − x_R,  x_R − x_L)   [antipodal component]
+𝐏₋(x_L, x_R) = ½(x_L + x_R,  x_L + x_R)   [aligned component]
 ```
 
-Define the **antisymmetric energy fraction**:
+Define the **antipodal energy fraction**:
 
 ```
-α₋ = ‖𝐏₋x‖² / ‖x‖²  ∈ [0, 1]
+α₊ = ‖𝐏₊(x_L, x_R)‖² / ‖(x_L, x_R)‖²  ∈ [0, 1]
 ```
 
-**Interpretation:** α₋ measures the "non-orientability" of the signal. High α₋ means the signal gains significant content from the ℤ₂ odd subspace.
+**Interpretation:** α₊ → 1 when x_R ≈ −x_L (a sign-flip seam across the boundary); α₊ → 0 when x_L ≈ x_R (no regime change). This is well-defined for nonzero pairs and connects directly to the antipodal correlation score used in detection.
 
 ---
 
@@ -246,51 +244,58 @@ where:
 
 **Accept seam if:** ΔMDL = MDL₁ - MDL₀ < 0
 
-### 3.3 Derivation of k*
+### 3.3 Complete MDL Gain Expression
 
-The seam adds a 1-bit encoding cost (amortized over N samples) but reduces fitting error. Consider:
-
-- Pre-seam residual variance: σ₀²
-- Post-flip residual variance: σ₁²
-- Seam improves fit: σ₁² < σ₀²
-
-The change in negative log-likelihood (Gaussian assumption):
+The full gain from adding one seam (m = 1) is:
 
 ```
-ΔNLL = (N/2)·log₂(σ₁²/σ₀²)
+ΔMDL = (N/2)·log₂(RSS₀/RSS₁) − (Δp/2)·log₂(N) − (α/2)·log₂(N)
 ```
 
-The parameter cost increase:
+where:
+- RSS₀, RSS₁ are the residual sums of squares before and after the seam
+- Δp = p₁ − p₀ is the increase in fitted parameters (two-segment model minus one-segment model)
+- α is the seam-penalty coefficient (default α = 2, so the seam-location term costs log₂(N) bits)
+
+**Note on the dominant-term simplification.** In the idealized case of equal-length segments with the same model class on each side, Δp = 0 and the gain reduces to:
 
 ```
-ΔP = (1/2)·log₂(N)  (for seam location encoding)
+ΔMDL ≈ (N/2)·log₂(RSS₀/RSS₁) − (α/2)·log₂(N)
 ```
 
-**Breakeven condition:**
+This is the form used for intuition in the paper. However, the model zoo uses different model classes per segment (Fourier, polynomial, AR), so Δp may be nonzero and the full expression should be used when interpreting empirical gain values.
+
+### 3.4 Candidate Analytic Threshold k*
+
+Under the simplified model (Δp = 0, piecewise-constant means, iid Gaussian noise with amplitude A and noise std σ_n):
 
 ```
-ΔNLL + ΔP = 0
-(N/2)·log₂(σ₁²/σ₀²) + (1/2)·log₂(N) = 0
-N·log₂(σ₁/σ₀) = -log₂(N)
-log₂(σ₁/σ₀) = -log₂(N)/N
+RSS₀ ≈ N(A² + σ_n²)
+RSS₁ ≈ N·σ_n²
 ```
 
-Define the **effective SNR** as the ratio of signal power improvement to noise:
+so RSS₀/RSS₁ ≈ 1 + (A/σ_n)². Setting ΔMDL = 0:
 
 ```
-SNR_eff = (σ₀² - σ₁²) / σ₁²
+(N/2)·log₂(1 + r²) = (α/2)·log₂(N)    where r = A/σ_n
 ```
 
-At the critical threshold where ΔMDL = 0, asymptotic analysis (N → ∞) yields:
+For large N this implies r² ≈ α·log₂(N)/N → 0, i.e., the threshold shrinks asymptotically. In the Rissanen two-part MDL literature, the analogous per-sample gain threshold yields:
 
 ```
-SNR_eff* = 1 / (2·ln 2) ≈ 0.7213
+SNR_eff* ≈ 1 / (2·ln 2) ≈ 0.7213
 ```
 
-**Theorem 2 (k* Phase Boundary):**
-A seam-aware transformation achieves ΔMDL < 0 **if and only if** the effective signal-to-noise ratio in the post-seam window exceeds k* = 1/(2·ln 2).
+where SNR_eff = (σ₀² − σ₁²)/σ₁² = r².
 
-*Proof:* See Section 4.3 of the companion paper (Mayo, 2025). The key insight is that the 1-bit seam encoding cost requires a minimum per-sample MDL reduction of log₂(N)/N bits. This amortization threshold, combined with the Gaussian likelihood model, yields the k* constant through the information-theoretic entropy bound. ∎
+**Proposition (candidate threshold under simplified Gaussian model):**
+Under a two-segment antipodal mean model with iid Gaussian noise, Δp = 0, and equal-length segments, the expected MDL gain is positive when SNR_eff > α/(N·ln 2) and negative for pure-noise splits with high probability.  The value k* = 1/(2·ln 2) ≈ 0.721 is the breakeven under this simplified model as N → ∞.
+
+**Caveats — this is not a universal theorem:**
+1. The model zoo introduces nonzero Δp, which raises the effective threshold.
+2. Colored or heavy-tailed turbulence changes the RSS ratio.
+3. Empirical Monte Carlo results under the full pipeline are noisy and sensitive to the MDL objective definition; stored validation artifacts show empirical crossover estimates in the range 1.0–1.2, not 0.72. The gap reflects finite-sample bias, localization error, and model-zoo overhead, not a proof failure.
+4. The "if and only if" phrasing used in earlier drafts was too strong; the proposition above is the correct scope.
 
 ---
 
@@ -418,38 +423,25 @@ where α₋ is the antisymmetric energy fraction and L_standard is the standard 
 
 ---
 
-## 7. Information-Geometric Interpretation
+## 7. Information-Geometric Perspective
 
-### 7.1 Fisher Metric on ℝℙⁿ
+### 7.1 Projective Direction Space and pPVI
 
-The **Fisher information metric** on the statistical manifold of Gaussian distributions is:
-
-```
-g_ij = E[(∂ log p / ∂θᵢ)(∂ log p / ∂θⱼ)]
-```
-
-On ℝℙⁿ (the quotient ℂᴺ/ℤ₂), this metric is **half** the standard Euclidean metric due to the ℤ₂ identification.
-
-**Consequence:** Geodesic distances in ℝℙⁿ are shorter than in ℂᴺ, leading to:
-- **Faster convergence** in gradient descent
-- **Lower effective dimension** for MDL purposes
-- **Natural emergence of k*** from the metric curvature
-
-### 7.2 Curvature and k*
-
-The **scalar curvature** of ℝℙⁿ with the Fisher metric is constant:
+The normalized field direction B̂ = B/(|B| + ε) lives on S² ⊂ ℝ³. Identifying B̂ ~ −B̂ quotients this to ℝP². The projective distance:
 
 ```
-R = n(n+1) / 2
+d_RP²(B̂₁, B̂₂) = arccos(|B̂₁ · B̂₂|)
 ```
 
-The k* constant is related to the **sectional curvature** at the seam location. Ongoing work (Mayo, 2025b) establishes:
+is zero for pure antipodal reversals (B₂ = −B₁) and maximum (π/2) for orthogonal directions. This is the basis of the projective PVI (pPVI) variant.
 
-```
-k* = lim_{n→∞} [R / (2n·ln n)]^(1/2)
-```
+**Important caveat:** Because d_RP² = 0 for ideal antipodal flips, pPVI does **not** directly detect pure polarity reversals. Its sensitivity on sign-flip benchmarks arises because a physical tanh-shaped reversal passes through a near-null region (|B| ≈ 0) where B̂ = B/(|B| + ε) becomes direction-unstable. High pPVI at a polarity reversal indicates local field-magnitude depression, not the reversal topology itself.
 
-This connects information geometry to MDL at a deep level.
+Interpretation: pPVI detects near-null directional instability; MASS/SMASH detects compressible antipodal mean structure. The two methods are complementary, not redundant.
+
+### 7.2 Scope of Geometric Claims
+
+The ℝPⁿ quotient construction is a useful geometric interpretation of why sign ambiguity arises, but the paper's empirical contributions (antipodal score, MDL gate, roughness contrast) do not depend on information-geometric theorems. Claims about Fisher metrics, scalar curvature, or k*-from-curvature derivations are speculative and are not made in the main paper.
 
 ---
 
@@ -526,58 +518,43 @@ MDL₁ = (N₀/2)·log₂(2πeσ̂₀²) + (N₁/2)·log₂(2πeσ̂₁²)
 
 The last term log₂(N) encodes the seam location.
 
-### A.4 Critical Threshold
+### A.4 Complete Gain Expression
 
-Setting ΔMDL = MDL₁ - MDL₀ = 0 and solving for the variance ratio:
-
-```
-(N₀/2)·log₂(σ̂₀²/σ̂²) + (N₁/2)·log₂(σ̂₁²/σ̂²) = -(d+1)/2 · log₂(N) - log₂(N)
-```
-
-For balanced seams (N₀ ≈ N₁ ≈ N/2) and assuming σ̂₀² ≈ σ̂₁² (homogeneous noise):
+Setting ΔMDL = MDL₁ − MDL₀ = 0 and using the full formula:
 
 ```
-(N/2)·log₂(σ_seam²/σ_baseline²) ≈ -(d+2)/2 · log₂(N)
-
-log₂(σ_seam²/σ_baseline²) ≈ -(d+2)/N · log₂(N)
-
-σ_seam²/σ_baseline² ≈ N^(-(d+2)/N)
+ΔMDL = (N/2)·log₂(RSS_seam/RSS_baseline) − (Δp/2)·log₂(N) − (α/2)·log₂(N)
 ```
 
-For large N, expanding the exponent:
+where Δp = p₁ − p₀ is the net parameter increase. For the scenario where each segment uses the same degree-d polynomial (p₀ = d+1 per side, two segments vs. one, so p₁ = 2(d+1) and Δp = d+1):
 
 ```
-N^(-(d+2)/N) = exp(-(d+2)·ln N / N) → 1 - (d+2)·ln N / N + O(1/N²)
+(N/2)·log₂(RSS_baseline/RSS_seam) = (Δp + α)/2 · log₂(N)
 ```
 
-The **fractional variance reduction** required is:
+For balanced equal-length segments with homogeneous noise:
 
 ```
-(σ_baseline² - σ_seam²) / σ_seam² ≈ (d+2)·ln N / N
+log₂(RSS_seam/RSS_baseline) ≈ −(Δp + α)/N · log₂(N)
 ```
 
-The **signal-to-noise ratio** (SNR) that justifies this reduction:
+which goes to zero as N → ∞. The fractional variance reduction required is:
 
 ```
-SNR = (signal power) / (noise power)
+(RSS_baseline − RSS_seam)/RSS_seam ≈ (Δp + α)·ln N / N
 ```
 
-At the critical point:
+Under the simplified piecewise-constant mean model (Δp = 0, α = 2):
 
 ```
-SNR* = 1 / [2·(d+2)·ln 2 / (d+2)] = 1 / (2·ln 2) ≈ 0.7213
+SNR_eff* = (A/σ_n)²  at breakeven ≈ α·ln N / N → 0 as N → ∞
 ```
 
-This is **k***, independent of polynomial degree d in the asymptotic limit.
+The value k* = 1/(2·ln 2) ≈ 0.721 is a reference derived from a related Rissanen-style per-sample gain argument; it does **not** emerge directly from the displayed algebra above. The derivation is better understood as providing a finite-sample reference: for N = 200, α = 2, Δp = 0, the breakeven r² = A²/σ_n² ≈ 0.07 (r ≈ 0.27), which is substantially lower than k* ≈ 0.72. With Δp = 10 (typical model-zoo overhead), r rises to ≈ 0.76, close to empirical estimates.
 
-### A.5 Universality
+### A.5 Scope
 
-The k* constant is **universal** because:
-1. It depends only on the encoding base (log₂) and the seam cost (1 bit)
-2. It's independent of signal model class (polynomial, Fourier, etc.)
-3. It emerges from the fundamental MDL tradeoff between complexity and fit
-
-**Analogy:** k* is to seam detection what e is to compound interest—a natural constant arising from optimization under exponential constraints.
+The simplified derivation gives useful intuition: seams must compress. The exact threshold depends on chunk size N, model complexity Δp, seam penalty α, and noise distribution. The k* = 0.721 value should be treated as an analytic reference, not a universal constant.
 
 ---
 
