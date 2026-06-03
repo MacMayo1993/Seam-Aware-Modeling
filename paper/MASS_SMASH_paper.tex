@@ -299,17 +299,28 @@ All components are domain-agnostic.
 \subsection{Antipodal Correlation Detector}
 \label{subsec:antipodal}
 
-The antipodal correlation detector scores each candidate position $\tau$ by:
-\begin{equation}
-  \mathcal{A}(\tau) \;=\; \mathrm{corr}\!\left(y[\tau-w:\tau],\;
-    -\,y[\tau:\tau+w]\right),
+The antipodal correlation detector scores each candidate position $\tau$ by a
+two-component combined score introduced in Section~\ref{subsec:prefilter}:
+\begin{align}
+  \mathcal{C}_{\mathrm{corr}}(\tau) &= \mathrm{corr}\!\left(y[\tau-w:\tau] - \bar{y}_L,\;
+    -\bigl(y[\tau:\tau+w] - \bar{y}_R\bigr)\right),
+  \label{eq:antipodal_ac}\\
+  \mathcal{C}_{\mathrm{pol}}(\tau)  &= 1 - \frac{|\bar{y}_L + \bar{y}_R|}{|\bar{y}_L| + |\bar{y}_R| + \varepsilon},
+  \label{eq:antipodal_dc}\\
+  \mathcal{A}(\tau) &= \tfrac{1}{2}\mathcal{C}_{\mathrm{corr}}(\tau)
+                      + \tfrac{1}{2}\mathcal{C}_{\mathrm{pol}}(\tau),
   \label{eq:antipodal}
-\end{equation}
-where $w$ is the half-window size (default 20 samples) and both windows are
-$z$-score normalized before computing the Pearson correlation.
+\end{align}
+where $w$ is the half-window size (default 20 samples), $\bar{y}_L$ and
+$\bar{y}_R$ are the window means, and $\varepsilon > 0$ (default $10^{-8}$) is
+a small regularization constant that prevents division by zero when both window
+means are near zero.
+The AC component $\mathcal{C}_{\mathrm{corr}}$ detects oscillatory antipodal
+structure; the DC component $\mathcal{C}_{\mathrm{pol}}$ captures flat-plateau
+sign flips where $z$-score normalization would otherwise remove the polarity
+information.
 The score $\mathcal{A}(\tau) \approx 1$ when the $w$ samples immediately
-before $\tau$ are temporally coherent with the negated $w$ samples after
-$\tau$: the defining signature of a sign-flip transition.
+before $\tau$ are antipodally coherent with the $w$ samples after $\tau$.
 For turbulent fluctuations with random phase structure,
 $\mathcal{A}(\tau) \approx 0$ regardless of amplitude.
 The pre-filter selects for structure rather than for signal magnitude.
@@ -343,22 +354,32 @@ Candidates are local maxima of $\mathcal{D}$ above threshold 0.20, with NMS.
 \label{subsec:mdl}
 
 After merging the top-$k^*$ candidates from both detectors (default $k^*=3$),
-MASS/SMASH scores all seam configurations with the MDL objective:
+MASS/SMASH scores all seam configurations with the MDL objective.
+Under the assumption that residuals are i.i.d.\ Gaussian with variance
+estimated per segment, the cost of a model with $m$ seams (yielding $m+1$
+segments), parameter count $p$, and pooled residual sum of squares $\RSS$ is:
 \begin{equation}
   \MDL(m, \hat{\boldsymbol{\theta}}) \;=\;
-    \underbrace{\frac{N}{2}\log_2\frac{\RSS}{N}}_{\text{data fit}}
+    \underbrace{\frac{N}{2}\log_2\frac{\RSS}{N}}_{\text{data fit (nats $\to$ bits)}}
     \;+\;
     \underbrace{\frac{p}{2}\log_2 N}_{\text{model complexity}}
     \;+\;
-    \underbrace{\frac{\alpha}{2}\,m\,\log_2 N}_{\text{seam encoding}},
+    \underbrace{\frac{\alpha}{2}\,m\,\log_2 N}_{\text{seam location encoding}},
   \label{eq:mdl}
 \end{equation}
-where $\RSS$ is the pooled residual sum of squares across segments, $p$ is
-the total model parameter count, $m$ is the number of seams, and $\alpha = 2.0$.
-The seam encoding term reflects the $\approx m\log_2 N$-bit cost of
-specifying seam locations.
-A no-seam configuration ($m=0$) is always included; a detection requires an
-explicit positive MDL gain over the single-segment model.
+where $p$ is the total parameter count summed across all segments, $m$ is
+the number of seams, and $\alpha = 2.0$.
+The null (no-seam) cost is therefore
+$\MDL_0 = \frac{N}{2}\log_2\frac{\RSS_0}{N} + \frac{p_0}{2}\log_2 N$,
+and the cost for a single seam is
+$\MDL_1 = \frac{N}{2}\log_2\frac{\RSS_1}{N} + \frac{p_1}{2}\log_2 N +
+\frac{\alpha}{2}\log_2 N$,
+where $p_1 = p_0 + \Delta p$ accounts for any additional parameters in the
+two-segment model.
+The seam encoding term reflects the $\approx\log_2 N$-bit cost of specifying
+each seam location.
+A no-seam configuration ($m=0$) is always included; a detection requires
+$\MDL_0 - \MDL_1 > G = 20$ bits (the gain threshold).
 
 Within each segment, MASS/SMASH evaluates a model zoo: Fourier series at
 $K = 4, 8, 12$ harmonics, polynomials of degree 2, 3, and 5, and
@@ -573,7 +594,9 @@ with lag $\tau = 1$ sample (3 s), 90-s normalization window, threshold
 $\PVI > 3.0$, minimum separation 300 s.
 
 \textbf{$d|\mathbf{B}|/dt$ baseline.}
-Threshold at $\mu + 2.5\sigma$ of:
+Threshold at $\hat{\mu} + 2.5\hat{\sigma}$ of (where $\hat{\mu}$ and
+$\hat{\sigma}$ are the sample mean and standard deviation of the score
+distribution over the full signal):
 \begin{equation}
   \mathrm{score}(t) \;=\; \left|\frac{d\,|\mathbf{B}|}{dt}\right|,
   \label{eq:baseline}
@@ -1024,9 +1047,19 @@ preferred as the primary detector with MASS/SMASH as supplementary selector.
 \subsection{Localization and Post-Processing}
 
 The $\pm 30\secunit$ localization offset is a correctable implementation
-artifact.
-For applications requiring the transition center, a post-detection tanh
-profile fit recovers sub-10-s accuracy.
+artifact of finite chunk discretization (chunk boundaries bias the winner
+toward earlier positions within the overlap region).
+For applications requiring the transition center, a post-detection
+parametric profile fit can recover sub-10-s accuracy.
+Specifically, a window of $\pm 2w$ samples centered on the coarse detection
+is fit to
+\begin{equation}
+  f(t;\,\tau_0,A,B,\delta) \;=\; A\tanh\!\left(\tfrac{t-\tau_0}{\delta}\right) + B,
+  \label{eq:tanh_fit}
+\end{equation}
+using nonlinear least squares (e.g., Levenberg--Marquardt), where $\tau_0$ is
+the refined crossing center, $A$ is the half-amplitude, $B$ is any DC offset,
+and $\delta$ is the transition half-width.
 The MDL gain score provides a natural quality indicator for prioritizing
 which detections warrant this refinement.
 
